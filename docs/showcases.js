@@ -61,4 +61,16 @@ window.SHOWCASES = [
     prompt:
       "Pixel art fox mage: idle tail swish, channel a green orb, fire it at a scarecrow, recover. Autumn field at sunset.",
   },
+  {
+    title: "Neon Alley Blaster",
+    file: "showcases/robot-cannon-blast.html",
+    still: 267,
+    res: [160, 90],
+    loop: 7,
+    states: ["idle", "charge", "blast", "cool down"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art robot: idle hum, charge the arm cannon, blast with recoil and smoke, cool down. " +
+      "Neon alley in the rain, 160×90.",
+  },
 ];
