@@ -1,0 +1,12 @@
+{
+  "name": "pixel-anims",
+  "owner": { "name": "dris1153" },
+  "description": "pixel-anims: a Claude Code skill for single-file HTML pixel-art sprite animations",
+  "plugins": [
+    {
+      "name": "pixel-anims",
+      "source": "./",
+      "description": "Single-file HTML pixel-art sprite animations with built-in snapshot QA"
+    }
+  ]
+}

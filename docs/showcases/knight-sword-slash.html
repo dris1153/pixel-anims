@@ -1,0 +1,650 @@
+<title>Rampart Knight</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #0b0913; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #0b0913; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art knight slashing a sword on a castle rampart at dusk"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 128, H = 96;             // logical resolution
+const FLOOR = 80, FY = FLOOR - 1;  // wall-walk edge row; lowest row particles may reach
+const POSE_STEP = 6;               // sprite pose resampled every 6 ticks = 10 fps
+const FX = 40;                     // knight feet x
+const BL = 18;                     // hand to blade tip, px
+const SUNX = 102, SUNY = 57, SUNR = 8;
+const SKY_H = 60;                  // rows spanned by the four upper sky bands
+const MERLON = 66, WALL = 73;      // merlon top row, parapet wall top row
+const POLE_X = 117;                // pennant pole on the far merlon
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#140c1c',
+  '#1e1238', '#3a1a4c', '#6a2358', '#a6384f', '#dc6446',
+  '#2c2034', '#4c3848', '#76545c', '#b27a62',
+  '#262a48', '#4a5580', '#8190bb', '#b4c0dc', '#e8eef8',
+  '#1d1a5a', '#2f3ca6', '#5270dc',
+  '#3e2226', '#76402e',
+  '#b8682a', '#f4b43e', '#ffe690', '#fffaf0',
+];
+const INK = 0, SKY0 = 1, SKY1 = 2, SKY2 = 3, SKY3 = 4, SKY4 = 5,
+  STONE_D = 6, STONE_M = 7, STONE_L = 8, STONE_H = 9,
+  STEEL_D = 10, STEEL_M = 11, STEEL_L = 12, BLADE_D = 13, BLADE_L = 14,
+  CLOTH_D = 15, CLOTH_M = 16, CLOTH_L = 17, LEATH_D = 18, LEATH_L = 19,
+  GOLD_D = 20, GOLD_L = 21, FIRE_L = 22, WHITE = 23;
+
+// One step brighter along each ramp; dusk sky and stone lighten toward the spark gold.
+const LIGHTEN = Uint8Array.of(
+  STONE_D,
+  SKY1, SKY2, SKY3, SKY4, GOLD_L,
+  STONE_M, STONE_L, STONE_H, FIRE_L,
+  STEEL_M, STEEL_L, BLADE_D, BLADE_L, WHITE,
+  CLOTH_M, CLOTH_L, BLADE_L,
+  LEATH_L, GOLD_D,
+  GOLD_L, FIRE_L, WHITE, WHITE);
+const RAMP = Uint8Array.of(WHITE, FIRE_L, GOLD_L, GOLD_D, LEATH_L); // spark color over its life
+const RIM = Uint8Array.of(GOLD_L, FIRE_L, WHITE);                    // warm glint on cool steel, levels 2, 3, 4+
+// The blade always points at its own tip light, so it must not take rim.
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[BLADE_D] = RIM_OK[BLADE_L] = RIM_OK[WHITE] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY0] = AIR[SKY1] = AIR[SKY2] = AIR[SKY3] = AIR[SKY4] = 1;
+const STAR_RAMP = Uint8Array.of(SKY2, STEEL_L, BLADE_D, BLADE_L);
+const SMEAR = Uint8Array.of(WHITE, BLADE_L, BLADE_D, STEEL_L, STEEL_M); // crescent, one step darker per pose frame
+
+// [left, right] x-offsets per row
+const TORSO = Int8Array.of(-3, 3, -4, 4, -4, 4, -4, 4, -3, 4, -3, 4, -3, 3, -3, 3, -3, 3);
+const SKIRT = Int8Array.of(-4, 3, -4, 4, -5, 4, -5, 5);
+const HELM = Int8Array.of(-2, 2, -3, 3, -3, 4, -3, 4, -3, 4, -3, 3, -3, 3, -2, 2);
+const PLUME = Int8Array.of(-1, 1, -2, 1, -3, 0, -5, -2);
+
+const IDLE = 0, WINDUP = 1, SLASH = 2, RECOVER = 3; // states run in order, then loop
+const DUR = Uint16Array.of(144, 66, 42, 72);        // ticks; multiples of POSE_STEP
+const EASE = Uint16Array.of(6, 36, 6, 60);          // ticks to reach TARGET
+const EASE_OUT = Uint8Array.of(0, 0, 1, 0);         // 1 = snap in (easeOutQuad), 0 = easeInOutSine
+const FIRE_T = 6;                                   // one pulled-back frame before the cut lands
+const BLADE = 0, HX = 1, HY = 2, LEAN = 3, CROUCH = 4, STRIDE = 5, SWAY = 6, NP = 7;
+const REST = Float32Array.of(0.55, 7, -15, 0, 0, 0, 0); // guard: blade up and forward at the waist
+const TARGET = [
+  REST,
+  Float32Array.of(-0.75, -8, -26, -2, 1, 2, 1.5), // hands pulled back past the helm, blade up and back
+  Float32Array.of(2.45, 10, -14, 3, 3, 5, -4),   // follow-through: lunge, tip biting the stones
+  REST,
+];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // light source (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+function disc(cx, cy, r, c) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(buf, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c) {
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(buf, cx + x, cy + y, c); plot(buf, cx - x, cy + y, c);
+    plot(buf, cx + x, cy - y, c); plot(buf, cx - x, cy - y, c);
+    plot(buf, cx + y, cy + x, c); plot(buf, cx - y, cy + x, c);
+    plot(buf, cx + y, cy - x, c); plot(buf, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid) {
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[buf[i]]) continue;
+      if (d2 <= r1) buf[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) buf[i] = mid;
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = life;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY); it lives until its radius decays to ~1px.
+function spawnOrbit(r, speed, decay) {
+  const a = rand() * 6.283;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay);
+  pa[i] = a; pr[i] = r;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 1; y < H - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if (spr[i - 1] !== EMPTY || spr[i + 1] !== EMPTY || spr[i - W] !== EMPTY || spr[i + W] !== EMPTY) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < 100 ? 0 : d2 < 324 ? 1 : d2 < 784 ? 2 : 3); // falloff bands at 10, 18, 28 px
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? W : dy < -1 ? -W : 0;
+      buf[i] = lv > 0 && RIM_OK[c] && ((sx && spr[i + sx] === EMPTY) || (sy && spr[i + sy] === EMPTY))
+        ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2])
+        : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const step = (pMax[i] - pLife[i]) * RAMP.length / pMax[i] | 0;
+    dot(pqx[i], pqy[i], RAMP[Math.min(RAMP.length - 1, step + 1)], back);
+    dot(px[i], py[i], RAMP[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  for (let f = flashT > 5 ? 2 : flashT > 2 ? 1 : 0; f > 0; f--) // flashT = 7: 1 frame at 2 steps, 3 at 1
+    for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]];
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, viewX + shakeX * scale, viewY + shakeY * scale, W * scale, H * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / W, view.height / H)));
+  viewX = (view.width - W * scale) >> 1;
+  viewY = (view.height - H * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// #endregion
+
+// #region SCENE logic
+const NSTARS = 10;
+const starX = new Uint8Array(NSTARS), starY = new Uint8Array(NSTARS), starPhase = new Uint8Array(NSTARS);
+const arcA = new Float32Array(2); // crescent tail and lead angles (0 = up, clockwise)
+let qBob = 0, qCape = 0, qPlume = 0, lean = 0, crouch = 0, stride = 0, handX = 0, handY = 0;
+let haloR = 0, glintD = 0, glintL = 0, arcF = -1, poolR = 0, arcX = 0, arcY = 0, arcR = 0, jx = 0, jy = 0;
+
+function buildBackground() {
+  // Dusk sky: flat bands from indigo down to orange, joined by narrow ordered-dither seams.
+  for (let y = 0; y < FLOOR; y++) {
+    const h = y / SKY_H * 4, band = h | 0, f = Math.min(1, Math.max(0, (h - band - 0.5) * 3 + 0.5));
+    for (let x = 0; x < W; x++)
+      bg[y * W + x] = Math.min(SKY4, SKY0 + band + (f * 16 > BAYER[(y & 3) * 4 + (x & 3)] ? 1 : 0));
+  }
+  for (let dy = -SUNR - 4; dy <= SUNR + 4; dy++) {
+    for (let dx = -SUNR - 4; dx <= SUNR + 4; dx++) {
+      const x = SUNX + dx, y = SUNY + dy, i = y * W + x, d = Math.hypot(dx, dy);
+      if (x < 0 || x >= W) continue;
+      if (d <= SUNR + 0.5) bg[i] = d > SUNR - 1 && dy > 0 ? GOLD_L : FIRE_L;
+      else if (d <= SUNR + 2.5 || (d <= SUNR + 4.5 && (x + y) & 1)) bg[i] = LIGHTEN[bg[i]];
+    }
+  }
+
+  for (let x = 0; x < W; x++) {
+    const top = Math.round(62 + 1.6 * Math.sin(x * 0.06 + 0.8) + 1.1 * Math.sin(x * 0.17 + 2.3) + 0.5 * Math.sin(x * 0.43));
+    for (let y = top; y < WALL; y++) bg[y * W + x] = y === top ? SKY2 : SKY1;
+  }
+
+  // Parapet backlit by the sun: shadowed faces, sunlit top edges, merlons every 22px.
+  for (let y = MERLON; y < FLOOR; y++) {
+    const inWall = y >= WALL, ry = inWall ? y - WALL : y - MERLON;
+    for (let x = 0; x < W; x++) {
+      const m = (x + 20) % 22;
+      if (!inWall && m > 10) continue;
+      let c = STONE_D;
+      if (ry === 0) c = (x * 5 + y) % 7 ? STONE_L : STONE_H;
+      else if (ry === 4 || (inWall ? (x + (ry > 4 ? 6 : 0)) % 12 === 0 : m === 5 && ry > 4)) c = INK;
+      else if (ry === 1 || (!inWall && m === 10)) c = STONE_M;
+      bg[y * W + x] = c;
+    }
+  }
+
+  // Wall-walk: worn lit edge, then courses of bricks fading into the dark.
+  for (let y = FLOOR; y < H; y++) {
+    const row = y - FLOOR - 1, course = Math.max(0, Math.floor(row / 5)), ry = row - course * 5;
+    const base = course === 0 ? STONE_M : STONE_D;
+    for (let x = 0; x < W; x++) {
+      const bx = (x + course * 7) % 13;
+      let c = base;
+      if (y === FLOOR) c = (x * 7 + 3) % 11 ? STONE_L : STONE_H;
+      else if (ry === 4 || bx === 0) c = INK;
+      else if (ry === 0 || bx === 1) c = LIGHTEN[base];
+      else if (course === 0 && (ry === 3 || bx === 12)) c = STONE_D;
+      if (course === 2 && ry >= 2 && (x + y) & 1) c = INK;
+      bg[y * W + x] = c;
+    }
+  }
+  hline(bg, FX - 7, FX + 9, FLOOR, STONE_M); // contact shadow
+  hline(bg, FX - 5, FX + 7, FLOOR + 1, STONE_D);
+
+  for (let y = 50; y < MERLON; y++) plot(bg, POLE_X, y, LEATH_D);
+  plot(bg, POLE_X, 49, GOLD_L);
+
+  let seed = 7919;
+  for (let s = 0; s < NSTARS; s++) {
+    seed = seed * 16807 % 2147483647; starX[s] = 3 + seed % 122;
+    seed = seed * 16807 % 2147483647; starY[s] = 2 + seed % 20;
+    seed = seed * 16807 % 2147483647; starPhase[s] = seed & 127;
+  }
+}
+
+// Freeze the smooth pose onto the pixel grid; the sprite only changes on these frames.
+function sample(bob) {
+  snap.set(pose);
+  qBob = bob;
+  qCape = Math.round(spring[0]); qPlume = Math.round(spring[2]);
+  lean = Math.round(pose[LEAN]); crouch = Math.round(pose[CROUCH]); stride = Math.round(pose[STRIDE]);
+  const tremble = state === WINDUP && stT >= EASE[WINDUP] ? (stT / POSE_STEP) & 1 : 0;
+  handX = FX + Math.round(pose[HX]) - tremble;
+  handY = FY + Math.round(pose[HY]) + bob;
+  srcX = handX + Math.round(Math.sin(pose[BLADE]) * BL); // the blade tip
+  srcY = Math.min(FY, handY - Math.round(Math.cos(pose[BLADE]) * BL));
+  glintD = glintL = haloR = poolR = 0; arcF = -1;
+  const r = rand();
+  if (state === IDLE) {
+    rim = 1;
+    const g = (stT + 36) % 72 / POSE_STEP | 0; // a glint runs up the blade every 1.2 s, never on the loop seam
+    if (g < 4) glintD = 6 + g * 4;
+  } else if (state === WINDUP) {
+    const h = stT - EASE[WINDUP];
+    rim = 1 + (stT * 3 / DUR[WINDUP] | 0);
+    if (h >= 0) { glintL = h < 6 ? 1 : h < 18 ? 3 : 2 + (r < 0.5 ? 1 : 0); haloR = 2 + glintL; }
+  } else if (state === SLASH) {
+    rim = stT < FIRE_T ? 3 : stT < 12 ? 6 : stT < 24 ? 4 : 3;
+    if (stT < FIRE_T) { glintL = 3; haloR = 5; }
+    else { arcF = (stT - FIRE_T) / POSE_STEP | 0; poolR = stT < 12 ? 14 : stT < 24 ? 9 : 5; }
+  } else {
+    rim = Math.max(1, 3 - (stT * 4 / DUR[RECOVER] | 0));
+  }
+}
+
+function step() {
+  const idle = state === IDLE;
+  const bob = idle ? (stT / 36 | 0) & 1 : 0;
+  const lag = idle ? ((stT + 18) / 36 | 0) & 1 : 0; // plume trails the bob by half a frame
+  stepSpring(0, pose[SWAY]);
+  stepSpring(2, pose[SWAY] * 0.6 - pose[LEAN] * 0.8 - lag);
+  if (tick % POSE_STEP === 0) sample(bob);
+  if (state === SLASH && stT === FIRE_T) fire();
+}
+function fire() {
+  arcX = FX + lean + 2; arcY = FY - 21 + crouch; // front shoulder: the crescent pivot
+  const dx = srcX - arcX, dy = srcY - arcY;
+  arcR = Math.round(Math.sqrt(dx * dx + dy * dy));
+  arcA[1] = Math.atan2(dx, -dy); arcA[0] = arcA[1] - 2.9;
+  for (let n = 0; n < 30; n++) { // sparks off the stones, fanned upward and forward
+    const a = -0.25 - rand() * 2.65, v = 0.7 + rand() * rand() * 2.6;
+    spawn(BURST, 20 + rand() * 34, srcX, srcY - 1, Math.cos(a) * v + 0.7, Math.sin(a) * v * 1.15);
+  }
+  for (let n = 0; n < 14; n++) { // sparks shed along the arc, thrown along the swing
+    const a = arcA[0] + 2.9 * (0.35 + rand() * 0.65), s = Math.sin(a), c = Math.cos(a), v = 0.5 + rand() * 1.3;
+    spawn(BURST, 12 + rand() * 20, arcX + s * arcR, arcY - c * arcR, c * v + s * 0.5, s * v - c * 0.5);
+  }
+  shakeT = 16; flashT = 7;
+}
+
+// Two-bone joint between a and b (bones of length len), bent toward +x (fwd = 1) or +y.
+function bend(ax, ay, bx, by, len, fwd) {
+  const dx = bx - ax, dy = by - ay, d = Math.sqrt(dx * dx + dy * dy) || 1;
+  const h = Math.sqrt(Math.max(0, len * len - d * d / 4));
+  let nx = -dy / d, ny = dx / d;
+  if (fwd ? nx < 0 : ny < 0) { nx = -nx; ny = -ny; }
+  jx = Math.round((ax + bx) / 2 + nx * h); jy = Math.round((ay + by) / 2 + ny * h);
+}
+// 3px brush over a -> joint -> b in passes: base, then dark lower-left, then light upper-right.
+function limb(ax, ay, bx, by, dark, base, light) {
+  for (let pass = 0; pass < 3; pass++) {
+    for (let seg = 0; seg < 2; seg++) {
+      const x0 = seg ? jx : ax, y0 = seg ? jy : ay, x1 = seg ? bx : jx, y1 = seg ? by : jy;
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+      for (let s = 0; s <= n; s++) {
+        const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+        if (pass === 0) rect(spr, x - 1, y - 1, 3, 3, base);
+        else if (pass === 1) plot(spr, x - 1, y + 1, dark);
+        else plot(spr, x + 1, y - 1, light);
+      }
+    }
+  }
+}
+function leg(hx, hy, fx, dark, base, light) {
+  bend(hx, hy, fx, FY - 2, 6, 1);
+  limb(hx, hy, fx, FY - 2, dark, base, light);
+  plot(spr, jx + 1, jy, light === STEEL_L ? BLADE_D : light); // knee cop
+  hline(spr, fx - 1, fx + 1, FY - 1, base);                    // sabaton, toe forward
+  hline(spr, fx - 2, fx + 3, FY, dark);
+  plot(spr, fx + 1, FY - 1, light);
+  plot(spr, fx + 2, FY, base);
+}
+function drawSword() {
+  const s = Math.sin(snap[BLADE]), c = Math.cos(snap[BLADE]);
+  const flat = Math.abs(s) > 0.7, ox = flat ? 0 : -1, oy = flat ? 1 : 0; // shade side away from the light
+  const bx = handX + Math.round(s * 3), by = handY - Math.round(c * 3);
+  // One DDA for both edges so the 2px blade steps together; the dark edge stops short of the point.
+  const n = Math.max(Math.abs(srcX - bx), Math.abs(srcY - by)) || 1;
+  for (let k = 0; k <= n; k++) {
+    const x = Math.round(bx + (srcX - bx) * k / n), y = Math.round(by + (srcY - by) * k / n);
+    if (y > FY) continue;
+    if (k < n - 1) plot(spr, x + ox, y + oy, BLADE_D);
+    plot(spr, x, y, BLADE_L);
+  }
+  line(spr, handX - Math.round(s * 2), handY + Math.round(c * 2), handX, handY, LEATH_D, FY);
+  plot(spr, handX - Math.round(s * 3), handY + Math.round(c * 3), GOLD_D); // pommel
+  const gx = handX + Math.round(s * 2), gy = handY - Math.round(c * 2);
+  for (let k = -2; k <= 2; k++) plot(spr, gx + Math.round(c * k), gy + Math.round(s * k), k < 0 ? GOLD_D : GOLD_L);
+}
+
+function drawActor() {
+  const back = Math.sin(snap[BLADE]) < -0.3; // sword cocked behind the body
+  const top = FY - 22 + crouch + qBob, cx = FX + lean;
+  if (back) drawSword();
+
+  // Cape from the back of the shoulders; the spring swings the hem with a t² falloff.
+  const cy0 = top + 1, cy1 = FY - 4;
+  for (let y = cy0; y <= cy1; y++) {
+    const t = (y - cy0) / (cy1 - cy0), base = Math.round(cx + (FX - cx) * t);
+    const l = base - 4 - Math.round(t * 4) + Math.round(qCape * t * t);
+    for (let x = l; x <= base + 1; x++)
+      plot(spr, x, y, y === cy1 || x === l || (t > 0.3 && x === l + 2) ? CLOTH_D : CLOTH_M);
+  }
+
+  bend(cx - 2, top + 1, handX, handY, 6, 0);
+  limb(cx - 2, top + 1, handX, handY, INK, STEEL_D, STEEL_M); // far arm, behind the torso
+  leg(FX - 2, top + 9, FX - 3 - (stride >> 1), STEEL_D, STEEL_D, STEEL_M);
+  leg(FX + 1, top + 9, FX + 2 + stride, STEEL_D, STEEL_M, STEEL_L);
+
+  // Tabard skirt over the hips, hem trimmed in gold and lagging the cape spring.
+  for (let k = 0; k < 4; k++) {
+    const y = top + 9 + k, sh = Math.round(qCape * 0.4 * k * k / 9);
+    const l = FX + SKIRT[k * 2] + sh, r = FX + SKIRT[k * 2 + 1] + sh, mid = FX + 1 + sh;
+    for (let x = l; x <= r; x++)
+      plot(spr, x, y, k === 3 ? (x < mid ? GOLD_D : GOLD_L)
+        : x === l || x === mid - 2 ? CLOTH_D : x >= mid ? CLOTH_L : CLOTH_M);
+  }
+  // Breastplate: the lean tips the shoulders; belt on the last row.
+  for (let i = 0; i < 9; i++) {
+    const y = top + i, c0 = FX + Math.round(lean * (1 - i / 9));
+    const l = c0 + TORSO[i * 2], r = c0 + TORSO[i * 2 + 1];
+    for (let x = l; x <= r; x++)
+      plot(spr, x, y, i === 8 ? (x === c0 + 1 ? GOLD_L : LEATH_D) : x === l ? STEEL_D : x >= c0 + 2 ? STEEL_L : STEEL_M);
+  }
+  plot(spr, cx + 3, top + 2, BLADE_D);
+  plot(spr, cx + 2, top + 3, BLADE_D);
+
+  // Great helm with visor slit, and a plume that trails the head.
+  const hx = cx + 1, hy = top - 8;
+  for (let k = 0; k < 8; k++) {
+    const y = hy + k, l = hx + HELM[k * 2], r = hx + HELM[k * 2 + 1];
+    for (let x = l; x <= r; x++) plot(spr, x, y, x === l ? STEEL_D : k === 7 || x <= hx ? STEEL_M : STEEL_L);
+  }
+  hline(spr, hx + 1, hx + 3, hy + 3, INK);
+  plot(spr, hx + 2, hy + 5, INK);
+  hline(spr, hx + 1, hx + 2, hy + 1, BLADE_D);
+  for (let k = 0; k < 4; k++) {
+    const y = hy - 1 - k, sh = Math.round(qPlume * k * k / 9);
+    const l = hx + PLUME[k * 2] + sh, r = hx + PLUME[k * 2 + 1] + sh;
+    for (let x = l; x <= r; x++) plot(spr, x, y, x === r ? CLOTH_L : x === l ? CLOTH_D : CLOTH_M);
+  }
+
+  if (!back) drawSword();
+  bend(cx + 2, top + 1, handX, handY, 6, 0);
+  limb(cx + 2, top + 1, handX, handY, INK, STEEL_M, STEEL_L); // ink underside parts the arm from the breastplate
+  rect(spr, handX - 1, handY - 1, 3, 3, STEEL_M); // gauntlets on the grip
+  hline(spr, handX - 1, handX + 1, handY - 1, STEEL_L);
+  plot(spr, handX - 1, handY + 1, STEEL_D);
+  hline(spr, cx, cx + 3, top, STEEL_L); // pauldron
+  hline(spr, cx - 1, cx + 5, top + 1, STEEL_L);
+  plot(spr, cx - 1, top + 1, STEEL_M);
+  plot(spr, cx + 2, top, BLADE_D);
+  hline(spr, cx, cx + 4, top + 2, STEEL_D);
+}
+
+// Posterized warm light on stone around the sword tip: two steps inside, one in the fringe.
+function lightPool(cx, cy, r) {
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, i = y * W + x, c = buf[i], d2 = dx * dx + dy * dy * 4;
+      if (x < 0 || x >= W || c < STONE_D || c > STONE_H || d2 > r * r) continue;
+      if (d2 <= r * r * 0.2) buf[i] = LIGHTEN[LIGHTEN[c]];
+      else if (d2 <= r * r * 0.5 || (x + y) & 1) buf[i] = LIGHTEN[c];
+    }
+  }
+}
+function drawStars() {
+  for (let s = 0; s < NSTARS; s++) {
+    const v = (tick + starPhase[s]) & 127, lv = (v < 64 ? v : 127 - v) >> 4;
+    buf[starY[s] * W + starX[s]] = STAR_RAMP[lv];
+  }
+}
+function drawPennant() {
+  const f = (tick / 20 | 0) & 1;
+  for (let k = 0; k < 8; k++) {
+    const x = POLE_X + 1 + k, hgt = k < 3 ? 3 : k < 6 ? 2 : 1;
+    const y0 = 51 + (f ? (k > 2 && k < 6 ? 1 : 0) : (k > 4 ? 1 : 0));
+    for (let j = 0; j < hgt; j++) plot(buf, x, y0 + j, j === 0 ? CLOTH_L : j === 2 ? CLOTH_D : CLOTH_M);
+  }
+}
+function drawGlints() {
+  if (glintD) {
+    const s = Math.sin(snap[BLADE]), c = Math.cos(snap[BLADE]);
+    plot(buf, handX + Math.round(s * glintD), handY - Math.round(c * glintD), WHITE);
+  }
+  if (glintL) {
+    plot(buf, srcX, srcY, WHITE);
+    for (let d = 1; d <= glintL; d++) {
+      const c = d === 1 ? WHITE : FIRE_L;
+      plot(buf, srcX + d, srcY, c); plot(buf, srcX - d, srcY, c);
+      plot(buf, srcX, srcY + d, c); plot(buf, srcX, srcY - d, c);
+    }
+  }
+}
+// Crescent smear behind the blade: tapers to its tail, which retracts and darkens each pose frame.
+function drawSmear(f) {
+  const a0 = arcA[0] + (arcA[1] - arcA[0]) * (f === 0 ? 0 : f === 1 ? 0.4 : 0.72), span = arcA[1] - a0;
+  const k = arcR + 1, maxT = f === 0 ? 8 : f === 1 ? 6 : 3;
+  for (let dy = -k; dy <= k; dy++) {
+    const y = arcY + dy;
+    if (y < 0 || y > FY) continue;
+    for (let dx = -k; dx <= k; dx++) {
+      const x = arcX + dx, a = Math.atan2(dx, -dy);
+      if (x < 0 || x >= W || a < a0 || a > arcA[1]) continue;
+      const u = (a - a0) / span, depth = arcR + 0.5 - Math.sqrt(dx * dx + dy * dy);
+      const thick = 1 + (maxT - 1) * u * u;
+      if (depth < 0 || depth > thick) continue;
+      if (f === 0 && u < 0.12 && BAYER[(y & 3) * 4 + (x & 3)] > 7) continue; // dithered tail
+      buf[y * W + x] = SMEAR[f + (depth < 1.5 ? 0 : depth < thick * 0.6 ? 1 : 2)];
+    }
+  }
+}
+function drawImpact(f) {
+  const y = srcY - 1;
+  if (f < 4) { disc(srcX, y, 3.5 - f, FIRE_L); disc(srcX, y, 2 - f * 0.5, WHITE); }
+  for (let d = 2, len = 8 - (f >> 1); d <= len; d++) { // glint lines, flat along the stones
+    const c = d < 4 ? WHITE : FIRE_L;
+    plot(buf, srcX + d, y, c); plot(buf, srcX - d, y, c);
+    if (d <= len >> 1) plot(buf, srcX, y - d, c);
+  }
+}
+
+function drawUnder() {
+  drawStars();
+  drawPennant();
+  if (poolR) lightPool(srcX, srcY, poolR);
+}
+function drawOver() {
+  if (haloR) halo(srcX, srcY, haloR, FIRE_L, GOLD_D);
+  drawParticles(false);
+  drawGlints();
+  if (arcF >= 0 && arcF < 2) drawSmear(arcF);
+  drawParticles(true);
+  if (state === SLASH && stT >= FIRE_T && stT < FIRE_T + 14) drawImpact(stT - FIRE_T);
+}
+// #endregion
+
+// #region ENGINE boot
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)$/.exec(location.hash); // #t=N: render the frame after N updates, then hold
+if (seek) {
+  for (let n = +seek[1]; n > 0; n--) update();
+  render();
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

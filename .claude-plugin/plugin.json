@@ -1,0 +1,18 @@
+{
+  "name": "pixel-anims",
+  "description": "Build polished single-file HTML pixel-art sprite animations: any character, a looping action, a 16-bit look, and self-QA through tick snapshots.",
+  "author": {
+    "name": "dris1153"
+  },
+  "homepage": "https://dris1153.github.io/pixel-anims/",
+  "repository": "https://github.com/dris1153/pixel-anims",
+  "license": "MIT",
+  "keywords": [
+    "pixel-art",
+    "animation",
+    "sprite",
+    "canvas",
+    "gamedev",
+    "skill"
+  ]
+}
