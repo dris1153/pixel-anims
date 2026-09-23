@@ -1,10 +1,11 @@
 // Gallery data. To add a showcase: drop <slug>.html into public/anims/ and add one entry.
 // Array order is display order: [0] is the landing hero, [1..3] the landing tiles.
-// Required: slug, title, res [w, h] (logical px), loop (sum(DUR) / 60, seconds), states, kind, prompt.
+// Required: slug, tags (ids from TAG_GROUPS), title, res [w, h] (logical px), loop (sum(DUR) / 60, seconds), states, kind, prompt.
 // Optional: note, still (tick shown while paused, default 60), ref (true for the engine reference).
 export const SHOWCASES = [
   {
     slug: "robot-cannon-blast",
+    tags: ["robot", "projectile", "night"],
     title: "Neon Alley Blaster",
     still: 267,
     res: [160, 90],
@@ -17,6 +18,7 @@ export const SHOWCASES = [
   },
   {
     slug: "fox-mage-orb-cast",
+    tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
     still: 258,
     res: [160, 90],
@@ -28,6 +30,7 @@ export const SHOWCASES = [
   },
   {
     slug: "ninja-shuriken-throw",
+    tags: ["humanoid", "projectile", "night"],
     title: "Rooftop Shuriken",
     still: 228,
     res: [160, 90],
@@ -40,6 +43,7 @@ export const SHOWCASES = [
   },
   {
     slug: "dragon-fire-breath",
+    tags: ["creature", "breath", "night"],
     title: "Red Moon Drake",
     still: 301,
     res: [160, 90],
@@ -51,6 +55,7 @@ export const SHOWCASES = [
   },
   {
     slug: "knight-sword-slash",
+    tags: ["humanoid", "melee", "dusk"],
     title: "Rampart Knight",
     still: 223,
     res: [128, 96],
@@ -62,6 +67,7 @@ export const SHOWCASES = [
   },
   {
     slug: "wizard-spellcaster",
+    tags: ["humanoid", "magic", "projectile", "night"],
     title: "Moonlit Spellcaster",
     res: [128, 96],
     loop: 5.8,
@@ -74,6 +80,15 @@ export const SHOWCASES = [
       "A pixel art wizard casting a spell: idle bob with beard sway, staff raises while sparks spiral into the gem, " +
       "bright burst and a projectile across the scene with a 1-2px screen shake, settle back. Night sky, moon, stone floor.",
   },
+];
+
+// Filter chips on /showcase/: OR within a group, AND across groups. Resolution tags come from `res`.
+export const resTag = s => `${s.res[0]}x${s.res[1]}`;
+export const TAG_GROUPS = [
+  { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
+  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath']] },
+  { label: 'Setting', tags: [['night', 'Night'], ['dusk', 'Dusk']] },
+  { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
 
 export const animUrl = s => `/anims/${s.slug}.html`;

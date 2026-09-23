@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
 <link rel="stylesheet" href="/src/styles.css">
 <link rel="stylesheet" href="/src/showcase.css">
+<link rel="stylesheet" href="/src/showcase-filter.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -32,7 +33,20 @@
   <p class="back"><a href="/"><span aria-hidden="true">← </span>Home</a></p>
   <h1>Showcase</h1>
   <p class="section-lede">Every piece is a live, unedited HTML file. All but the engine reference were made by the skill. Open one for its brief, timings and a full-screen view.</p>
+  <div class="filters" role="search" aria-label="Filter showcases">
+    <div class="filter-top">
+      <label class="sr-only" for="showcase-search">Search showcases</label>
+      <input class="filter-search" id="showcase-search" type="search" placeholder="Search title or brief" autocomplete="off">
+      <p class="filter-count" id="showcase-count" role="status"></p>
+    </div>
+    <div class="chips" id="showcase-chips"></div>
+    <button class="filter-clear" type="button" data-clear hidden>Clear filters</button>
+  </div>
   <ul class="tiles tiles-all" id="showcase-tiles"></ul>
+  <div class="filter-empty" id="showcase-empty" hidden>
+    <p>No showcase matches these filters.</p>
+    <button class="btn" type="button" data-clear>Clear filters</button>
+  </div>
 </section>
 </main>
 

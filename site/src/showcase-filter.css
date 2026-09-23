@@ -1,0 +1,104 @@
+/* Search + tag chips on /showcase/. */
+.filters {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 36px;
+  padding: 20px 22px;
+  background: var(--deep);
+  border: 2px solid var(--line);
+  box-shadow: 6px 6px 0 var(--shadow);
+}
+.filter-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+.filter-search {
+  flex: 1 1 260px;
+  max-width: 440px;
+  padding: 10px 12px;
+  font: 400 1rem var(--body);
+  color: var(--text);
+  background: var(--night);
+  border: 2px solid var(--line);
+  border-radius: 0;
+}
+.filter-search::placeholder {
+  color: var(--muted);
+}
+.filter-search:focus-visible {
+  border-color: var(--stone);
+}
+.filter-count {
+  margin: 0 0 0 auto;
+  font: 500 0.82rem var(--mono);
+  color: var(--muted);
+}
+.chips {
+  display: grid;
+  gap: 10px;
+}
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.chip-label {
+  flex: 0 0 7.5rem;
+  font: 700 0.66rem var(--display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.chip {
+  padding: 6px 10px;
+  font: 700 0.7rem var(--display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--silver);
+  background: transparent;
+  border: 2px solid var(--line);
+  transition:
+    color 0.12s steps(2),
+    background 0.12s steps(2),
+    border-color 0.12s steps(2);
+}
+.chip:hover {
+  color: var(--text);
+  border-color: var(--gold);
+}
+.chip[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.filter-clear {
+  justify-self: start;
+  padding: 0;
+  font: 700 0.72rem var(--display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.filter-clear:hover {
+  color: var(--cyan-l);
+}
+.filter-empty {
+  padding: 24px 0 8px;
+  color: var(--silver);
+}
+.filter-empty p {
+  margin: 0 0 16px;
+}
+
+@media (max-width: 640px) {
+  .chip-label {
+    flex-basis: 100%;
+  }
+}
