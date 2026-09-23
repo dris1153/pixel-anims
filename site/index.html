@@ -8,15 +8,16 @@
 <meta property="og:title" content="pixel-anims">
 <meta property="og:description" content="One sentence in. A looping 16-bit sprite out. A skill for Claude Code.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://dris1153.github.io/pixel-anims/">
-<meta property="og:image" content="https://dris1153.github.io/pixel-anims/og-image.png">
+<meta property="og:url" content="https://pixel-anims.drisdev.io/">
+<meta property="og:image" content="https://pixel-anims.drisdev.io/og-image.png">
 <meta property="og:image:alt" content="A pixel art wizard charging a glowing staff under a full moon">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%230b0913'/%3E%3Crect x='3' y='1' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='2' y='3' width='4' height='4' fill='%23c4473a'/%3E%3C/svg%3E">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="/src/styles.css">
+<link rel="stylesheet" href="/src/showcase.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -40,7 +41,7 @@
   </div>
   <figure class="screen">
     <div class="frame" style="aspect-ratio: 128 / 96" data-still="236">
-      <iframe tabindex="-1" src="showcases/wizard-spellcaster.html" title="Live pixel art wizard casting a spell"></iframe>
+      <iframe tabindex="-1" src="/anims/wizard-spellcaster.html" title="Live pixel art wizard casting a spell"></iframe>
     </div>
     <figcaption><span class="live">Live</span> 128×96 · 5.8 s loop · the engine reference</figcaption>
   </figure>
@@ -125,21 +126,10 @@
 
 <section id="showcase">
   <h2>Showcase</h2>
-  <p class="section-lede">Every piece is a live, unedited HTML file. The first is the engine reference. The rest were made by the skill from the exact brief shown.</p>
-  <div class="gallery" id="gallery"></div>
-  <template id="card">
-    <article class="card">
-      <div class="frame"><iframe tabindex="-1" loading="lazy"></iframe></div>
-      <div class="card-body">
-        <p class="kind"></p>
-        <h3></h3>
-        <p class="meta"></p>
-        <blockquote class="prompt"><p></p><button class="copy" type="button">Copy brief</button></blockquote>
-        <p class="note"></p>
-        <a class="open" target="_blank" rel="noopener">Open full screen <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
-      </div>
-    </article>
-  </template>
+  <p class="section-lede">Every piece is a live, unedited HTML file. All but the engine reference were made by the skill. Open one to see the exact brief behind it.</p>
+  <div id="showcase-feature"></div>
+  <ul class="tiles" id="showcase-tiles"></ul>
+  <p class="see-all"><a class="btn" id="showcase-all" href="/showcase/">See all showcases</a></p>
 </section>
 
 <section id="how">
@@ -159,7 +149,6 @@
   <p>Made for Claude Code. Every sprite on this page is a single HTML file.</p>
 </footer>
 <p class="sr-only" role="status" id="copy-status"></p>
-<script src="showcases.js"></script>
-<script src="app.js"></script>
+<script type="module" src="/src/landing.js"></script>
 </body>
 </html>

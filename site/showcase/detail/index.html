@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Showcase · pixel-anims</title>
+<meta name="description" content="A pixel-anims showcase: a live 16-bit sprite animation, the brief that made it, and its timings.">
+<meta property="og:title" content="pixel-anims showcase">
+<meta property="og:description" content="Live, looping 16-bit sprite animations made with the pixel-anims skill for Claude Code.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://pixel-anims.drisdev.io/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%230b0913'/%3E%3Crect x='3' y='1' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='2' y='3' width='4' height='4' fill='%23c4473a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="/src/styles.css">
+<link rel="stylesheet" href="/src/showcase.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="bar">
+  <a class="logo" href="/">pixel-anims</a>
+  <nav aria-label="Sections">
+    <a href="/#install">Install</a><a href="/showcase/">Showcase</a><a href="/#how">How it works</a>
+    <a href="https://github.com/dris1153/pixel-anims">GitHub</a>
+  </nav>
+</header>
+
+<main id="main">
+<section class="detail" id="detail" hidden>
+  <p class="back"><a href="/showcase/"><span aria-hidden="true">← </span>All showcases</a></p>
+  <div class="detail-grid">
+    <div class="frame"><iframe tabindex="-1"></iframe></div>
+    <div class="detail-body">
+      <p class="kind"></p>
+      <h1></h1>
+      <p class="meta"></p>
+      <blockquote class="prompt"><p></p><button class="copy" type="button">Copy brief</button></blockquote>
+      <p class="note"></p>
+      <a class="open" target="_blank" rel="noopener">Open full screen <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
+    </div>
+  </div>
+  <nav class="pager" aria-label="More showcases">
+    <a rel="prev"><span class="pager-dir"><span aria-hidden="true">← </span>Previous</span><span class="pager-name"></span></a>
+    <a rel="next"><span class="pager-dir">Next<span aria-hidden="true"> →</span></span><span class="pager-name"></span></a>
+  </nav>
+</section>
+<section class="page-head" id="not-found" hidden>
+  <h1>Showcase not found</h1>
+  <p class="section-lede">That link doesn't match any showcase. It may have been renamed.</p>
+  <a class="btn" href="/showcase/">See all showcases</a>
+</section>
+</main>
+
+<footer class="foot">
+  <p><span class="logo">pixel-anims</span> · MIT licensed · <a href="https://github.com/dris1153/pixel-anims">Source on GitHub</a></p>
+  <p>Made for Claude Code. Every sprite on this page is a single HTML file.</p>
+</footer>
+<p class="sr-only" role="status" id="copy-status"></p>
+<script type="module" src="/src/detail-page.js"></script>
+</body>
+</html>

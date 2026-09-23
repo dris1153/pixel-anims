@@ -2,7 +2,7 @@
 
 A Claude skill that turns one sentence into a polished, looping 16-bit sprite animation. The result is a single self-contained HTML file: vanilla JS and Canvas 2D, no assets, no libraries.
 
-**Live showcase and docs:** https://dris1153.github.io/pixel-anims/
+**Live showcase and docs:** https://pixel-anims.drisdev.io/
 
 ## Install
 
@@ -45,6 +45,10 @@ You can also invoke it directly: `/pixel-anims:pixel-anims <brief>` after a plug
 ## Requirements
 
 Node 18 or newer and Chrome, Edge or Chromium, for the snapshot QA step.
+
+## Website
+
+The landing page and showcase live in `site/` as a plain Vite app. Run `npm install`, then `npm run dev` to work on it or `npm run build` to build `dist/`. To add a showcase, put its `.html` in `site/public/anims/` and add one entry to `site/src/showcases.js`.
 
 ## License
 

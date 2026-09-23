@@ -129,19 +129,6 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 .cases strong { font: 700 .82rem var(--display); letter-spacing: .05em; text-transform: uppercase; }
 .cases span { color: var(--silver); font-size: .98rem; }
 
-.gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 32px; }
-.card { display: flex; flex-direction: column; background: var(--deep); border: 2px solid var(--line); box-shadow: 6px 6px 0 var(--shadow); transition: transform .16s steps(2), box-shadow .16s steps(2); }
-.card:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--shadow); }
-.card .frame { border: 0; border-bottom: 2px solid var(--line); box-shadow: none; }
-.card-body { display: grid; gap: 10px; align-content: start; flex: 1; padding: 18px 20px 22px; }
-.kind { margin: 0; font: 700 .68rem var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); }
-.card-ref .kind { color: var(--gold); }
-.card h3 { margin: 0; font: 700 1.15rem var(--display); }
-.meta { margin: 0; color: var(--muted); font: 500 .82rem var(--mono); }
-.card .prompt { grid-template-columns: 1fr; background: var(--night); box-shadow: none; }
-.card .note { margin: 0; font-size: .9rem; }
-.open { justify-self: start; margin-top: 4px; font: 700 .74rem var(--display); letter-spacing: .05em; text-transform: uppercase; text-decoration: none; }
-
 .flow { list-style: none; counter-reset: f; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 2px solid var(--line); }
 .flow li { counter-increment: f; position: relative; display: grid; gap: 8px; align-content: start; padding: 24px 20px 0 0; }
 .flow li::before { content: counter(f, decimal-leading-zero); font: 700 1.5rem var(--display); color: var(--gold); }
@@ -160,10 +147,6 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 @keyframes rise { from { transform: translateY(12px); } } /* no opacity: content stays readable if animations never run */
 @keyframes blink { 50% { opacity: 0; } }
 
-@media (min-width: 980px) {
-  .card-ref { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
-  .card-ref .frame { border-bottom: 0; border-right: 2px solid var(--line); }
-}
 @media (max-width: 900px) {
   .hero, .use-grid { grid-template-columns: minmax(0, 1fr); } /* minmax: nowrap commands must not widen the column */
   .screen { order: -1; }
