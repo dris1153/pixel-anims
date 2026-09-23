@@ -1,4 +1,4 @@
-import { SHOWCASES, animUrl, detailUrl, metaLine } from './showcases.js';
+import { SHOWCASES, animUrl, detailUrl } from './showcases.js';
 import { addPlayToggle, calm } from './cards.js';
 import { setupCopy } from './copy.js';
 
@@ -26,7 +26,9 @@ function render(s, i) {
   kind.textContent = s.kind;
   kind.classList.toggle('kind-ref', Boolean(s.ref));
   page.querySelector('h1').textContent = s.title;
-  page.querySelector('.meta').textContent = metaLine(s);
+  page.querySelector('[data-spec="res"]').textContent = `${s.res[0]}×${s.res[1]}`;
+  page.querySelector('[data-spec="loop"]').textContent = `${s.loop} s`;
+  page.querySelector('[data-spec="states"]').textContent = s.states.join(' → ');
   page.querySelector('.prompt p').textContent = s.prompt;
   const note = page.querySelector('.note');
   if (s.note) note.textContent = s.note;

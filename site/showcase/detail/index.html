@@ -35,11 +35,19 @@
     <div class="detail-body">
       <p class="kind"></p>
       <h1></h1>
-      <p class="meta"></p>
-      <blockquote class="prompt"><p></p><button class="copy" type="button">Copy brief</button></blockquote>
+      <dl class="specs">
+        <div><dt>Resolution</dt><dd data-spec="res"></dd></div>
+        <div><dt>Loop</dt><dd data-spec="loop"></dd></div>
+        <div><dt>States</dt><dd data-spec="states"></dd></div>
+      </dl>
       <p class="note"></p>
       <a class="open" target="_blank" rel="noopener">Open full screen <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
     </div>
+  </div>
+  <div class="prompt brief">
+    <h2 class="brief-label">Brief</h2>
+    <p></p>
+    <button class="copy" type="button">Copy brief</button>
   </div>
   <nav class="pager" aria-label="More showcases">
     <a rel="prev"><span class="pager-dir"><span aria-hidden="true">← </span>Previous</span><span class="pager-name"></span></a>
