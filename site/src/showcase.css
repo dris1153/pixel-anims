@@ -38,8 +38,8 @@
   border: 0;
   clip-path: var(--notch);
   transition:
-    transform 0.12s steps(2),
-    background 0.12s steps(2);
+    transform var(--duration-quick) var(--ease-smooth-out),
+    background var(--duration-quick) var(--ease-smooth-out);
 }
 .btn:hover {
   color: var(--ink);
@@ -87,17 +87,18 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px;
 }
-.tile {
+.tile-card {
   position: relative;
+  height: 100%; /* the li stretches to the row; the card must too */
   background: var(--deep);
   border: 2px solid var(--line);
   box-shadow: 6px 6px 0 var(--shadow);
   transition:
-    transform 0.16s steps(2),
-    box-shadow 0.16s steps(2);
+    transform var(--duration-quick) var(--ease-smooth-out),
+    box-shadow var(--duration-quick) var(--ease-smooth-out);
 }
-.tile:hover,
-.tile:focus-within {
+.tile:not(.has-tilt):hover .tile-card,
+.tile:has(.tile-name:focus-visible) .tile-card {
   transform: translate(-2px, -2px);
   box-shadow: 8px 8px 0 var(--shadow);
 }
@@ -116,7 +117,7 @@
 .tile-name::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -2px; /* over the 2px border too */
   z-index: 2;
 } /* stretched link covers the frame too */
 .tile:hover .tile-name {
@@ -210,9 +211,9 @@
   right: 12px;
   opacity: 0;
   transition:
-    opacity 0.12s steps(2),
-    transform 0.12s steps(2),
-    background 0.12s steps(2);
+    opacity var(--duration-quick) var(--ease-out),
+    transform var(--duration-quick) var(--ease-smooth-out),
+    background var(--duration-quick) var(--ease-smooth-out);
 }
 .brief:hover .copy,
 .brief .copy:focus-visible {

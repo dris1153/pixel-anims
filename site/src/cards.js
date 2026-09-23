@@ -1,4 +1,5 @@
 import { animUrl, detailUrl, metaLine, stillOf } from './showcases.js';
+import { addTilt } from './tilt.js';
 
 export const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -50,9 +51,11 @@ export function featureCard(s) {
   return card;
 }
 
-// Stretched-link tile: an iframe may not sit inside <a>, so the name link's ::after covers the tile.
+// Stretched-link tile: an iframe may not sit inside <a>, so the name link's ::after covers the card.
+// The <li> stays flat as the pointer hit area; .tile-card inside carries the look and tilts.
 export function tile(s) {
   const item = el('li', 'tile');
+  const card = el('div', 'tile-card');
   const frame = wideFrame(s);
   const iframe = frame.firstChild;
   iframe.setAttribute('aria-hidden', 'true');
@@ -60,7 +63,9 @@ export function tile(s) {
   item.dataset.live = animUrl(s);
   const name = el('a', 'tile-name', s.title);
   name.href = detailUrl(s);
-  item.append(frame, name);
+  card.append(frame, name);
+  item.append(card);
+  addTilt(item, card);
   return item;
 }
 

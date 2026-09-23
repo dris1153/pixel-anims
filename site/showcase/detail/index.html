@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
 <link rel="stylesheet" href="/src/styles.css">
 <link rel="stylesheet" href="/src/showcase.css">
+<link rel="stylesheet" href="/src/motion.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -29,7 +30,7 @@
 
 <main id="main">
 <section class="detail" id="detail" hidden>
-  <p class="back"><a href="/showcase/"><span aria-hidden="true">← </span>All showcases</a></p>
+  <p class="back"><a href="/showcase/"><span class="nudge nudge-l" aria-hidden="true">←</span> All showcases</a></p>
   <div class="detail-grid">
     <div class="frame"><iframe tabindex="-1"></iframe></div>
     <div class="detail-body">
@@ -41,7 +42,7 @@
         <div><dt>States</dt><dd data-spec="states"></dd></div>
       </dl>
       <p class="note"></p>
-      <a class="open" target="_blank" rel="noopener">Open full screen <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
+      <a class="open" target="_blank" rel="noopener">Open full screen <span class="nudge nudge-ne" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
     </div>
   </div>
   <div class="prompt brief">
@@ -50,8 +51,8 @@
     <button class="copy" type="button">Copy brief</button>
   </div>
   <nav class="pager" aria-label="More showcases">
-    <a rel="prev"><span class="pager-dir"><span aria-hidden="true">← </span>Previous</span><span class="pager-name"></span></a>
-    <a rel="next"><span class="pager-dir">Next<span aria-hidden="true"> →</span></span><span class="pager-name"></span></a>
+    <a rel="prev"><span class="pager-dir"><span class="nudge nudge-l" aria-hidden="true">←</span> Previous</span><span class="pager-name"></span></a>
+    <a rel="next"><span class="pager-dir">Next <span class="nudge nudge-r" aria-hidden="true">→</span></span><span class="pager-name"></span></a>
   </nav>
 </section>
 <section class="page-head" id="not-found" hidden>

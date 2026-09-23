@@ -1,0 +1,155 @@
+/* Motion built on the transitions.dev tokens in styles.css. The global reduced-motion rule there turns it all off. */
+
+/* Copy buttons: text states swap (copy.js drives the classes). */
+.copy-label {
+  display: inline-block;
+  transition:
+    transform var(--duration-quick) var(--ease-in-out),
+    filter var(--duration-quick) var(--ease-in-out),
+    opacity var(--duration-quick) var(--ease-in-out);
+}
+.copy-label.is-exit {
+  transform: translateY(calc(var(--distance-micro) * -1));
+  filter: blur(var(--blur-small));
+  opacity: 0;
+}
+.copy-label.is-enter-start {
+  transform: translateY(var(--distance-micro));
+  filter: blur(var(--blur-small));
+  opacity: 0;
+  transition: none;
+}
+
+/* Arrow nudge on link hover: transitions.dev "learn more hover", 2px shift. */
+.nudge {
+  display: inline-block;
+  transition: transform var(--duration-medium) var(--ease-smooth-out);
+}
+a:is(:hover, :focus-visible) .nudge-l {
+  transform: translateX(-2px);
+}
+a:is(:hover, :focus-visible) .nudge-r {
+  transform: translateX(2px);
+}
+a:is(:hover, :focus-visible) .nudge-ne {
+  transform: translate(2px, -2px);
+}
+
+/* Install tabs: sliding pill (landing.js writes its box) and the incoming panel. */
+.tabs {
+  position: relative;
+}
+.tabs-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  background: var(--gold);
+  pointer-events: none;
+  transition:
+    transform var(--duration-fast) var(--ease-smooth-out),
+    width var(--duration-fast) var(--ease-smooth-out),
+    height var(--duration-fast) var(--ease-smooth-out);
+}
+.tabs.has-pill [role="tab"] {
+  position: relative;
+  z-index: 1;
+}
+.tabs.has-pill [role="tab"][aria-selected="true"] {
+  background: transparent; /* the pill paints it; without JS the tab keeps its own gold */
+  transition-delay: var(--duration-micro); /* dark text lands with the pill, not on bare ink */
+}
+.panel.is-entering {
+  animation: fade-rise var(--duration-fast) var(--ease-smooth-out);
+}
+
+/* Landing sections: heading + lede rise in on first view (transitions.dev "texts reveal").
+   .reveal is only set by JS when motion is allowed, so without it everything stays visible. */
+@media screen { /* print has no scroll, so nothing would ever reveal */
+  .reveal main > section:not(.hero) > :is(h2, .section-lede) {
+    opacity: 0;
+    transform: translateY(var(--distance-medium));
+    filter: blur(var(--blur-medium));
+    transition:
+      opacity var(--duration-very-slow) var(--ease-smooth-out),
+      transform var(--duration-very-slow) var(--ease-smooth-out),
+      filter var(--duration-very-slow) var(--ease-smooth-out);
+  }
+}
+.reveal main > section.is-shown > :is(h2, .section-lede) {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+.reveal main > section.is-shown > .section-lede {
+  transition-delay: var(--duration-stagger);
+}
+
+/* Tiles: load stagger (translate only, like the hero) and re-entry after a filter change. */
+.tile.is-loading {
+  animation: rise var(--duration-very-slow) var(--ease-smooth-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--duration-stagger));
+}
+.tile.is-entering {
+  animation: fade-rise var(--duration-fast) var(--ease-smooth-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--duration-stagger));
+}
+
+/* Tile tilt + cursor glare (tilt.js), transitions.dev "card hover tilt"; eases back flat on leave. */
+.tile.has-tilt .tile-card {
+  transition:
+    transform 1000ms var(--ease-smooth-out),
+    box-shadow var(--duration-quick) var(--ease-smooth-out);
+}
+.tile.has-tilt.is-hover .tile-card { /* idle cards stay untransformed, so they need no 3D layer */
+  transform: perspective(1000px) rotateX(var(--tilt-rx, 0deg)) rotateY(var(--tilt-ry, 0deg));
+}
+.tile.has-tilt .tile-card.is-tilting {
+  transition: transform var(--duration-slow) var(--ease-smooth-out);
+}
+.tile.has-tilt:has(.tile-name:focus-visible) .tile-card { /* keyboard focus lifts; a mouse click's focus does not */
+  transform: translate(-2px, -2px);
+  transition:
+    transform var(--duration-quick) var(--ease-smooth-out),
+    box-shadow var(--duration-quick) var(--ease-smooth-out);
+}
+.tile-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle 95px at var(--tilt-gx, 50%) var(--tilt-gy, 50%),
+      rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0.06) 52%, rgba(255, 255, 255, 0) 84%),
+    radial-gradient(circle 200px at var(--tilt-gx, 50%) var(--tilt-gy, 50%),
+      rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 58%, rgba(255, 255, 255, 0) 78%);
+  transition: opacity 300ms var(--ease-smooth-out);
+}
+.tile.is-hover .tile-glare {
+  opacity: 0.32;
+}
+
+/* Detail page: content rises in once the slug resolves (translate only, 40ms stagger, 240ms total). */
+.detail:not([hidden]) :is(.detail-grid > .frame, .detail-body > *, .brief) {
+  animation-name: rise; /* longhands: a shorthand here would reset the delays below */
+  animation-duration: var(--duration-very-slow);
+  animation-timing-function: var(--ease-smooth-out);
+  animation-fill-mode: backwards;
+}
+.detail-body > :nth-child(1) { animation-delay: var(--duration-stagger); }
+.detail-body > :nth-child(2) { animation-delay: calc(var(--duration-stagger) * 2); }
+.detail-body > :nth-child(3) { animation-delay: calc(var(--duration-stagger) * 3); }
+.detail-body > :nth-child(4) { animation-delay: calc(var(--duration-stagger) * 4); }
+.detail-body > :nth-child(5) { animation-delay: calc(var(--duration-stagger) * 5); }
+.detail .brief { animation-delay: calc(var(--duration-stagger) * 6); }
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--distance-base));
+    filter: blur(var(--blur-small));
+  }
+}

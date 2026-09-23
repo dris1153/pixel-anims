@@ -61,13 +61,17 @@
   background: transparent;
   border: 2px solid var(--line);
   transition:
-    color 0.12s steps(2),
-    background 0.12s steps(2),
-    border-color 0.12s steps(2);
+    color var(--duration-quick) var(--ease-smooth-out),
+    background var(--duration-quick) var(--ease-smooth-out),
+    border-color var(--duration-quick) var(--ease-smooth-out),
+    transform var(--duration-quick) var(--ease-smooth-out);
 }
 .chip:hover {
   color: var(--text);
   border-color: var(--gold);
+}
+.chip:active {
+  transform: translate(1px, 1px);
 }
 .chip[aria-pressed="true"] {
   color: var(--ink);
