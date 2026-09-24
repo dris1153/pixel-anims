@@ -1,7 +1,8 @@
 ---
 name: pixel-anims
 description: "Build polished single-file HTML pixel-art sprite animations (vanilla JS + Canvas 2D, no assets or libraries): any character performing a looping action (idle, windup, strike, cast or breath, recover) in a minimal scene, with a 16-bit look, fixed palette, integer scaling, a 60 Hz fixed step, pooled particles and per-state snapshot QA. Use for requests like pixel art animation, animated sprite, 8-bit or 16-bit character doing X, pixel wizard/knight/dragon/ninja, or retro canvas loops."
-argument-hint: "[character] [action] [scene?] [WxH?]"
+license: MIT
+compatibility: "Snapshot QA needs Node 18+, Chrome, Edge or Chromium, and a model that can read PNG images."
 ---
 
 # Pixel Anims
