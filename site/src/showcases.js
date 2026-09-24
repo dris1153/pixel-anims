@@ -135,6 +135,19 @@ export const SHOWCASES = [
       "daylight, 160×90.",
   },
   {
+    slug: "phoenix-ash-rebirth",
+    tags: ["creature", "magic", "dusk"],
+    title: "Phoenix Rebirth",
+    still: 200,
+    res: [128, 96],
+    loop: 8,
+    states: ["perch", "spread", "blaze", "ash", "rebirth", "fold"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art phoenix: perched on a stone altar, spread its wings, burst into flame and crumble to glowing ash, an " +
+      "ember egg pulses, the phoenix rises from it and folds its wings. Volcanic ridge at dusk, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
