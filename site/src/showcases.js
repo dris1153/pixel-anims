@@ -312,6 +312,20 @@ export const SHOWCASES = [
       "128×96.",
   },
   {
+    slug: "medusa-stone-gaze",
+    tags: ["humanoid", "magic", "dusk"],
+    title: "Medusa Stone Gaze",
+    still: 222,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "crow", "gaze", "fall", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art Medusa: idle with snake hair writhing, a crow flies in from the right, her eyes flash green, the crow " +
+      "turns to stone mid-flight, drops and shatters on the temple steps, the snakes settle. Ruined Greek temple at " +
+      "dusk, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
