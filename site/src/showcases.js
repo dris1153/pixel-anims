@@ -6,6 +6,45 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "co-loa-magic-crossbow",
+    tags: ["humanoid", "creature", "projectile", "magic", "day"],
+    country: "vn",
+    title: "The Magic Crossbow of Co Loa",
+    still: 366,
+    res: [160, 90],
+    loop: 16,
+    states: ["build", "haunt", "kim quy", "volley", "swap", "fall", "flight", "pearls", "part", "return"],
+    kind: "Made with the skill",
+    note: "Four times of day in one fixed shot, each one sweeping down the frame; the ramparts rise, fall, burn and rise again, and one shot of the claw-triggered crossbow becomes a hundred arcing arrows.",
+    prompt:
+      "Pixel art the legend of An Dương Vương and the magic crossbow of Cổ Loa, 160×90, one fixed shot, 16-second " +
+      "seamless loop. Scene: the Red River plain seen from a low hill: on the left the spiral citadel of Cổ Loa, three " +
+      "rings of earthen ramparts winding up a mound to a small bronze-roofed palace, a river curving through the " +
+      "foreground and out to the sea on the right, where a pale beach with an oyster bed meets the waves, and rice " +
+      "fields and a far line of hills between; the sky passes from day to night and back to dawn as the tale unfolds. " +
+      "Keep the frame readable: the citadel, the king and one new arrival at a time, each arrival leaving before the " +
+      "next appears. 1. build: by day the spiral ramparts rise ring by ring as baskets of earth are tipped onto them, " +
+      "and An Dương Vương, in a red robe and a tall bronze headdress, watches from the palace steps. 2. haunt: night " +
+      "falls and a ghostly giant white rooster, the spirit Bạch Kê, swoops over the ramparts shrieking; its wings beat " +
+      "and the fresh walls crumble in sliding earth and dust. 3. kim quy: at dawn a colossal Golden Turtle rises from " +
+      "the river in a burst of light; the rooster spirit bursts into a storm of white feathers and is gone, the walls " +
+      "rise whole again, and the turtle gives the king one golden claw, which he fits to the trigger of a great " +
+      "crossbow that begins to glow. 4. volley: an army of small dark soldiers with spears and red banners marches in " +
+      "from the right; the king raises the magic crossbow on the rampart and a single shot becomes a rain of hundreds " +
+      "of golden arrows that arcs over the river, and the column breaks and flees. 5. swap: night; a figure in a blue " +
+      "robe, Trọng Thủy, creeps into the palace, lifts the glowing claw from the crossbow and leaves a dull copy; he " +
+      "slips away down the ramparts and the crossbow's glow fades out. 6. fall: at dusk the army returns with torches; " +
+      "the king fires, but the arrows tumble limp into the river; flames climb the ramparts and smoke pours over the " +
+      "citadel. 7. flight: the king gallops out along the road on a black horse with princess Mỵ Châu behind him, her " +
+      "white goose-feather cloak shedding a trail of drifting feathers toward the sea. 8. pearls: at the shore under " +
+      "the moon the Golden Turtle rises and cries that the enemy sits behind him; the king's sword flashes once and Mỵ " +
+      "Châu dissolves into light and feathers, her drops of light falling into the shallows to become glowing pearls in " +
+      "the oysters. 9. part: the king takes a seven-inch rhinoceros horn and follows the Golden Turtle into the sea; " +
+      "the water parts before them in two glassy walls and closes behind them in a rush of foam. 10. return: the sea " +
+      "smooths, the last feathers drift away on the wind, dawn breaks, the fire is gone, and the spiral ramparts of Cổ " +
+      "Loa rise again ring by ring, the legend ready to begin anew.",
+  },
+  {
     slug: "samudra-manthan-churning",
     tags: ["humanoid", "creature", "magic", "projectile", "dawn"],
     country: "in",
