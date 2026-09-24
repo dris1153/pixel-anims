@@ -25,8 +25,9 @@ export function addPlayToggle(frame, iframe, file, still, title, playing) {
   set(playing, !(playing && iframe.getAttribute('src')));
 }
 
-// The engine scales by whole numbers and pads the rest with the scene's own background, so each iframe is
-// sized to an exact multiple of the scene in device pixels, centered on the frame's matte.
+// The engine scales by whole numbers and pads the rest with the scene's own background, so each iframe renders
+// at the nearest whole multiple in device pixels and a transform scales it the rest of the way to fill the frame
+// (contain), centered on the frame's matte. Chrome keeps the scaled canvas nearest-neighbour.
 const fitObserver = 'ResizeObserver' in window ? new ResizeObserver(entries => entries.forEach(e => fitNow(e.target))) : null;
 export function fitFrame(frame, [w, h]) {
   frame.dataset.w = w;
@@ -37,9 +38,10 @@ export function fitFrame(frame, [w, h]) {
 }
 function fitNow(frame) {
   const w = +frame.dataset.w, h = +frame.dataset.h, dpr = devicePixelRatio || 1, iframe = frame.querySelector('iframe');
-  const s = Math.max(1, Math.floor(Math.min(frame.clientWidth * dpr / w, frame.clientHeight * dpr / h)));
+  const c = Math.min(frame.clientWidth / w, frame.clientHeight / h), s = Math.max(1, Math.round(c * dpr));
   iframe.style.width = `${w * s / dpr}px`;
   iframe.style.height = `${h * s / dpr}px`;
+  iframe.style.transform = `translate(-50%, -50%) scale(${c * dpr / s})`; // may be wider than the frame, so no auto margins
 }
 
 function wideFrame(s) {
