@@ -107,6 +107,20 @@ export const SHOWCASES = [
       "Floating peaks above a sea of clouds at dawn, 160×90.",
   },
   {
+    slug: "cultivator-heavenly-tribulation",
+    tags: ["humanoid", "lightning", "magic", "night"],
+    title: "Heavenly Tribulation",
+    still: 282,
+    res: [128, 96],
+    loop: 8,
+    states: ["meditate", "gather", "strike", "break", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art cultivator breakthrough: sit on a bare summit, dark clouds spiral overhead, three purple lightning " +
+      "bolts strike one after another, a golden core flares in the chest and the clouds part to starlight. " +
+      "Mountain peak at night, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
