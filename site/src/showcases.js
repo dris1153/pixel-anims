@@ -6,6 +6,43 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "nezha-east-sea",
+    tags: ["humanoid", "creature", "projectile", "magic", "dusk"],
+    country: "cn",
+    title: "Nezha Conquers the East Sea",
+    still: 828,
+    res: [160, 90],
+    loop: 16,
+    states: ["play", "quake", "yaksha", "prince", "duel", "flood", "sacrifice", "lotus", "reborn", "return"],
+    kind: "Made with the skill",
+    note: "A cutaway sea: the sky and the Crystal Palace share one frame, a single red sash chain swirls, coils round a dragon made of water and streams behind the Wind Fire Wheel, and the storm sweeps down the frame and lifts again.",
+    prompt:
+      "Pixel art Nezha conquering the East Sea from Chinese legend, 160×90, one fixed shot, 16-second seamless " +
+      "loop. Scene: the coast below Chentang Pass: a walled gate-tower fortress on a cliff on the left, the East " +
+      "Sea stretching to a far horizon on the right, and the water cut away below the surface to show the Dragon " +
+      "King's Crystal Palace glowing far down on the seabed, coral spires and jade roofs among swaying weed. Keep " +
+      "the frame readable: Nezha and one new arrival at a time, each leaving before the next appears. 1. play: " +
+      "Nezha, a small boy with twin hair buns, a red silk sash floating round his shoulders and a golden ring on " +
+      "his arm, splashes in the shallows at the foot of the cliff; he swirls the sash through the water and the " +
+      "waves start to churn. 2. quake: down below, the Crystal Palace shakes: coral spires sway, pearls roll across " +
+      "the floor, bubbles stream up, and the sea glows red wherever the sash sweeps. 3. yaksha: a blue-faced yaksha " +
+      "with a trident bursts up out of the waves; Nezha hurls the golden ring, it streaks across the water in a " +
+      "flash and knocks the yaksha tumbling back down into the depths. 4. prince: the sea heaves open and Ao Bing, " +
+      "the Dragon King's third son, rises in silver armor riding a water dragon, a halberd in hand, walls of waves " +
+      "towering round him. 5. duel: Nezha leaps from wave to wave; his red sash coils round the water dragon and " +
+      "binds it, the ring strikes once, and Ao Bing falls back into the sea as a small white dragon that dives away " +
+      "to the palace. 6. flood: the sky darkens to storm; the Dragon King Ao Guang, a colossal azure dragon, rears " +
+      "over the horizon and drives a towering wall of water at the walls of Chentang Pass. 7. sacrifice: to save " +
+      "the city, Nezha stands on the wall facing the wave and dissolves into a burst of red light and lotus petals " +
+      "that scatter over the water, and the great wave stops and falls back. 8. lotus: a giant lotus rises from the " +
+      "sea, its pink petals opening in golden light, while lotus leaves and roots weave together at its heart into " +
+      "a new body. 9. reborn: Nezha steps out of the lotus reborn, riding the flaming Wind Fire Wheels with the " +
+      "Fire-tipped Spear, his sash streaming; he circles the Dragon King in a ring of fire and drives him back " +
+      "beneath the waves, and the storm breaks. 10. return: at sunset the sea calms, the wheels' fire dies away, " +
+      "the lotus petals sink toward the palace, and the boy splashes in the shallows again, the tale ready to begin " +
+      "anew.",
+  },
+  {
     slug: "than-tru-troi-sky-pillar",
     tags: ["humanoid", "magic", "impact", "dawn"],
     country: "vn",
