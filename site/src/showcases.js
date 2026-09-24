@@ -6,6 +6,43 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "jumong-goguryeo",
+    tags: ["humanoid", "creature", "projectile", "magic", "dawn"],
+    country: "kr",
+    title: "Jumong Founds Goguryeo",
+    still: 864,
+    res: [160, 90],
+    loop: 16,
+    states: ["descent", "river daughter", "sun egg", "guardians", "hatch", "archery", "pursuit", "bridge", "goguryeo", "return"],
+    kind: "Made with the skill",
+    note: "One day and night over one river: the sun crosses the sky with the story, five dragons of five colors pull a chariot down, turtles and fish surface one by one into a bridge, and the city that rises at sunrise dissolves back into the dawn it started from.",
+    prompt:
+      "Pixel art the founding legend of Jumong and Goguryeo from Korean myth, 160×90, one fixed shot, 16-second " +
+      "seamless loop. Scene: a wide river valley in the ancient north: the left bank with the fields and wooden " +
+      "palisade of Buyeo, a broad river cutting down through the middle of the frame between steep banks, and the " +
+      "green hills of Jolbon on the right bank where a kingdom will stand; mountains fade into mist behind, and the " +
+      "sky passes from dawn through day, dusk and night to a new sunrise. Keep the frame readable: one hero and one " +
+      "new arrival at a time, each arrival leaving before the next appears. 1. descent: at dawn the clouds part and " +
+      "Haemosu, son of Heaven, comes down in a chariot drawn by five dragons, trailed by white swans, a crown of " +
+      "crow feathers on his head, and lands on the left bank. 2. river daughter: Yuhwa, daughter of the river god, " +
+      "rises out of the water in a pale blue robe; they meet on the bank, the river churns in anger, and Haemosu " +
+      "mounts his chariot and soars away, leaving her alone. 3. sun egg: a beam of sunlight breaks through the " +
+      "clouds and follows her wherever she walks; in its light a great glowing egg appears in her arms, and she " +
+      "lays it in the grass. 4. guardians: a cold wind sweeps the field, and a flock of white birds circles down " +
+      "and spreads their wings over the egg to keep it warm while Yuhwa fades back into the river. 5. hatch: the " +
+      "egg cracks in a burst of golden light and a boy steps out; in a few beats he grows into a young archer with " +
+      "a bow taller than himself: Jumong. 6. archery: he looses arrow after arrow at a jade ring hung from a far " +
+      "pine; each shot flashes straight through the ring and sets it spinning. 7. pursuit: at dusk a line of Buyeo " +
+      "horsemen with torches and spears pours over the left ridge; Jumong runs to the river's edge with nowhere " +
+      "left to go. 8. bridge: under the rising moon he strikes the water with his bow and calls on his grandfather " +
+      "the river god; silver fish and great turtles surge up and lock shell to shell into a glowing bridge, and he " +
+      "races across. 9. goguryeo: behind him the bridge scatters back into the current and the riders rein up at " +
+      "the water's edge; at sunrise walls and tiled roofs rise on the right hills, banners unfurl, and a " +
+      "three-legged crow appears in the rising sun. 10. return: Jumong rides a white kirin up into the morning sky, " +
+      "the new city fades into the mist, the riders vanish from the ridge, and the valley lies empty and quiet at " +
+      "dawn, the tale ready to begin anew.",
+  },
+  {
     slug: "nezha-east-sea",
     tags: ["humanoid", "creature", "projectile", "magic", "dusk"],
     country: "cn",
@@ -710,7 +747,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['th', 'Thailand'], ['in', 'India'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
