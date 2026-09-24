@@ -4,7 +4,7 @@ import { addTilt } from './tilt.js';
 
 export const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function el(tag, className, text) {
+export function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text) node.textContent = text;

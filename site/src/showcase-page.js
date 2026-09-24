@@ -1,12 +1,13 @@
 import { SHOWCASES, TAG_GROUPS, countryOf, resTag } from './showcases.js';
 import { autoplayInView, tile } from './cards.js';
-import { flag } from './flags.js';
+import { setupFacets } from './filter-popovers.js';
+import { setupSuggest } from './search-suggest.js';
 
 const list = document.getElementById('showcase-tiles');
 const search = document.getElementById('showcase-search');
 const count = document.getElementById('showcase-count');
 const empty = document.getElementById('showcase-empty');
-const clearLink = document.querySelector('.filter-clear');
+const active = document.getElementById('showcase-active');
 const items = SHOWCASES.map(s => ({
   el: tile(s),
   tags: new Set([...s.tags, resTag(s), countryOf(s)]),
@@ -24,33 +25,14 @@ const params = new URLSearchParams(location.search);
 const picked = new Set((params.get('tags') ?? '').split(',').filter(id => known.has(id)));
 search.value = params.get('q') ?? '';
 
-const chips = [];
-for (const group of TAG_GROUPS) {
-  const row = document.createElement('div');
-  row.className = 'chip-group';
-  row.setAttribute('role', 'group');
-  row.setAttribute('aria-label', group.label);
-  const label = document.createElement('span');
-  label.className = 'chip-label';
-  label.setAttribute('aria-hidden', 'true');
-  label.textContent = group.label;
-  row.append(label);
-  for (const [id, name] of group.tags) {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip';
-    chip.dataset.tag = id;
-    chip.textContent = name;
-    if (group.flags) chip.prepend(flag(id));
-    chip.addEventListener('click', () => {
-      if (!picked.delete(id)) picked.add(id);
-      apply();
-    });
-    chips.push(chip);
-    row.append(chip);
-  }
-  document.getElementById('showcase-chips').append(row);
-}
+const facets = setupFacets(document.getElementById('showcase-facets'), active, { picked, onChange: apply, countFor });
+setupSuggest(search, document.getElementById('showcase-suggest'), {
+  picked,
+  onTag: id => {
+    picked.add(id);
+    apply();
+  },
+});
 search.addEventListener('input', apply);
 for (const button of document.querySelectorAll('[data-clear]')) {
   button.addEventListener('click', () => {
@@ -73,17 +55,28 @@ function play(targets, cls) {
   });
 }
 
+function searchWords() {
+  return search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
+
 // OR within a group, AND across groups; every search word must appear in the title or brief.
-function matches(item, words) {
-  return TAG_GROUPS.every(g => {
+// `skip` leaves one group out, for counting what each of its options would show.
+function matches(item, words, skip = -1) {
+  return TAG_GROUPS.every((g, k) => {
+    if (k === skip) return true;
     const wanted = g.tags.filter(([id]) => picked.has(id));
     return !wanted.length || wanted.some(([id]) => item.tags.has(id));
   }) && words.every(w => item.text.includes(w));
 }
 
+function countFor(g, id) {
+  const words = searchWords();
+  return items.filter(item => item.tags.has(id) && matches(item, words, g)).length;
+}
+
 function apply() {
   const query = search.value.trim();
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const words = searchWords();
   let shown = 0;
   const entering = [];
   for (const item of items) {
@@ -94,10 +87,10 @@ function apply() {
     if (wasHidden) entering.push(item);
   }
   play(entering, 'is-entering'); // tiles leaving just vanish: exits never wait
-  for (const chip of chips) chip.setAttribute('aria-pressed', String(picked.has(chip.dataset.tag)));
+  facets.update();
   count.textContent = `Showing ${shown} of ${items.length}`;
   empty.hidden = shown > 0;
-  clearLink.hidden = !picked.size && !words.length;
+  active.hidden = !picked.size && !words.length;
   const parts = [];
   if (picked.size) parts.push(`tags=${[...picked].join(',')}`);
   if (query) parts.push(`q=${encodeURIComponent(query)}`);

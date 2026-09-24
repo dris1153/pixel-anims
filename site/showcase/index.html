@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="/src/showcase.css">
 <link rel="stylesheet" href="/src/motion.css">
 <link rel="stylesheet" href="/src/showcase-filter.css">
+<link rel="stylesheet" href="/src/showcase-facets.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -36,12 +37,19 @@
   <p class="section-lede">Every piece is a live, unedited HTML file. All but the engine reference were made by the skill. Open one for its brief, timings and a full-screen view.</p>
   <div class="filters" role="search" aria-label="Filter showcases">
     <div class="filter-top">
-      <label class="sr-only" for="showcase-search">Search showcases</label>
-      <input class="filter-search" id="showcase-search" type="search" placeholder="Search title or brief" autocomplete="off">
+      <div class="suggest">
+        <label class="sr-only" for="showcase-search">Search showcases</label>
+        <input class="filter-search" id="showcase-search" type="search" placeholder="Search title, brief or tag" autocomplete="off"
+          role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="showcase-suggest">
+        <ul class="suggest-list" id="showcase-suggest" role="listbox" aria-label="Suggestions" hidden></ul>
+      </div>
       <p class="filter-count" id="showcase-count" role="status"></p>
     </div>
-    <div class="chips" id="showcase-chips"></div>
-    <button class="filter-clear" type="button" data-clear hidden>Clear filters</button>
+    <div class="facets" id="showcase-facets"></div>
+    <div class="active-filters" id="showcase-active" hidden>
+      <div class="active-chips"></div>
+      <button class="filter-clear" type="button" data-clear>Clear all</button>
+    </div>
   </div>
   <ul class="tiles tiles-all" id="showcase-tiles"></ul>
   <div class="filter-empty" id="showcase-empty" hidden>

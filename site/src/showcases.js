@@ -511,7 +511,7 @@ export const SHOWCASES = [
   },
 ];
 
-// Filter chips on /showcase/: OR within a group, AND across groups. Resolution tags come from `res`.
+// Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
