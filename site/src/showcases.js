@@ -326,6 +326,20 @@ export const SHOWCASES = [
       "dusk, 128×96.",
   },
   {
+    slug: "oni-taiko-drummer",
+    tags: ["creature", "impact", "night"],
+    title: "Oni Taiko Drummer",
+    still: 336,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "raise", "hit", "lift", "hit", "lift", "hit", "wind up", "double", "shout", "recover"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art oni taiko drummer: idle with two drumsticks, raise both arms high, pound the big taiko three times, " +
+      "each hit sends a ring of sound rippling out and swings the paper lanterns, a final double strike and a shout. " +
+      "Shrine festival at night, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
