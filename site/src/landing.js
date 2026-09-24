@@ -42,11 +42,12 @@ function setupHero() {
   frame.append(shuffle);
 }
 
-// Landing keeps it short: the first entry as the hero, the next three as tiles, the rest behind "See all".
+// Landing keeps it short: the featured entry, the three newest others as tiles, the rest behind "See all".
 function renderShowcase() {
-  document.getElementById('showcase-feature').append(featureCard(SHOWCASES[0]));
+  const feature = SHOWCASES.find(s => s.featured) ?? SHOWCASES[0];
+  document.getElementById('showcase-feature').append(featureCard(feature));
   const tiles = document.getElementById('showcase-tiles');
-  tiles.append(...SHOWCASES.slice(1, 4).map(tile));
+  tiles.append(...SHOWCASES.filter(s => s !== feature).slice(0, 3).map(tile));
   autoplayInView(tiles);
   document.getElementById('showcase-all').textContent = `See all ${SHOWCASES.length} showcases`;
 }

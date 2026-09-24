@@ -10,6 +10,7 @@ const count = document.getElementById('showcase-count');
 const empty = document.getElementById('showcase-empty');
 const active = document.getElementById('showcase-active');
 const pager = document.getElementById('showcase-pager');
+const sort = document.getElementById('showcase-sort');
 const items = SHOWCASES.map(s => ({
   el: tile(s),
   tags: new Set([...s.tags, resTag(s), countryOf(s)]),
@@ -21,11 +22,13 @@ for (const { el } of items) {
   el.addEventListener('animationend', e => { if (e.target === el) el.classList.remove('is-loading', 'is-entering'); });
 }
 
-// Filter and page state live in the URL (?tags=a,b&q=text&page=2) so a view can be shared or reloaded.
+// Filter, sort and page state live in the URL (?tags=a,b&q=text&sort=oldest&page=2) so a view can be shared or reloaded.
 const known = new Set(TAG_GROUPS.flatMap(g => g.tags.map(([id]) => id)));
 const params = new URLSearchParams(location.search);
 const picked = new Set((params.get('tags') ?? '').split(',').filter(id => known.has(id)));
 search.value = params.get('q') ?? '';
+sort.value = params.get('sort') === 'oldest' ? 'oldest' : 'newest';
+let order = items;
 let page = Math.max(1, parseInt(params.get('page'), 10) || 1);
 
 const facets = setupFacets(document.getElementById('showcase-facets'), active, { picked, onChange: apply, countFor });
@@ -37,6 +40,10 @@ setupSuggest(search, document.getElementById('showcase-suggest'), {
   },
 });
 search.addEventListener('input', apply);
+sort.addEventListener('change', () => {
+  arrange();
+  apply();
+});
 for (const button of document.querySelectorAll('[data-clear]')) {
   button.addEventListener('click', () => {
     picked.clear();
@@ -45,8 +52,9 @@ for (const button of document.querySelectorAll('[data-clear]')) {
     search.focus();
   });
 }
+arrange();
 render();
-play(items.filter(item => !item.el.hidden), 'is-loading'); // load stagger over the tiles that start visible
+play(order.filter(item => !item.el.hidden), 'is-loading'); // load stagger over the tiles that start visible
 
 // Replays a tile animation in order; the stagger index caps at 6 so the last tile is never late.
 function play(targets, cls) {
@@ -56,6 +64,12 @@ function play(targets, cls) {
     el.style.setProperty('--i', Math.min(k, 6));
     el.classList.add(cls);
   });
+}
+
+// SHOWCASES is newest first, so Oldest first just reverses it. Moving the existing nodes keeps their autoplay observers.
+function arrange() {
+  order = sort.value === 'oldest' ? [...items].reverse() : items;
+  list.append(...order.map(item => item.el));
 }
 
 function searchWords() {
@@ -77,7 +91,7 @@ function countFor(g, id) {
   return items.filter(item => item.tags.has(id) && matches(item, words, g)).length;
 }
 
-// Any filter or search change starts over on the first page.
+// Any filter, search or sort change starts over on the first page.
 function apply() {
   page = 1;
   render();
@@ -92,12 +106,12 @@ function goTo(p) {
 function render() {
   const query = search.value.trim();
   const words = searchWords();
-  const hits = items.filter(item => matches(item, words));
+  const hits = order.filter(item => matches(item, words));
   const pages = Math.max(1, Math.ceil(hits.length / PER_PAGE));
   page = Math.min(page, pages); // ?page=9 past the end lands on the last page
   const first = (page - 1) * PER_PAGE, shown = new Set(hits.slice(first, first + PER_PAGE));
   const entering = [];
-  for (const item of items) {
+  for (const item of order) {
     const wasHidden = item.el.hidden;
     item.el.hidden = !shown.has(item);
     if (!item.el.hidden && wasHidden) entering.push(item);
@@ -111,6 +125,7 @@ function render() {
   const parts = [];
   if (picked.size) parts.push(`tags=${[...picked].join(',')}`);
   if (query) parts.push(`q=${encodeURIComponent(query)}`);
+  if (sort.value === 'oldest') parts.push('sort=oldest');
   if (page > 1) parts.push(`page=${page}`);
   history.replaceState(null, '', parts.length ? `?${parts.join('&')}` : location.pathname);
 }

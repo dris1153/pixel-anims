@@ -39,6 +39,39 @@
   font: 500 0.82rem var(--mono);
   color: var(--muted);
 }
+.filter-sort {
+  position: relative;
+}
+.filter-sort::after { /* same 4px pixel triangle as the facet badges */
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  margin-top: -2px;
+  border: 4px solid transparent;
+  border-bottom: 0;
+  border-top-color: var(--muted);
+  pointer-events: none;
+}
+.filter-sort select {
+  appearance: none;
+  padding: 8px 30px 8px 12px;
+  font: 700 0.7rem var(--display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--silver);
+  background: var(--night);
+  border: 2px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+.filter-sort select:hover {
+  color: var(--text);
+  border-color: var(--gold);
+}
+.filter-sort select:focus-visible {
+  border-color: var(--stone);
+}
 
 .active-filters:not([hidden]) { /* a bare display would beat the hidden attribute */
   display: flex;
