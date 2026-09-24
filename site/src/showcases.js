@@ -17,6 +17,17 @@ export const SHOWCASES = [
       "Neon alley in the rain, 160×90.",
   },
   {
+    slug: "archer-bow-shot",
+    tags: ["humanoid", "projectile", "dawn"],
+    title: "Dawnwood Archer",
+    still: 270,
+    res: [160, 90],
+    loop: 6.4,
+    states: ["idle", "draw", "release", "recover"],
+    kind: "Made with the skill",
+    prompt: "Pixel art archer: idle, draw the bow, release an arrow across the screen, recover. Misty forest at dawn.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -87,7 +98,7 @@ export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
   { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath']] },
-  { label: 'Setting', tags: [['night', 'Night'], ['dusk', 'Dusk']] },
+  { label: 'Setting', tags: [['dawn', 'Dawn'], ['dusk', 'Dusk'], ['night', 'Night']] },
   { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
 
