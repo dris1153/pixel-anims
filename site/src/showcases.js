@@ -41,6 +41,19 @@ export const SHOWCASES = [
       "and flying rocks, recover. Desert canyon at noon, 160×90.",
   },
   {
+    slug: "jellyfish-electric-pulse",
+    tags: ["creature", "lightning", "underwater"],
+    title: "Abyss Jellyfish",
+    still: 264,
+    res: [128, 96],
+    loop: 7.2,
+    states: ["idle", "charge", "pulse", "drift"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art jellyfish: idle drift with swaying tentacles, glow charge, electric pulse with crackling arcs, " +
+      "drift back. Deep sea with light rays and bubbles.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -110,8 +123,8 @@ export const SHOWCASES = [
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
-  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact']] },
-  { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']] },
+  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning']] },
+  { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater']] },
   { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
 
