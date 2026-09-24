@@ -202,6 +202,19 @@ export const SHOWCASES = [
       "soil and grasps at the air, then crumbles back down. Graveyard under a full moon, 128×96.",
   },
   {
+    slug: "astronaut-moon-hop",
+    tags: ["humanoid", "space"],
+    title: "Moon Hopper",
+    still: 180,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "crouch", "hop", "drift", "land", "wave"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art astronaut: idle bobbing in low gravity, jetpack hop across a crater, drift down slowly with dust " +
+      "puffs, land with a soft bounce and wave. Cratered moon under a ringed planet, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -272,7 +285,7 @@ export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
   { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning'], ['craft', 'Craft'], ['heal', 'Heal']] },
-  { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater'], ['interior', 'Interior']] },
+  { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater'], ['interior', 'Interior'], ['space', 'Space']] },
   { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
 
