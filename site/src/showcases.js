@@ -6,6 +6,40 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "bach-dang-938",
+    tags: ["humanoid", "projectile", "impact", "dusk"],
+    country: "vn",
+    title: "The Battle of Bach Dang, 938",
+    still: 760,
+    res: [160, 90],
+    loop: 20,
+    states: ["stakes", "flood tide", "drums", "fleet", "feint", "ebb", "trapped", "fire", "charge", "victory", "centuries", "return"],
+    kind: "Made with the skill",
+    note: "The whole battle runs on one number, the tide: it hides the stakes as dark shapes under the surface, lifts the junks over them, then drains away until their keels sit on the iron tips, before a time-lapse of fast tides wears the stakes back into the mud.",
+    prompt:
+      "Pixel art the Battle of Bạch Đằng River, 938, from Vietnamese history, 160×90, one fixed shot, 20-second " +
+      "seamless loop. Scene: the wide Bạch Đằng estuary seen side-on: limestone karst peaks rising on both banks, a " +
+      "tall karst on the left where the general keeps watch, mangroves along the shore, the river running across " +
+      "the frame out to the sea on the right, and its muddy bed visible whenever the tide runs out; the day passes " +
+      "from night to dawn, noon, a burning dusk and a new sunrise. Keep the frame readable: the tide, the stakes " +
+      "and one new arrival at a time. 1. stakes: a moonlit night at low tide; soldiers wade through the mud by " +
+      "torchlight, hammering rows of iron-tipped wooden stakes into the riverbed while General Ngô Quyền watches " +
+      "from the karst. 2. flood tide: at misty dawn the tide rises and swallows the stakes until the river lies " +
+      "calm and empty, and a heron lifts off the water. 3. drums: small Vietnamese boats row down the river under " +
+      "red banners while bronze drums boom on the bank. 4. fleet: the great war junks of the Southern Han sail in " +
+      "from the sea on the high tide, battened sails and black banners filling the river. 5. feint: the small boats " +
+      "skirmish with the junks, then turn and flee upstream, and the junks give chase right over the hidden stakes. " +
+      "6. ebb: the tide turns and drains fast; the iron tips of the stakes rise out of the water among the junks. " +
+      "7. trapped: the junks run onto the stakes; hulls crack, masts lean, sails flap loose, the whole fleet jammed " +
+      "in a forest of stakes. 8. fire: burning bamboo rafts drift down on the current and fire arrows arc from " +
+      "behind the karsts; the junks catch fire and the dusk river glows red. 9. charge: Vietnamese boats surge out " +
+      "from both banks with drums and flags, and the Southern Han prince's black banner falls into the water. 10. " +
+      "victory: at sunrise Ngô Quyền raises his sword on the karst, red and gold banners unfurl, and the smoke " +
+      "drifts away. 11. centuries: the tide returns over the sinking wrecks; days, seasons and years flash past, " +
+      "the stakes wear down into the mud, and fishing boats and lotus come back. 12. return: night falls at low " +
+      "tide and torches appear on the bank once more, the tale ready to begin anew.",
+  },
+  {
     slug: "king-arthur-avalon",
     tags: ["humanoid", "melee", "magic", "night"],
     country: "gb-eng",
