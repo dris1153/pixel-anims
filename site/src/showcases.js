@@ -121,6 +121,20 @@ export const SHOWCASES = [
       "Mountain peak at night, 128×96.",
   },
   {
+    slug: "monkey-king-staff-slam",
+    tags: ["humanoid", "melee", "impact", "day"],
+    title: "Monkey King Staff",
+    still: 294,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "grow", "twirl", "slam", "shrink", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art Monkey King: idle on a small cloud, twirl the golden staff, it grows long and slams the ground in a " +
+      "ring of dust, shrinks back to a needle tucked behind the ear. Waterfall cliffs of Flower Fruit Mountain in " +
+      "daylight, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
