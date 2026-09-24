@@ -1,8 +1,42 @@
+<div align="center">
+
+<a href="https://pixel-anims.drisdev.io/showcase/detail/?s=lac-long-quan-sea-demon"><img src=".github/readme/lac-long-quan-sea-demon.gif" width="480" alt="Pixel art: Lac Long Quan hurls a white-hot iron block into the jaws of the sea demon Ngu Tinh"></a>
+
 # pixel-anims
 
-A Claude skill that turns one sentence into a polished, looping 16-bit sprite animation. The result is a single self-contained HTML file: vanilla JS and Canvas 2D, no assets, no libraries.
+**One sentence in. A looping 16-bit sprite animation out.**
 
-**Live showcase and docs:** https://pixel-anims.drisdev.io/
+A Claude skill that writes a single self-contained HTML file:<br>vanilla JS and Canvas 2D, no assets, no libraries.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-f2b84b?style=flat-square&labelColor=17163a)](LICENSE)
+[![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-3fd0f0?style=flat-square&labelColor=17163a&logo=claude&logoColor=white)](#install)
+[![Dependencies: 0](https://img.shields.io/badge/dependencies-0-f2b84b?style=flat-square&labelColor=17163a)](#what-you-get)
+[![Vanilla JS, Canvas 2D](https://img.shields.io/badge/vanilla_JS-Canvas_2D-3fd0f0?style=flat-square&labelColor=17163a&logo=javascript&logoColor=white)](#how-it-works)
+[![Node 18+](https://img.shields.io/badge/node-%E2%89%A518-f2b84b?style=flat-square&labelColor=17163a&logo=nodedotjs&logoColor=white)](#requirements)
+[![Live showcase](https://img.shields.io/badge/live-showcase-c4473a?style=flat-square&labelColor=17163a)](https://pixel-anims.drisdev.io/)
+
+[**Live showcase**](https://pixel-anims.drisdev.io/) · [Install](#install) · [Use](#use) · [How it works](#how-it-works)
+
+</div>
+
+## Showcase
+
+Every piece below is one unedited HTML file written by the skill from a short brief. Click one to read its brief and watch it full screen.
+
+<table>
+  <tr>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=dragon-fire-breath"><img src=".github/readme/dragon-fire-breath.gif" width="320" alt="Red Moon Drake"></a><br><sub><b>Red Moon Drake</b> · idle, inhale, breath, recover</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=samurai-quick-draw"><img src=".github/readme/samurai-quick-draw.gif" width="320" alt="Sakura Iaido"></a><br><sub><b>Sakura Iaido</b> · stance, slash, sheathe</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=monkey-king-staff-slam"><img src=".github/readme/monkey-king-staff-slam.gif" width="320" alt="Monkey King Staff"></a><br><sub><b>Monkey King Staff</b> · grow, twirl, slam, shrink</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=mech-missile-volley"><img src=".github/readme/mech-missile-volley.gif" width="320" alt="Ruin Walker Volley"></a><br><sub><b>Ruin Walker Volley</b> · open pods, volley, impact</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=oni-taiko-drummer"><img src=".github/readme/oni-taiko-drummer.gif" width="320" alt="Oni Taiko Drummer"></a><br><sub><b>Oni Taiko Drummer</b> · three hits, a double, a shout</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=thanh-giong-ascension"><img src=".github/readme/thanh-giong-ascension.gif" width="320" alt="Thanh Giong Rises"></a><br><sub><b>Thanh Giong Rises</b> · eight beats of a legend</sub></td>
+  </tr>
+</table>
+
+<p align="center"><a href="https://pixel-anims.drisdev.io/showcase/"><b>See the full showcase →</b></a></p>
 
 ## Install
 
@@ -36,6 +70,24 @@ Describe the animation you want. The skill triggers on requests like these:
 
 You can also invoke it directly: `/pixel-anims:pixel-anims <brief>` after a plugin install, or `/pixel-anims <brief>` after the other two.
 
+## How it works
+
+1. **Design note.** Claude plans the palette ramps, the states and their timings, the event tick and its effects, and where the light comes from.
+2. **Scaffold.** A script copies the engine template. The engine handles the loop, integer scaling, particles, outlines and rim light, and it is never rewritten.
+3. **Scene.** Claude writes only the scene: the backdrop, the character and the effects, drawn into palette-indexed buffers.
+4. **Snapshot QA.** The page is rendered at chosen ticks to PNG in headless Chrome. Claude looks at the frames and fixes what it sees. The engine also checks that the last frame matches the first, so the loop has no seam.
+5. **Deliver.** You get one `.html` file you can open anywhere.
+
+What ships in the skill:
+
+| File | Role |
+|---|---|
+| `SKILL.md` | The workflow, hard rules and engine contract Claude follows |
+| `assets/wizard-spellcaster.html` | The engine, in a finished reference scene |
+| `references/pixel-craft-rules.md` | Palette, silhouette, motion and FX rules for a 16-bit look |
+| `scripts/new-scene.mjs` | Scaffolds a new page with the engine intact |
+| `scripts/snapshot.mjs` | Renders ticks to PNG and reports errors and seam mismatches |
+
 ## What you get
 
 - One `.html` file that loops a character through its action states.
@@ -52,4 +104,4 @@ The landing page and showcase live in `site/` as a plain Vite app. Run `pnpm ins
 
 ## License
 
-MIT
+[MIT](LICENSE). The country flags on the website are from [pixel-flags](https://github.com/tgines/pixel-flags) by Tony Gines, also MIT.
