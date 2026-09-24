@@ -8,6 +8,7 @@ setupCopy();
 setupHero();
 renderShowcase();
 setupReveal();
+setupJournal();
 
 function setupHero() {
   const frame = document.querySelector('.screen .frame');
@@ -69,6 +70,20 @@ function setupTabs() {
   select(tabs[0], false); // panels ship visible so the page reads without JS
   addEventListener('resize', () => movePill(active(), false));
   document.fonts?.ready.then(() => movePill(active(), false)); // Silkscreen changes tab widths once loaded
+}
+
+// Journal tabs mark whichever section crosses the middle of the viewport.
+function setupJournal() {
+  if (!('IntersectionObserver' in window)) return;
+  const links = new Map([...document.querySelectorAll('.journal a')].map(a => [a.hash.slice(1), a]));
+  const observer = new IntersectionObserver(entries => {
+    for (const { target, isIntersecting } of entries) {
+      if (!isIntersecting) continue;
+      for (const a of links.values()) a.removeAttribute('aria-current');
+      links.get(target.id).setAttribute('aria-current', 'location');
+    }
+  }, { rootMargin: '-45% 0px -54% 0px' });
+  for (const id of links.keys()) observer.observe(document.getElementById(id));
 }
 
 // Section headings + ledes rise in the first time they scroll into view.

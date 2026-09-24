@@ -1,0 +1,19 @@
+/* Journal tabs: a bookmark per landing section, pinned to the right edge; the one being read sticks out. */
+.journal { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 9; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.journal a {
+  --tab: var(--gold);
+  display: block; max-width: 10px; overflow: hidden; white-space: nowrap; padding: 3px 0 3px 10px;
+  font: 700 .62rem/1 var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none;
+  color: transparent; background: var(--tab); /* collapsed: only the colored strip shows */
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, 100% 0, 100% 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px));
+  transition: max-width var(--duration-fast) var(--ease-smooth-out), padding var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick) var(--ease-out);
+}
+.journal a:nth-child(2) { --tab: var(--cyan); }
+.journal a:nth-child(3) { --tab: var(--red); }
+.journal a:nth-child(4) { --tab: var(--cyan-l); }
+.journal a:nth-child(5) { --tab: var(--silver); }
+.journal a:nth-child(6) { --tab: var(--gold-l); }
+.journal a:nth-child(7) { --tab: var(--muted); }
+.journal a:hover, .journal a:focus-visible, .journal a[aria-current="location"] { max-width: 120px; padding-right: 10px; color: var(--ink); }
+.journal a:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; }
+@media (max-width: 900px) { .journal { display: none; } } /* no spare margin, and no hover to open the tabs */

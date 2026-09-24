@@ -36,6 +36,7 @@ button:disabled { cursor: not-allowed; }
 .bar nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
 .bar nav a { font: 400 .8rem var(--display); color: var(--muted); text-decoration: none; letter-spacing: .04em; }
 .bar nav a:hover { color: var(--text); }
+.bar nav a[aria-current="page"] { color: var(--gold); }
 
 main > section { position: relative; max-width: 1180px; margin: 0 auto; padding: clamp(56px, 9vw, 112px) 20px; }
 main > section + section::before { /* 2px checker seam, the same dither the sprites use */
@@ -174,9 +175,6 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
   .flow { grid-template-columns: 1fr; border-top: 0; border-left: 2px solid var(--line); padding-left: 24px; }
   .flow li { padding: 0 0 28px; }
   .flow li::after { top: 8px; left: -30px; }
-}
-@media (max-width: 560px) {
-  .bar nav a:nth-child(2), .bar nav a:nth-child(3) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
