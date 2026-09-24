@@ -93,6 +93,20 @@ export const SHOWCASES = [
       "closes and she rises. Sunny meadow.",
   },
   {
+    slug: "cultivator-flying-sword",
+    tags: ["humanoid", "magic", "projectile", "dawn"],
+    title: "Cloud Peak Immortal",
+    still: 282,
+    res: [160, 90],
+    loop: 8,
+    states: ["meditate", "summon", "circle", "launch", "cut", "sheathe"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art xianxia sword cultivator: float cross-legged in meditation, a flying sword slips from its sheath and " +
+      "orbits in a ribbon of blue qi, streaks off screen and splits a falling rock in two, returns to the sheath. " +
+      "Floating peaks above a sea of clouds at dawn, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",

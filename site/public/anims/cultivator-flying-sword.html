@@ -1,0 +1,750 @@
+<title>Cloud Peak Immortal</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #14101e; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #14101e; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art sword cultivator meditating above a sea of clouds at dawn while a flying sword orbits in blue qi, splits a falling rock and returns to its sheath"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // no floor: particles are culled as they sink into the clouds
+const POSE_STEP = 6;               // 10 fps pose frames
+const AX = 50;                     // cultivator x
+const PEAK_Y = 64;                 // top of the floating peak under the cultivator
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#14101e',
+  '#2e2f6a', '#5e4488', '#a8608e', '#e8928a', '#f8c890', '#ffe8a8',
+  '#6a5290', '#8e6aa0',
+  '#3a2e4a', '#6e5668', '#b08878',
+  '#b48eb8', '#ecb8c4', '#fff0ea',
+  '#8894b8', '#cfd8ec', '#f4f7ff',
+  '#1e3466', '#2f5ca8',
+  '#16121f', '#2c2842', '#4c4870',
+  '#d4957c', '#f8d0b0',
+  '#e8b850', '#d0384a', '#7c8cb4',
+  '#2a64d0', '#48acff', '#a8e6ff', '#ffffff',
+];
+const INK = 0, SKY0 = 1, SKY1 = 2, SKY2 = 3, SKY3 = 4, SKY4 = 5, SUN = 6, FAR_D = 7, FAR_M = 8,
+  ROCK_D = 9, ROCK_M = 10, ROCK_L = 11, CLOUD_D = 12, CLOUD_M = 13, CLOUD_L = 14,
+  ROBE_D = 15, ROBE_M = 16, ROBE_L = 17, TRIM_D = 18, TRIM_M = 19, HAIR_D = 20, HAIR_M = 21, HAIR_L = 22,
+  SKIN_D = 23, SKIN_L = 24, GOLD = 25, TASSEL = 26, STEEL = 27, QI_D = 28, QI_M = 29, QI_L = 30, WHITE = 31;
+
+// One step brighter per ramp; the dawn sky warms toward the sun.
+const LIGHTEN = Uint8Array.of(
+  HAIR_M,
+  SKY1, SKY2, SKY3, SKY4, SUN, WHITE,
+  FAR_M, CLOUD_D,
+  ROCK_M, ROCK_L, SKY4,
+  CLOUD_M, CLOUD_L, WHITE,
+  ROBE_M, ROBE_L, WHITE,
+  TRIM_M, QI_M,
+  HAIR_M, HAIR_L, ROBE_D,
+  SKIN_L, SUN,
+  SUN, SKY3, QI_L,
+  QI_M, QI_L, WHITE, WHITE);
+const RAMP_QI = Uint8Array.of(WHITE, QI_L, QI_M, QI_D);
+const RAMP_ROCK = Uint8Array.of(ROCK_L, ROCK_M, ROCK_D, ROCK_D);
+const RAMP_SPARK = Uint8Array.of(WHITE, SUN, GOLD, TASSEL);
+const RAMPS = [RAMP_QI, RAMP_ROCK, RAMP_SPARK];
+const RIM = Uint8Array.of(QI_M, QI_L, WHITE);
+const RIM_BANDS = Uint16Array.of(10, 18, 28);
+const LIGHT = Float32Array.of(0.8, -0.6);     // the rising sun, low on the right
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[TRIM_D] = RIM_OK[TRIM_M] = RIM_OK[GOLD] = RIM_OK[CLOUD_L] = RIM_OK[CLOUD_D] = 0; // sheath and silk ribbon keep their colors
+RIM_OK[SKIN_D] = RIM_OK[SKIN_L] = 0;               // no blue qi rim on the face
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY0] = AIR[SKY1] = AIR[SKY2] = AIR[SKY3] = AIR[SKY4] = 1;
+
+// Head facing right, 7x11: h/H hair with a topknot, g gold pin, s/d skin
+const HEAD = ['..hHh..', '.ghHhg.', '..hhh..', '.hHHHh.', 'hhHHHhh', 'hhhssss', 'hhhssss',
+  'hhssssd', 'hhhsss.', 'hhh.ss.', 'hh.....'];
+
+const MEDITATE = 0, SUMMON = 1, CIRCLE = 2, LAUNCH = 3, CUT = 4, SHEATHE = 5;
+const DUR = Uint16Array.of(120, 72, 96, 48, 48, 96); // L = 480: bob 120, ribbon 60, cloud drift 480
+const EASE = Uint16Array.of(6, 24, 48, 6, 42, 84);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 1, 0, 0);
+const FIRE_T = 6;
+const ARM = 0, LIFT = 1, LEAN = 2, EYES = 3, NP = 4;
+const REST = Float32Array.of(0, 0, 0, 0);          // hands in the lap, eyes closed
+const TARGET = [
+  REST,
+  Float32Array.of(1, 1, 0, 1),                     // sword fingers raised before the chest
+  Float32Array.of(1, 2, 0, 1),                     // rises as the sword circles
+  Float32Array.of(2, 2, 1, 1),                     // thrusts the fingers at the sky: the sword flies
+  Float32Array.of(1, 2, 0, 1),                     // draws the hand back as the sword returns
+  REST,
+];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+const ROCK = ['....mmLL....', '..mmmmmLL...', '.dmmmmmmmL..', 'dmmmdmmmmLL.', 'dmmmmmmdmmLL', 'ddmmmmmmmmmL',
+  'dddmmmdmmmmL', '.ddmmmmmmmd.', '..dddmmmdd..', '....dddd....'];
+const RW = 12, RN = 120;                       // rock bitmap width and size
+const headMap = new Uint8Array(77), rockMap = new Uint8Array(RN), rockHalf = new Uint8Array(RN);
+const LAP_W = Int8Array.of(7, 9, 10, 10, 9);   // crossed-leg half widths, waist to hem
+const CREST = new Int8Array(40);               // drifting cloud-bank crest, one 40px period
+const DIRX = new Float32Array(16), DIRY = new Float32Array(16);
+const SHEATH_DIR = 11, SHEATH_A = 1.1781;      // mouth faces up-left (16-way index); the sheathed tip points down-right
+const SW = new Float32Array(8);                // flying sword: pommel x/y, angle, visible length, behind, streaming, blade center x/y
+const SW_X = 0, SW_Y = 1, SW_A = 2, SW_V = 3, SW_BACK = 4, SW_T = 5, SW_CX = 6, SW_CY = 7;
+const HOV = new Float32Array(3);               // where the sword hovers before it is sheathed
+const RK = new Float32Array(12);               // rock: whole, upper half, lower half as x, y, vx, vy
+const CUTP = new Float32Array(4);              // cut point and the sword's heading through it
+const RIB = 24, ribX = new Float32Array(RIB), ribY = new Float32Array(RIB), ribBack = new Uint8Array(RIB);
+let ribHead = 0, ribLen = 0, rockMode = 0;     // rockMode: 0 none, 1 falling, 2 split
+let cx = 0, chestY = 0, hipY = 0, seatY = 0, mX = 0, mY = 0, shX = 0, shY = 0, elX = 0, elY = 0, hX = 0, hY = 0, hx = 0, hy = 0;
+let qHair = 0, qWave = 0, qEyes = 0, qFinger = 0, qGlow = 0;
+
+function buildBackground() {
+  const dith = (x, y, v) => v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+  const EDGE = [0, 16, 30, 42, 52, 999];
+  for (let y = 0; y < H; y++) {
+    let b = 0;
+    while (y >= EDGE[b + 1]) b++;
+    const seam = b < 4 && y === EDGE[b + 1] - 1; // one dithered row joins each band to the next
+    for (let x = 0; x < W; x++) bg[y * W + x] = SKY0 + b + (seam && dith(x, y, 0.5) ? 1 : 0);
+  }
+  for (const [x, y, c] of [[12, 4, SUN], [37, 9, SKY2], [61, 3, SKY2], [90, 7, SUN], [124, 4, SKY2], [150, 9, SUN]]) plot(bg, x, y, c);
+  for (let dy = -8; dy <= 8; dy++) { // the sun, rising out of the cloud sea
+    for (let dx = -8; dx <= 8; dx++) {
+      const d = Math.hypot(dx, dy);
+      if (d <= 4) plot(bg, 104 + dx, 58 + dy, WHITE);
+      else if (d <= 7 || (d <= 8 && dith(104 + dx, 58 + dy, 0.5))) plot(bg, 104 + dx, 58 + dy, SUN);
+    }
+  }
+  // Far floating pillars: flat tops with pines, undersides tapering into mist.
+  for (const [x0, y0, w, h] of [[16, 34, 12, 24], [84, 46, 8, 9], [146, 20, 16, 36]]) {
+    for (let y = y0; y < y0 + h; y++) {
+      const u = (y - y0) / h, hw = Math.round(w / 2 * (u < 0.55 ? 1 : 1 - (u - 0.55) / 0.45) + Math.sin(y * 0.9 + x0) * 0.6);
+      for (let x = x0 - hw; x <= x0 + hw; x++) plot(bg, x, y, x >= x0 + hw - 1 || y === y0 ? FAR_M : FAR_D);
+    }
+    for (let p = x0 - (w >> 1) + 2; p <= x0 + (w >> 1) - 2; p += 5) {
+      plot(bg, p, y0 - 1, HAIR_L); hline(bg, p - 2, p + 2, y0 - 2, HAIR_L); hline(bg, p - 1, p + 1, y0 - 3, HAIR_L);
+    }
+  }
+  hline(bg, 5, 27, 49, CLOUD_D); hline(bg, 10, 22, 50, CLOUD_D); hline(bg, 76, 92, 52, CLOUD_D);
+  hline(bg, 134, 159, 45, CLOUD_D); hline(bg, 140, 156, 46, CLOUD_D);
+  // Back bank of the cloud sea; crests near the sun catch its light.
+  for (let x = 0; x < W; x++) {
+    const top = Math.round(62 + 1.5 * Math.sin(x * 0.09) + Math.sin(x * 0.23 + 2)), warm = Math.abs(x - 104) < 16;
+    for (let y = top; y < H; y++)
+      bg[y * W + x] = y === top ? (warm ? SUN : CLOUD_L) : y < top + 4 ? CLOUD_M : y === top + 4 && dith(x, y, 0.5) ? CLOUD_M : CLOUD_D;
+  }
+  // The cultivator's floating peak: a flat stone top, strata, a lit right face.
+  for (let y = PEAK_Y; y < 88; y++) {
+    const u = (y - PEAK_Y) / 24, hw = Math.round(16 * (u < 0.2 ? 1 : 1 - (u - 0.2) / 0.8) + Math.sin(y * 1.3) * 0.7);
+    for (let x = AX - hw; x <= AX + hw; x++)
+      plot(bg, x, y, y === PEAK_Y || x >= AX + hw - 1 ? ROCK_L : x <= AX - hw + 1 ? ROCK_D
+        : (y - PEAK_Y) % 5 === 3 && (x + y) % 7 > 1 ? ROCK_D : ROCK_M);
+  }
+  hline(bg, AX - 9, AX + 9, PEAK_Y, ROCK_M); // shadow under the hovering cultivator
+
+  for (let i = 0; i < 40; i++)
+    CREST[i] = Math.round(1.6 * Math.sin(i * Math.PI / 20) + Math.sin(i * Math.PI / 10 + 1) + 0.6 * Math.sin(i * Math.PI / 4));
+  for (let k = 0; k < 16; k++) { DIRX[k] = Math.cos(k * Math.PI / 8); DIRY[k] = Math.sin(k * Math.PI / 8); }
+  const HMAP = { '.': EMPTY, h: HAIR_M, H: HAIR_L, g: GOLD, s: SKIN_L, d: SKIN_D };
+  HEAD.forEach((row, y) => { for (let x = 0; x < 7; x++) headMap[y * 7 + x] = HMAP[row[x]]; });
+  const RMAP = { '.': EMPTY, d: ROCK_D, m: ROCK_M, L: ROCK_L };
+  ROCK.forEach((row, y) => {
+    for (let x = 0; x < RW; x++) { // the cut runs along the sword's heading, a little lower on the left
+      rockMap[y * RW + x] = RMAP[row[x]];
+      rockHalf[y * RW + x] = y + 0.5 > 5 - 0.18 * (x - 5.5) ? 1 : 0;
+    }
+  });
+}
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+
+// Freeze the smooth pose onto the pixel grid; the sprite only changes on these frames.
+function sample(bob) {
+  snap.set(pose);
+  const a = pose[ARM], u = Math.min(1, a), v = Math.max(0, a - 1);
+  qHair = Math.max(-2, Math.min(2, Math.round(spring[0])));
+  qWave = (tick / POSE_STEP | 0) % 10;
+  qEyes = pose[EYES] > 0.5 ? 1 : 0;
+  qFinger = a > 1.5 ? 2 : a > 0.5 ? 1 : 0;
+  cx = AX + Math.round(pose[LEAN]);
+  seatY = 61 - Math.round(pose[LIFT]) + bob;
+  hipY = seatY - 4; chestY = hipY - 9;
+  hx = cx - 3; hy = chestY - 11;
+  shX = cx + 2; shY = chestY + 2;
+  mX = cx - 6; mY = chestY - 1;
+  // Hand and elbow keyframes: resting in the lap, sword seal before the chest, thrust out to the right.
+  hX = Math.round(cx + 1 + u * 5 + v * 7); hY = Math.round(hipY - u * 8);
+  elX = Math.round(cx + 4 + u + v * 3); elY = Math.round(hipY - 2 - u - v * 4);
+
+  if (state === MEDITATE) { srcX = mX - 2; srcY = mY - 4; rim = 1; qGlow = 0; }
+  else if (state === SUMMON && stT < 42) { srcX = hX; srcY = hY - 3; rim = 1 + Math.min(2, stT / 12 | 0); qGlow = 1; }
+  else if (state === SHEATHE && stT >= 36) { srcX = Math.round(SW[SW_X]); srcY = Math.round(SW[SW_Y]); rim = 1; qGlow = stT < 66 ? 1 : 0; }
+  else { srcX = Math.round(SW[SW_CX]); srcY = Math.round(SW[SW_CY]); rim = state === SHEATHE ? 2 : 3; qGlow = 1; }
+}
+
+function step() {
+  const bob = Math.round(Math.sin(tick / 120 * 6.2832));
+  stepSpring(0, -pose[LEAN] * 1.5 - pose[LIFT] * 0.4); // hair lags as she rises and leans
+  if (tick % POSE_STEP === 0) sample(bob);
+  moveSword();
+  if (state === MEDITATE && stT % 12 === 6)
+    spawn(MOTE, 50 + rand() * 30, cx + (rand() - 0.5) * 22, seatY - rand() * 4, 0, -0.18 - rand() * 0.1, 0);
+  if (state === SUMMON && stT >= 6 && stT < 36 && stT % 3 === 0) spawnOrbit(8 + rand() * 5, 0.09 + rand() * 0.04, 0.94 + rand() * 0.015);
+  if ((state === CIRCLE && stT % 2 === 0) || (state === LAUNCH && stT < 14) || (state === CUT && stT < FIRE_T))
+    spawn(TRAIL, 8 + rand() * 8, SW[SW_CX], SW[SW_CY], (rand() - 0.5) * 0.4, (rand() - 0.5) * 0.4, 0);
+  if (state === LAUNCH && stT === 6) { rockMode = 1; RK[0] = 114; RK[1] = -11; RK[2] = RK[3] = 0; }
+  if (state === CUT && stT === FIRE_T) split();
+  if (state === SHEATHE && stT === 66) // the guard clicks home
+    for (let n = 0; n < 6; n++) spawn(BURST, 10 + rand() * 8, mX, mY - 1, (rand() - 0.5) * 1.2, -rand(), 0);
+  if (rockMode === 1) { RK[3] += 0.0356; RK[1] += RK[3]; }
+  else if (rockMode === 2) {
+    for (let k = 4; k < 12; k += 4) { RK[k + 3] += 0.035; RK[k] += RK[k + 2]; RK[k + 1] += RK[k + 3]; }
+    if (RK[5] > 80 && RK[9] > 80) rockMode = 0;
+  }
+  for (let i = 0; i < MAXP; i++) if (pKind[i] && py[i] > 76) pKind[i] = 0; // sunk into the clouds
+}
+
+// The sword's path is a pure function of the state clock, so every loop flies the same line.
+function moveSword() {
+  const dx = DIRX[SHEATH_DIR], dy = DIRY[SHEATH_DIR];
+  let px0 = 0, py0 = 0, a = SHEATH_A, vis = 12, back = 1, trail = 1, s = -1;
+  if (state === MEDITATE) s = 0;
+  else if (state === SUMMON && stT < 42) s = 10 * ease((stT - 12) / 30);
+  else if (state === SUMMON) { // clear of the mouth, it swings level above the head
+    const u = ease((stT - 42) / 30), ax0 = mX + dx * 14, ay0 = mY + dy * 14;
+    px0 = ax0 + (cx - 8 - ax0) * u; py0 = ay0 + (chestY - 15 - ay0) * u; a = SHEATH_A * (1 - ease((stT - 42) / 18));
+  } else if (state === CIRCLE) { // two laps, speeding up; the upper arc passes behind her
+    const u = stT / DUR[CIRCLE], phi = -1.5708 + 12.566 * u * u, c = Math.cos(phi), sn = Math.sin(phi);
+    a = Math.atan2(c * 12, -sn * 22);
+    px0 = cx + c * 22 - Math.cos(a) * 8; py0 = chestY - 3 + sn * 12 - Math.sin(a) * 8; back = sn < 0 ? 1 : 0;
+  } else if (state === LAUNCH) {
+    const x = cx + 5.8 * stT + 0.35 * stT * stT;
+    a = 0; px0 = x - 8; py0 = chestY - 15 - 0.15 * stT; back = 0;
+    if (x > W + 16) { vis = -1; trail = 0; }
+  } else if (state === CUT && stT <= FIRE_T) { // back in from the right, straight through the rock
+    const u = stT / FIRE_T, rx = RK[0] + 6, ry = RK[1] + 5, ex = W + 16, ey = 22;
+    a = Math.atan2(ry - ey, rx - ex);
+    px0 = ex + (rx - ex) * u - Math.cos(a) * 8; py0 = ey + (ry - ey) * u - Math.sin(a) * 8; back = 0;
+  } else if (state === CUT) { // momentum carries it on, then it curls back to hover over her
+    const w = Math.min(1, (stT - FIRE_T) / 36), e = w * (2 - w), qx = CUTP[0] + CUTP[2] * 28, qy = CUTP[1] + CUTP[3] * 28;
+    const hx0 = cx + 12, hy0 = chestY - 18, k0 = (1 - e) * (1 - e), k1 = 2 * (1 - e) * e, k2 = e * e;
+    a = Math.atan2((1 - e) * (qy - CUTP[1]) + e * (hy0 - qy), (1 - e) * (qx - CUTP[0]) + e * (hx0 - qx));
+    px0 = k0 * CUTP[0] + k1 * qx + k2 * hx0 - Math.cos(a) * 8; py0 = k0 * CUTP[1] + k1 * qy + k2 * hy0 - Math.sin(a) * 8;
+    back = 0; trail = stT < 40 ? 1 : 0;
+  } else if (stT < 36) { // arcs over her head, tip turning down, to hang above the sheath
+    if (stT === 0) { HOV[0] = SW[SW_X]; HOV[1] = SW[SW_Y]; HOV[2] = SW[SW_A] < 0 ? SW[SW_A] + 6.2832 : SW[SW_A]; }
+    const u = ease(stT / 36), bx = mX + dx * 14, by = mY + dy * 14;
+    px0 = HOV[0] + (bx - HOV[0]) * u; py0 = HOV[1] + (by - HOV[1]) * u - 8 * Math.sin(Math.PI * u);
+    a = HOV[2] + (SHEATH_A - HOV[2]) * u; back = 0; trail = 0;
+  } else s = 10 * (1 - ease((stT - 36) / 30));
+  if (s >= 0) { px0 = mX + dx * (4 + s); py0 = mY + dy * (4 + s); vis = 3 + s; trail = 0; }
+  SW[SW_X] = px0; SW[SW_Y] = py0; SW[SW_A] = a; SW[SW_V] = vis; SW[SW_BACK] = back; SW[SW_T] = s < 0 ? 1 : 0;
+  SW[SW_CX] = px0 + Math.cos(a) * 8; SW[SW_CY] = py0 + Math.sin(a) * 8;
+  if (trail) { // the qi ribbon streams from the pommel
+    ribHead = (ribHead + 1) % RIB; ribX[ribHead] = px0; ribY[ribHead] = py0; ribBack[ribHead] = back;
+    if (ribLen < RIB) ribLen++;
+  } else if (ribLen > 0) ribLen--;
+}
+
+function split() {
+  const rx = RK[0], ry = RK[1], hx0 = Math.cos(SW[SW_A]), hy0 = Math.sin(SW[SW_A]);
+  CUTP[0] = rx + 6; CUTP[1] = ry + 5; CUTP[2] = hx0; CUTP[3] = hy0;
+  RK[4] = rx; RK[5] = ry; RK[6] = 0.45; RK[7] = -0.7;   // upper half slides off along the cut
+  RK[8] = rx; RK[9] = ry + 1; RK[10] = -0.35; RK[11] = 0.3;
+  rockMode = 2; shakeT = 10;
+  for (let n = 0; n < 14; n++) {
+    const t = rand() * 6.283, v = 0.4 + rand() * 1.4;
+    spawn(BURST, 20 + rand() * 24, CUTP[0], CUTP[1], Math.cos(t) * v, Math.sin(t) * v - 0.4, 1);
+  }
+  for (let n = 0; n < 10; n++) spawn(BURST, 10 + rand() * 12, CUTP[0], CUTP[1], hx0 * (1 + rand() * 2) + (rand() - 0.5), hy0 * 2 + (rand() - 0.5) * 1.5, 2);
+}
+
+function drawActor() {
+  // Sheath across the back: only its gilt mouth shows above the far shoulder.
+  for (let k = 0; k <= 12; k++) {
+    const x = Math.round(mX - DIRX[SHEATH_DIR] * k), y = Math.round(mY - DIRY[SHEATH_DIR] * k);
+    plot(spr, x, y, k === 0 ? GOLD : TRIM_D); plot(spr, x + 1, y, k === 0 ? GOLD : TRIM_M);
+  }
+  // Silk ribbon from the shoulders, rippling out behind her.
+  for (let k = 0; k < 14; k++) {
+    const x = cx - 4 - k, y = chestY + 3 + Math.round(k * 0.45 + Math.sin(k * 0.55 - qWave * 0.628) * k / 7 + qHair * k / 10);
+    plot(spr, x, y, CLOUD_L); plot(spr, x, y + 1, CLOUD_D);
+  }
+  capsule(spr, hx + 1, hy + 6, 2, cx - 5 + qHair, chestY + 8, 1.3, HAIR_D, HAIR_M, HAIR_L);
+  capsule(spr, cx - 2, shY, 2, AX - 1, hipY + 1, 1.8, ROBE_D, ROBE_D, ROBE_M); // far sleeve resting on the lap
+
+  // Crossed legs under the robe, lit from the right, a blue hem along the bottom.
+  for (let r = 0; r < 5; r++) {
+    const y = hipY + r, w = LAP_W[r];
+    for (let x = AX - w - 1; x <= AX + w; x++) {
+      let c = x >= AX + w - 2 ? ROBE_L : x <= AX - w ? ROBE_D : ROBE_M;
+      if (r === 2 && (x === AX - 3 || x === AX + 4)) c = ROBE_D;
+      if (r === 4) c = x > AX - w && x < AX + w ? TRIM_M : TRIM_D;
+      plot(spr, x, y, c);
+    }
+  }
+  // Torso with the crossed collar and a sash; the chest leans ahead of the hips.
+  const lean = cx - AX;
+  for (let i = 0; i < 10; i++) {
+    const c0 = AX + Math.round(lean * (1 - i / 9)), y = chestY + i, l = c0 - (i === 0 ? 3 : 4), r = c0 + (i === 0 || i > 6 ? 3 : 4);
+    for (let x = l; x <= r; x++) {
+      let c = x >= r - 1 ? ROBE_L : x === l ? ROBE_D : ROBE_M;
+      if (i < 5 && x === c0 + Math.round(i * 0.75)) c = TRIM_M;       // collar, left over right
+      if (i === 0 && x === c0 + 1) c = SKIN_L;
+      if (i === 7 || i === 8) c = x === c0 + 2 && i === 7 ? GOLD : TRIM_D;
+      plot(spr, x, y, c);
+    }
+  }
+  for (let r = 0; r < 11; r++) {
+    for (let c = 0; c < 7; c++) {
+      const v = headMap[r * 7 + c];
+      if (v !== EMPTY) plot(spr, hx + c, hy + r, v);
+    }
+  }
+  if (qEyes) { plot(spr, hx + 5, hy + 6, INK); plot(spr, hx + 4, hy + 6, WHITE); }
+  else { plot(spr, hx + 4, hy + 6, INK); plot(spr, hx + 5, hy + 6, INK); }
+
+  // Near arm in a wide sleeve that hangs below the forearm; two fingers make the sword seal.
+  const ex = elX, ey = elY, fdx = hX - ex, fdy = hY - ey, fl = Math.hypot(fdx, fdy) || 1;
+  const wx = Math.round(hX - fdx / fl * 2), wy = Math.round(hY - fdy / fl * 2);
+  capsule(spr, shX, shY, 2.2, ex, ey, 2.2, ROBE_D, ROBE_M, ROBE_L);
+  if (Math.abs(fdx) > Math.abs(fdy)) {
+    for (let s = 3; s <= 10; s++) {
+      const x = Math.round(ex + (wx - ex) * s / 10), y = Math.round(ey + (wy - ey) * s / 10);
+      for (let d = 1; d <= Math.round(s * 0.35); d++) plot(spr, x, y + 1 + d, d === Math.round(s * 0.35) ? ROBE_D : ROBE_M);
+    }
+  }
+  capsule(spr, ex, ey, 2, wx, wy, 2.3, ROBE_D, ROBE_M, ROBE_L);
+  rect(spr, hX - 1, hY - 1, 2, 2, SKIN_L);
+  plot(spr, hX - 1, hY, SKIN_D);
+  const tip = qGlow ? QI_L : SKIN_L;
+  if (qFinger === 1) { plot(spr, hX, hY - 2, tip); plot(spr, hX, hY - 3, tip); }
+  else if (qFinger === 2) { plot(spr, hX + 1, hY - 1, tip); plot(spr, hX + 2, hY - 1, tip); }
+}
+
+function swordPx(pass, x, y, c, edge) {
+  if (pass) plot(buf, x, y, c);
+  else { plot(buf, x - 1, y, edge); plot(buf, x + 1, y, edge); plot(buf, x, y - 1, edge); plot(buf, x, y + 1, edge); }
+}
+// Jian from pommel to tip along one of 16 headings: gilt pommel and guard, bound grip, two-tone blade, red tassel.
+function drawSword(back) {
+  const vis = SW[SW_V];
+  if (vis < 0 || SW[SW_BACK] !== back) return;
+  const k16 = ((Math.round(SW[SW_A] / 0.3927) % 16) + 16) % 16, dx = DIRX[k16], dy = DIRY[k16];
+  const px0 = SW[SW_X], py0 = SW[SW_Y], flying = SW[SW_T], shallow = Math.abs(dx) >= Math.abs(dy), edge = flying ? QI_D : INK;
+  for (let pass = 0; pass < 2; pass++) {
+    for (let k = 0; k <= vis && k <= 12; k++) {
+      const x = Math.round(px0 + dx * k), y = Math.round(py0 + dy * k);
+      if (k === 0) swordPx(pass, x, y, GOLD, edge);
+      else if (k < 3) swordPx(pass, x, y, TRIM_D, edge);
+      else if (k === 3) {
+        swordPx(pass, x, y, GOLD, edge);
+        swordPx(pass, Math.round(x - dy), Math.round(y + dx), GOLD, edge); swordPx(pass, Math.round(x + dy), Math.round(y - dx), GOLD, edge);
+      } else {
+        swordPx(pass, x, y, WHITE, edge);
+        if (k < 12) swordPx(pass, x + (shallow ? 0 : -1), y + (shallow ? 1 : 0), STEEL, edge);
+      }
+    }
+    for (let j = 1; j <= 3; j++) { // tassel hangs at rest and streams straight back in flight
+      const tx = flying ? px0 - dx * j : px0 - 1, ty = flying ? py0 - dy * j + (j >> 1) : py0 + j - 1;
+      swordPx(pass, Math.round(tx), Math.round(ty), TASSEL, edge);
+    }
+  }
+}
+
+function drawRibbon(back) {
+  for (let j = 0; j + 1 < ribLen; j++) {
+    const i = (ribHead - j + RIB) % RIB, k = (i + RIB - 1) % RIB;
+    if (ribBack[i] !== back || (j >= 16 && (j & 1))) continue; // the tail frays
+    line(buf, ribX[i], ribY[i], ribX[k], ribY[k], j < 5 ? QI_L : j < 12 ? QI_M : QI_D);
+    if (j < 12) line(buf, ribX[i], ribY[i] + 1, ribX[k], ribY[k] + 1, j < 5 ? QI_M : QI_D);
+  }
+}
+
+function rockBits(fx, fy, half) { // half: 0 upper, 1 lower, 2 whole; fresh cut faces show pale stone
+  const x0 = Math.round(fx), y0 = Math.round(fy);
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < RN; i++) {
+      const c = rockMap[i];
+      if (c === EMPTY || (half < 2 && rockHalf[i] !== half)) continue;
+      const x = x0 + i % RW, y = y0 + (i / RW | 0);
+      if (!pass) { plot(buf, x - 1, y, INK); plot(buf, x + 1, y, INK); plot(buf, x, y - 1, INK); plot(buf, x, y + 1, INK); continue; }
+      const nb = half === 0 ? i + RW : i - RW, face = half < 2 && nb >= 0 && nb < RN && rockMap[nb] !== EMPTY && rockHalf[nb] !== half;
+      plot(buf, x, y, face ? ROCK_L : c);
+    }
+  }
+}
+
+function drawCloudBank() { // the near bank drifts left 1px every 12 ticks: 40px per loop, one crest period
+  const drift = (tick / 12 | 0) % 40;
+  for (let x = 0; x < W; x++) {
+    const top = 75 + CREST[(x + drift) % 40];
+    for (let y = top; y < H; y++)
+      buf[y * W + x] = y < top + 2 || (y === top + 2 && (x + y) & 1) ? CLOUD_L : y < top + 9 ? CLOUD_M : CLOUD_D;
+  }
+}
+
+function drawUnder() {
+  drawRibbon(1);
+  drawSword(1);
+  if (rockMode === 1) rockBits(RK[0], RK[1], 2);
+  else if (rockMode === 2) { rockBits(RK[4], RK[5], 0); rockBits(RK[8], RK[9], 1); }
+  drawCloudBank();
+}
+function drawOver() {
+  drawRibbon(0);
+  drawParticles(false);
+  drawSword(0);
+  drawParticles(true);
+  if (state === CUT && stT >= FIRE_T && stT < FIRE_T + 12) { // the slash hangs in the air behind the blade
+    const f = stT - FIRE_T, len = 12 + f * 2;
+    if (f < 3) halo(Math.round(CUTP[0]), Math.round(CUTP[1]), 7, WHITE, QI_L);
+    line(buf, CUTP[0] - CUTP[2] * len, CUTP[1] - CUTP[3] * len, CUTP[0] + CUTP[2] * 4, CUTP[1] + CUTP[3] * 4, f < 4 ? WHITE : f < 8 ? QI_L : QI_M);
+  }
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>
