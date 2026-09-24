@@ -284,6 +284,20 @@ export const SHOWCASES = [
       "lands back in its box. Cluttered workshop interior, 160×90.",
   },
   {
+    slug: "mermaid-pearl-song",
+    tags: ["humanoid", "magic", "underwater"],
+    title: "Reef Mermaid Pearl",
+    still: 300,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "sing", "open", "rise", "catch", "close"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art mermaid: idle swimming among swaying kelp, sing with music notes and bubbles rising, a giant clam " +
+      "opens and a glowing pearl floats up, catch it and the clam closes. Coral reef with light rays from above, " +
+      "128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
