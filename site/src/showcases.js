@@ -6,6 +6,39 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "koschei-deathless",
+    tags: ["humanoid", "creature", "magic", "lightning", "night"],
+    country: "ru",
+    title: "The Death of Koschei",
+    still: 666,
+    res: [160, 90],
+    loop: 16,
+    states: ["voyage", "bear", "hare", "duck", "egg", "pike", "koschei", "needle", "break", "return"],
+    kind: "Made with the skill",
+    note: "A nesting-doll chain in one shot: the oak tips over on its own frame of reference, each creature is born from the last, the egg falls and bounces by real physics, and a storm that breaks into sunrise gathers again for Koschei, who cannot stay dead.",
+    prompt:
+      "Pixel art the death of Koschei the Deathless from Russian folklore, 160×90, one fixed shot, 16-second " +
+      "seamless loop. Scene: the island of Buyan in a cold northern sea at night: a rocky shore on the left where a " +
+      "boat can land, a colossal old oak in the middle with an iron chest hanging from its branches on heavy " +
+      "chains, open sea to the right, and on the far horizon the black spires of Koschei's castle on a crag under " +
+      "storm clouds. Keep the frame readable: Ivan and one new creature at a time, each one bursting out of the " +
+      "last like nesting dolls. 1. voyage: in a storm Ivan Tsarevich, in a red kaftan and fur hat, rows a small " +
+      "boat through the waves and lands on the shore while lightning lights up the oak and its hanging chest. 2. " +
+      "bear: a great brown bear he once spared lumbers up, wraps its arms round the oak and tears it out by the " +
+      "roots; the iron chest crashes down and bursts open. 3. hare: a grey hare bolts out of the chest and zigzags " +
+      "across the island, until a second hare, Ivan's friend, runs it down and they tumble in a cloud of fur. 4. " +
+      "duck: out of the torn hare a duck bursts into the air, and a drake dives from the storm and strikes it in an " +
+      "explosion of feathers. 5. egg: a glowing egg falls from the duck, bounces off the rocks and drops into the " +
+      "sea with a splash. 6. pike: a huge pike leaps out of the waves with the egg in its jaws and lays it at " +
+      "Ivan's feet. 7. koschei: the storm howls and Koschei the Deathless, a skeletal sorcerer in black armor with " +
+      "a crown of green fire, rides down out of the clouds on a black horse and raises his sword over Ivan. 8. " +
+      "needle: Ivan cracks the egg and draws out a shining needle; as he bends it Koschei writhes and green " +
+      "lightning crackles around him. 9. break: the needle snaps; Koschei crumbles into dust that blows away, the " +
+      "castle on the horizon collapses, and the storm clouds tear open onto a golden sunrise. 10. return: the calm " +
+      "day turns to dusk, Ivan rows away, the fallen oak rises again, a new iron chest locks shut in its chains, " +
+      "and storm clouds gather as night falls, the tale ready to begin anew.",
+  },
+  {
     slug: "jumong-goguryeo",
     tags: ["humanoid", "creature", "projectile", "magic", "dawn"],
     country: "kr",
@@ -747,7 +780,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
