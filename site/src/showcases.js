@@ -228,6 +228,20 @@ export const SHOWCASES = [
       "rusted car door as sand streams past, the storm clears, stand and wipe the goggles. Rusted desert ruins, 160×90.",
   },
   {
+    slug: "fisherman-pier-catch",
+    tags: ["humanoid", "dawn"],
+    title: "Dawn Pier Fisher",
+    still: 366,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "wind up", "cast", "wait", "yank", "reel", "show off", "drop"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art fisherman on a wooden pier: idle with a lantern swaying, cast the line, the bobber drifts and dips " +
+      "twice, yank and reel in a flopping silver fish, hold it up proudly then drop it in the bucket. Misty lake at " +
+      "dawn, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
