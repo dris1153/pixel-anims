@@ -445,6 +445,42 @@ export const SHOWCASES = [
       "legend ready to begin anew.",
   },
   {
+    slug: "phra-aphai-mani-sea-ogress",
+    tags: ["humanoid", "creature", "projectile", "magic", "night"],
+    country: "th",
+    title: "Phra Aphai Mani and the Sea Ogress",
+    still: 498,
+    res: [160, 90],
+    loop: 12,
+    states: ["song", "lure", "reveal", "escape", "chase", "last song", "stone", "return"],
+    kind: "Made with the skill",
+    note: "One rig swells from a slender woman into a giant, and the prince and the mermaid slip in front of her and behind her as they cross the sea; her stone islet sinks out of sight so the loop closes on the song.",
+    prompt:
+      "Pixel art Phra Aphai Mani, the prince with the magic pipe from Sunthorn Phu's Thai epic, facing the giant sea " +
+      "ogress Phisuea Samut, 160×90, one fixed shot, 12-second seamless loop. Scene: the Gulf of Siam on a moonlit night " +
+      "off Koh Samet: a pale sand beach and a hermit's rock under a leaning frangipani tree on the left, a calm dark-teal " +
+      "sea across the middle and right, a full moon laying a silver path on the water, and a small jagged islet on the " +
+      "far horizon. " +
+      "1. song: Phra Aphai Mani, a slender prince in a gold-trimmed jacket and a tall pointed Thai crown, sits on the " +
+      "hermit's rock playing his magic pipe; soft rings of golden notes roll out across the water and fireflies drift " +
+      "over the sand. " +
+      "2. lure: a beautiful woman in a shimmering sea-green sabai rises out of the moon path and glides toward the " +
+      "shore, charmed by the music, foam curling around her. " +
+      "3. reveal: halfway to the beach she swells into the towering sea ogress, blue-black skin, wild seaweed hair, " +
+      "fangs and blazing eyes, her gold jewelry snapping apart; the waves heave and the moon turns blood red. " +
+      "4. escape: a mermaid with a golden-green tail bursts from the surf, the prince leaps onto her back and they " +
+      "speed out along the moon path in a spray of silver foam. " +
+      "5. chase: the ogress wades after them, each stride throwing up walls of water, then tears a boulder from the " +
+      "reef and hurls it so it crashes beside the fleeing pair. " +
+      "6. last song: the prince turns on the mermaid's back and plays the final sorrowful song; rings of golden light " +
+      "pour from the pipe and wrap around the ogress, who stops and clutches her heart. " +
+      "7. stone: she sinks to her knees and hardens into a jagged stone islet, cracks glowing gold then fading; the " +
+      "red drains from the moon and the waves smooth to silver. " +
+      "8. return: the mermaid carries the prince back to the hermit's rock, the fireflies return, the stone islet " +
+      "slowly sinks beneath the tide until only a faint glow under the water remains, and he lifts the pipe to play " +
+      "again, the tale ready to begin anew.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -513,7 +549,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['th', 'Thailand'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
