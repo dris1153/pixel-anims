@@ -215,6 +215,19 @@ export const SHOWCASES = [
       "puffs, land with a soft bounce and wave. Cratered moon under a ringed planet, 160×90.",
   },
   {
+    slug: "scavenger-sandstorm",
+    tags: ["humanoid", "day"],
+    title: "Dune Scavenger",
+    still: 150,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "roll", "hide", "storm", "clear", "wipe"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art wasteland scavenger: idle with scarf flapping, a sandstorm rolls in from the left, crouch behind a " +
+      "rusted car door as sand streams past, the storm clears, stand and wipe the goggles. Rusted desert ruins, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",

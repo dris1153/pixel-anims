@@ -1,0 +1,592 @@
+<title>Dune Scavenger</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #140c0a; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #140c0a; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art wasteland scavenger in rusted desert ruins; a sandstorm rolls in from the left, he crouches behind a rusted car door as sand streams past, then stands and wipes his goggles as it clears"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const GROUND = 78;                 // packed sand
+const FY = GROUND - 1;             // sand grains land here
+const POSE_STEP = 6;               // 10 fps pose frames
+const AX = 86;                     // the scavenger
+const DOOR_X0 = 64, DOOR_X1 = 73, DOOR_TOP = 60; // the rusted car door he shelters behind
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#140c0a',
+  '#b87850', '#d8a068', '#eccb92', '#fff4d0',
+  '#7a5a5a', '#9a7468',
+  '#a06a3a', '#d09a58', '#ecc27e', '#f8dca8',
+  '#5a2a1a', '#8a4424', '#b86a34', '#4a4a50', '#7a7a80',
+  '#5a4a3a', '#86705a', '#b09a7a',
+  '#7a1e1e', '#b8342a',
+  '#a0684a', '#d09a74',
+  '#2a5a6a', '#8ad0d8', '#ffffff',
+];
+const INK = 0, SKY0 = 1, SKY1 = 2, SKY2 = 3, SUN = 4, FAR_D = 5, FAR_M = 6,
+  SAND_D = 7, SAND_M = 8, SAND_L = 9, SAND_H = 10, RUST_D = 11, RUST_M = 12, RUST_L = 13, METAL_D = 14, METAL_M = 15,
+  COAT_D = 16, COAT_M = 17, COAT_L = 18, SCARF_D = 19, SCARF_M = 20, SKIN_D = 21, SKIN_L = 22, GLASS_D = 23, GLASS_L = 24, WHITE = 25;
+
+// One step brighter per ramp; everything warms toward pale sand in the glare.
+const LIGHTEN = Uint8Array.of(
+  METAL_D,
+  SKY1, SKY2, SUN, WHITE,
+  FAR_M, SKY1,
+  SAND_M, SAND_L, SAND_H, WHITE,
+  RUST_M, RUST_L, SAND_L, METAL_M, SKY2,
+  COAT_M, COAT_L, SAND_H,
+  SCARF_M, RUST_L,
+  SKIN_L, SAND_H,
+  GLASS_L, WHITE, WHITE);
+const RAMP_SAND = Uint8Array.of(SAND_H, SAND_L, SAND_M, SAND_D);
+const RAMP_GRIT = Uint8Array.of(SAND_L, SAND_M, SAND_D, COAT_D);
+const RAMPS = [RAMP_SAND, RAMP_GRIT];
+const RIM = Uint8Array.of(SAND_L, SAND_H, WHITE);
+const RIM_BANDS = Uint16Array.of(10, 18, 28);
+const LIGHT = Float32Array.of(0.6, -0.8);     // the white desert sun, high on the right
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[SCARF_D] = RIM_OK[SCARF_M] = RIM_OK[GLASS_D] = RIM_OK[GLASS_L] = 0; // streaming scarf, lenses
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY0] = AIR[SKY1] = AIR[SKY2] = 1;
+
+const IDLE = 0, ROLL = 1, HIDE = 2, STORM = 3, CLEAR = 4, WIPE = 5;
+const DUR = Uint16Array.of(96, 84, 30, 108, 72, 90); // L = 480: sand streaks 48, scarf flap 24
+const EASE = Uint16Array.of(6, 48, 18, 6, 30, 36);
+const EASE_OUT = Uint8Array.of(0, 0, 1, 0, 0, 0);
+const CROUCH = 0, SHIELD = 1, NP = 2;
+const REST = Float32Array.of(0, 0);              // standing easy, gloves at his belt
+const TARGET = [
+  REST,
+  Float32Array.of(0.2, 0),                       // braces, watching the wall of sand come
+  Float32Array.of(1, 1),                         // drops behind the door, a glove on its edge
+  Float32Array.of(1, 1),
+  Float32Array.of(0.7, 1),                       // peeks over as it thins
+  REST,                                          // sample() brings a glove to the goggles on top of this
+];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// What the storm does to each color: the veil pulls everything toward pale sand (twice for the far distance).
+const HAZE = Uint8Array.of(
+  SAND_D,
+  SAND_L, SAND_L, SAND_H, SAND_H,
+  SAND_M, SAND_L,
+  SAND_M, SAND_L, SAND_L, SAND_H,
+  RUST_M, RUST_L, SAND_M, SAND_D, SAND_M,
+  COAT_M, COAT_L, SAND_L,
+  SCARF_M, RUST_L,
+  SKIN_L, SAND_L,
+  GLASS_L, SAND_H, WHITE);
+// Head facing left, 7x7: h/H hood, g goggle lens, k strap, s scarf
+const HEAD = ['..hhh..', '.hhHhh.', 'hHhhhhh', 'ggkhhhh', 'ggkhhhh', 'sssssss', '.sssss.'];
+const headMap = new Uint8Array(49);
+const ST = new Float32Array(3);                   // storm spans [left, right] on screen, wind 0-1
+const SCF = new Int16Array(10);                   // scarf tail, five points
+let cx = AX, hipY = 0, chestY = 0, hx = 0, hy = 0, hdX = 0, hdY = 0, bfX = 0, qGlint = 0;
+
+function buildBackground() {
+  const seed = Uint32Array.of(606);
+  const rnd = () => { let x = seed[0]; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; seed[0] = x; return seed[0] / 4294967296; };
+  const dith = (x, y, v) => v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+  const EDGE = [0, 20, 40, 999];
+  for (let y = 0; y < H; y++) {
+    let b = 0;
+    while (y >= EDGE[b + 1]) b++;
+    const seam = b < 2 && y === EDGE[b + 1] - 1; // one dithered row joins each band to the next
+    for (let x = 0; x < W; x++) bg[y * W + x] = SKY0 + b + (seam && dith(x, y, 0.5) ? 1 : 0);
+  }
+  for (let dy = -9; dy <= 9; dy++) for (let dx = -9; dx <= 9; dx++) { // pale sun behind the dust
+    const d = Math.hypot(dx, dy);
+    if (d <= 3) plot(bg, 126 + dx, 16 + dy, WHITE); else if (d <= 6) plot(bg, 126 + dx, 16 + dy, SUN); else if (d > 7.5 && d <= 8.5) plot(bg, 126 + dx, 16 + dy, SKY2);
+  }
+  // Dead city on the horizon: broken towers, one leaning, a crane.
+  let x = 0;
+  while (x < W) {
+    const w = 6 + (rnd() * 9 | 0), h = 8 + (rnd() * 18 | 0), lean = rnd() < 0.15 ? 1 : 0;
+    for (let y = 58 - h; y < 62; y++) {
+      const sh = lean ? Math.round((58 - y) * 0.25) : 0, broken = y < 58 - h + 3 ? (rnd() * w) | 0 : 0;
+      for (let xx = x + sh + broken; xx < x + w + sh; xx++) plot(bg, xx, y, xx >= x + w + sh - 1 ? FAR_M : (y % 3 === 1 && xx % 3 === 1 && y < 58) ? SKY1 : FAR_D);
+    }
+    x += w + (rnd() * 6 | 0);
+  }
+  line(bg, 96, 36, 96, 58, FAR_D); line(bg, 96, 36, 112, 38, FAR_D); line(bg, 110, 38, 110, 44, FAR_D); // crane
+  for (let x = 0; x < W; x++) { // dunes, crests lit, lee sides in shadow
+    const top = Math.round(62 + 3 * Math.sin(x * 0.06 + 1) + 2 * Math.sin(x * 0.15));
+    const slope = Math.cos(x * 0.06 + 1) * 0.18 + Math.cos(x * 0.15) * 0.3;
+    for (let y = top; y < GROUND; y++) plot(bg, x, y, y === top ? SAND_L : slope > 0 ? SAND_D : SAND_M);
+  }
+  // A half-buried wreck on the right, a leaning road sign on the left.
+  for (let y = 66; y < 77; y++) for (let x = 114; x < 152; x++) {
+    const roof = y < 70 && (x < 122 || x > 142);
+    if (roof) continue;
+    const win = y >= 67 && y < 70 && x >= 124 && x < 140 && x % 8 !== 3;
+    plot(bg, x, y, win ? METAL_D : y === 66 || (y === 70 && (x < 124 || x > 140)) ? RUST_L : (x * 3 + y) % 11 === 0 ? RUST_D : RUST_M);
+  }
+  for (const w0 of [120, 144]) for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= 9) plot(bg, w0 + dx, 76 + dy, dx * dx + dy * dy <= 2 ? METAL_M : METAL_D);
+  line(bg, 24, 77, 28, 52, METAL_M); line(bg, 25, 77, 29, 52, METAL_D);
+  for (let y = 50; y < 57; y++) for (let x = 24; x < 36; x++) plot(bg, x, y, y === 50 || x === 35 ? RUST_L : (x + y) % 5 === 0 ? RUST_D : RUST_M);
+  hline(bg, 27, 32, 53, METAL_D);
+  for (let x = 0; x < W; x++) { // near sand with wind ripples
+    for (let y = GROUND; y < H; y++) bg[y * W + x] = y === GROUND ? SAND_L : (y + Math.round(Math.sin(x * 0.3) * 1.5)) % 4 === 0 ? SAND_D : SAND_M;
+  }
+  // The car door, stood in the sand: rusted panel, empty window frame, handle.
+  for (let y = DOOR_TOP; y <= GROUND; y++) {
+    for (let x = DOOR_X0; x <= DOOR_X1; x++) {
+      const frame = x === DOOR_X0 || x === DOOR_X1 || y === DOOR_TOP || y === DOOR_TOP + 6;
+      if (y > DOOR_TOP && y < DOOR_TOP + 6 && !frame) continue; // window hole: the dunes show through
+      plot(bg, x, y, frame ? (x === DOOR_X1 ? RUST_L : RUST_D) : x >= DOOR_X1 - 2 ? RUST_L : (x * 7 + y * 3) % 13 === 0 ? RUST_D : RUST_M);
+    }
+  }
+  hline(bg, DOOR_X0 + 5, DOOR_X0 + 7, DOOR_TOP + 9, METAL_M);
+  for (let y = GROUND - 3; y < GROUND; y++) for (let x = DOOR_X0 - 4; x <= DOOR_X1 + 4; x++) { const d = Math.abs(x - (DOOR_X0 + DOOR_X1) / 2) - 3; if (y >= GROUND - 1 - (d < 0 ? 2 : d < 1.5 ? 1 : 0)) plot(bg, x, y, SAND_L); } // drift at its foot
+  hline(bg, AX - 6, AX + 6, GROUND, SAND_M); // his shadow
+  const HMAP = { '.': EMPTY, h: COAT_M, H: COAT_L, g: GLASS_D, k: METAL_D, s: SCARF_M };
+  HEAD.forEach((row, y) => { for (let x = 0; x < 7; x++) headMap[y * 7 + x] = HMAP[row[x]]; });
+}
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function storm() { // where the sand wall is, and how hard the wind blows, by the state clock
+  let l = 999, r = -999, w = 0.25;
+  if (state === ROLL) { l = -999; r = -40 + stT / 84 * 104; w = 0.25 + 0.75 * ease(stT / 84); }
+  else if (state === HIDE) { l = -999; r = 64 + stT / 30 * 140; w = 1; }
+  else if (state === STORM) { l = -999; r = 999; w = 1; }
+  else if (state === CLEAR) { l = -30 + stT / 72 * 230; r = 999; w = 1 - 0.75 * ease(stT / 72); }
+  ST[0] = l; ST[1] = r; ST[2] = w;
+}
+
+// Freeze the smooth pose onto the pixel grid; the sprite only changes on these frames.
+function sample() {
+  snap.set(pose);
+  const c = pose[CROUCH], sh = pose[SHIELD], w = ST[2];
+  cx = AX - Math.round(c * 3);
+  hipY = GROUND - 10 + Math.round(c * 6); chestY = hipY - 8 + Math.round(c); hx = cx - 4; hy = chestY - 7;
+  bfX = cx + 3 + Math.round(c * 4);                                     // back foot slides out as he kneels
+  hdX = Math.round(cx - 3 + sh * (DOOR_X1 + 1 - (cx - 3))); hdY = Math.round(hipY - 1 + sh * (DOOR_TOP + 2 - (hipY - 1)));
+  if (state === WIPE && stT >= 12 && stT < 72) { hdX = hx + 1 + Math.round(Math.sin(stT / 24 * 6.2832) * 2); hdY = hy + 4; } // wipes the goggles
+  qGlint = state === WIPE && stT >= 72 && stT < 84 ? 1 : 0;
+  for (let k = 0; k < 5; k++) { // scarf tail streams downwind; a 24-tick flap, harder in the gale
+    SCF[k * 2] = hx + 6 + Math.round(k * 3 * (0.6 + 0.4 * w));
+    SCF[k * 2 + 1] = hy + 5 + Math.round(Math.sin(tick * 0.2618 - k * 0.9) * (0.5 + 1.5 * w) * k / 3 + (1 - w) * k * 1.2);
+  }
+  srcX = cx + 12; srcY = hy - 12; rim = 1;
+}
+
+function step() {
+  storm();
+  if (tick % POSE_STEP === 0) sample();
+  if ((state === IDLE || state === WIPE) && tick % 8 === 4) // wisps skittering over the ground
+    spawn(TRAIL, 20 + rand() * 16, rand() * 50, GROUND - 1 - rand() * 3, 1 + rand(), 0, 0);
+  if (ST[0] < DOOR_X0 && ST[1] > DOOR_X0 && tick % 2 === 0) // sand slams into the door and sprays over its top
+    spawn(BURST, 20 + rand() * 14, DOOR_X0 - 1, DOOR_TOP + 2 + rand() * 14, 1.6 + rand() * 1.2, -0.9 - rand() * 0.8, 0);
+  if (state === WIPE && stT >= 78 && stT < 90 && stT % 2 === 0) // shaking the sand off his shoulders
+    spawn(BURST, 16 + rand() * 10, cx + (rand() - 0.5) * 8, chestY, (rand() - 0.5) * 0.6, -0.2, 1);
+}
+
+function drawActor() {
+  rect(spr, cx + 3, chestY + 1, 4, 7, RUST_M); // salvage pack and a bent antenna
+  for (let y = chestY + 1; y < chestY + 8; y++) plot(spr, cx + 6, y, RUST_D);
+  hline(spr, cx + 3, cx + 6, chestY + 1, RUST_L);
+  line(spr, cx + 5, chestY, cx + 7, chestY - 7, METAL_M); plot(spr, cx + 7, chestY - 8, RUST_L);
+  for (let k = 0; k < 4; k++) { // scarf tail
+    line(spr, SCF[k * 2], SCF[k * 2 + 1], SCF[k * 2 + 2], SCF[k * 2 + 3], SCARF_M);
+    if (k < 3) line(spr, SCF[k * 2], SCF[k * 2 + 1] + 1, SCF[k * 2 + 2], SCF[k * 2 + 3] + 1, SCARF_D);
+  }
+  joint(cx + 1, hipY, bfX, GROUND - 1, 5, 5, -1); // back leg
+  capsule(spr, cx + 1, hipY, 1.6, jx, jy, 1.5, COAT_D, COAT_D, COAT_M); capsule(spr, jx, jy, 1.5, bfX, GROUND - 2, 1.4, COAT_D, COAT_D, COAT_M);
+  hline(spr, bfX - 1, bfX + 1, GROUND - 1, METAL_D);
+  joint(cx - 1, hipY, cx - 3, GROUND - 1, 5, 5, 1); // front leg, knee toward the door
+  capsule(spr, cx - 1, hipY, 1.7, jx, jy, 1.6, COAT_D, COAT_M, COAT_L); capsule(spr, jx, jy, 1.6, cx - 3, GROUND - 2, 1.5, COAT_D, COAT_M, COAT_L);
+  hline(spr, cx - 5, cx - 2, GROUND - 1, METAL_D);
+  for (let y = chestY; y <= hipY + 3; y++) { // patched duster, ragged at the hem
+    const t = (y - chestY) / (hipY + 3 - chestY), hw = Math.round(3 + t * 2);
+    for (let x = cx - hw; x <= cx + hw; x++) {
+      if (y === hipY + 3 && (x & 1)) continue;
+      plot(spr, x, y, x >= cx + hw - 1 ? COAT_L : x <= cx - hw ? COAT_D : (x * 5 + y * 3) % 17 === 0 ? RUST_M : COAT_M);
+    }
+  }
+  hline(spr, cx - 3, cx + 3, hipY - 1, METAL_D); // belt
+  for (let r = 0; r < 7; r++) {
+    for (let c = 0; c < 7; c++) {
+      const v = headMap[r * 7 + c];
+      if (v !== EMPTY) plot(spr, hx + c, hy + r, v);
+    }
+  }
+  plot(spr, hx, hy + 3, qGlint ? WHITE : GLASS_L); // lens catches the light
+  joint(cx - 1, chestY + 2, hdX, hdY, 4, 4, 1); // near arm, gloved
+  capsule(spr, cx - 1, chestY + 2, 1.6, jx, jy, 1.5, COAT_D, COAT_M, COAT_L);
+  capsule(spr, jx, jy, 1.4, hdX, hdY, 1.2, COAT_D, COAT_M, COAT_L);
+  rect(spr, hdX - 1, hdY - 1, 2, 2, METAL_D);
+}
+
+function drawUnder() { // the storm veils what it covers; its moving edges billow
+  const l = ST[0], r = ST[1];
+  if (r < -60 || l > 220) return;
+  for (let y = 0; y < H; y++) {
+    const e = 5 * Math.sin(y * 0.15 + tick * 0.08) + 3 * Math.sin(y * 0.37);
+    const x0 = Math.max(0, Math.ceil(l + e)), x1 = Math.min(W - 1, Math.floor(r + e));
+    for (let x = x0; x <= x1; x++) { const i = y * W + x; buf[i] = y < 62 ? HAZE[HAZE[buf[i]]] : HAZE[buf[i]]; }
+    if (r < 900 && x1 >= 1 && x1 < W) { plot(buf, x1, y, SAND_H); plot(buf, x1 - 1, y, SAND_L); }
+    if (l > -900 && x0 > 0 && x0 < W) plot(buf, x0, y, SAND_L);
+  }
+}
+function drawOver() {
+  drawParticles(false);
+  drawParticles(true);
+  const l = ST[0], r = ST[1];
+  if (r < -60 || l > 220) return;
+  for (let k = 0; k < 64; k++) { // streaming sand, 4px a tick: a 48-tick sweep
+    const y = 4 + (k * 37) % 76, x = (k * 53 + tick * 4) % 192 - 16, len = 5 + (k * 7) % 9;
+    if (x + len < l || x > r) continue;
+    if (y > DOOR_TOP - 2 && x > DOOR_X1 && x < DOOR_X1 + 26) continue; // the door's lee
+    hline(buf, Math.max(x, Math.ceil(l)), Math.min(x + len, Math.floor(r)), y, k % 3 === 0 ? SAND_H : k % 3 === 1 ? SAND_L : SAND_M);
+  }
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>
