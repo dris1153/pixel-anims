@@ -481,6 +481,54 @@ export const SHOWCASES = [
       "again, the tale ready to begin anew.",
   },
   {
+    slug: "samudra-manthan-churning",
+    tags: ["humanoid", "creature", "magic", "projectile", "dawn"],
+    country: "in",
+    title: "Churning of the Ocean of Milk",
+    still: 846,
+    res: [160, 90],
+    loop: 16,
+    states: ["churn", "kurma", "halahala", "neelakantha", "treasures", "lakshmi", "amrita", "rahu", "eclipse", "return"],
+    kind: "Made with the skill",
+    note: "The biggest cast yet, kept readable by letting one arrival in at a time: the coils slide as the tug swings, the whole sky turns twice, and the moon that rises from the milk is the thread that closes the loop.",
+    prompt:
+      "Pixel art the Churning of the Ocean of Milk (Samudra Manthan) from Hindu myth, 160×90, one fixed shot, 16-second " +
+      "seamless loop. Scene: the cosmic Ocean of Milk at dawn: a deep indigo sky fading through violet to rose-gold at " +
+      "the horizon with the last stars going out, the sun's rim just below the horizon, a calm ivory sea with pale blue " +
+      "shadows across the whole bottom, and Mount Mandara rising from the middle of the sea as the churning rod, a tall " +
+      "grey peak with a few trees on its shoulders, wrapped three times by the great serpent Vasuki, emerald green with " +
+      "a golden hood. On the left, Indra, king of the devas, fair-skinned in a gold crown and a white-and-gold dhoti, " +
+      "holds Vasuki's tail with a line of small deva silhouettes behind him; on the right, a dark-red asura lord with " +
+      "curved horns and a spiked mace on his back holds the serpent's neck, with a line of horned asura silhouettes " +
+      "behind him. Keep the frame readable: the mountain, the two leaders and one new arrival at a time, each arrival " +
+      "leaving before the next appears. 1. churn: the two sides heave back and forth in a tug of war; the mountain " +
+      "spins, Vasuki's coils sliding around it, milk foam boiling at its foot, and each time the serpent is yanked " +
+      "toward the asuras its fiery breath scorches their leader. 2. kurma: the mountain tilts and sinks into a groaning " +
+      "whirlpool and both sides stagger forward; then the whole sea bulges as a colossal tortoise rises beneath it, a " +
+      "bronze-green shell patterned with glowing blue hexagons, lifts the mountain back up on its back, and the " +
+      "churning resumes faster. 3. halahala: a column of violet-black poison erupts from the churn and spreads into a " +
+      "choking cloud; the milk stains violet outward from the mountain, the dawn dims, the last stars go out, and both " +
+      "leaders drop the serpent and cower. 4. neelakantha: Shiva appears on a cloud high on the left, blue-grey skin, " +
+      "matted hair in a topknot, a tiger skin, a cobra round his neck and a trident in hand; he draws the whole cloud " +
+      "into a reverse vortex that spirals into his mouth, his throat blazes deep blue, the milk turns white again, and " +
+      "he fades back into the clouds with his throat still glowing. 5. treasures: the foam boils white and the " +
+      "treasures rise one after another: Airavata, a white elephant with four tusks, bursts out trumpeting and wades " +
+      "off to the left; then the crescent moon lifts from the milk, dripping light, and floats up to hang in the sky. " +
+      "6. lakshmi: a giant pink lotus unfolds on the water in front of the mountain and Lakshmi rises on it in a " +
+      "red-and-gold sari, gold coins spilling from her open hand; then the lotus closes into a bud around her and " +
+      "sinks. 7. amrita: Dhanvantari, the physician of the gods, rises holding a golden pot of amrita blazing with " +
+      "light; the asura lord lunges and snatches it, but Mohini, an enchantress in shimmering blue silk, comes dancing " +
+      "over the waves, charms him until he hands her the pot, and pours the nectar in a golden stream toward the devas. " +
+      "8. rahu: an asura disguised with a false gold crown slips into the devas' line and sips the nectar; the rising " +
+      "sun and the moon flare on him and expose him, and Mohini hurls the Sudarshana discus, a spinning wheel of " +
+      "blazing golden blades that cuts off his head in a flash of gold before the nectar passes his throat. 9. eclipse: " +
+      "the immortal head of Rahu, dark and smoky with burning eyes, flies up and swallows the moon; the sky turns " +
+      "copper, the sea goes dark and a thin ring of light flickers where the moon was; then the moon slips out through " +
+      "his severed neck and shines again as the head dissolves into smoke. 10. return: the moon sinks back into the " +
+      "milk, the tortoise slides beneath the waves, the sky pales to dawn again, and the devas and asuras take up the " +
+      "serpent to begin the churning anew.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -549,7 +597,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['th', 'Thailand'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['th', 'Thailand'], ['in', 'India'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
