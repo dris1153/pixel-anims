@@ -242,6 +242,20 @@ export const SHOWCASES = [
       "dawn, 160×90.",
   },
   {
+    slug: "mech-missile-volley",
+    tags: ["robot", "projectile", "dusk"],
+    title: "Ruin Walker Volley",
+    still: 204,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "open pods", "volley", "impact", "close", "cool down"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art bipedal mech: idle venting steam, shoulder pods open, fire a volley of six missiles that arc up and " +
+      "off screen right, distant flashes on the horizon, pods close and the barrels cool from orange to grey. Ruined " +
+      "city at dusk, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
