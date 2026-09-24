@@ -12,7 +12,7 @@ const items = SHOWCASES.map(s => ({
   text: `${s.title} ${s.prompt}`.toLowerCase(),
 }));
 list.append(...items.map(item => item.el));
-autoplayInView(list); // filtered-out tiles stop intersecting, so they fall back to stills
+autoplayInView(list); // filtered-out tiles stop intersecting, so they hold still
 for (const { el } of items) {
   el.addEventListener('animationend', e => { if (e.target === el) el.classList.remove('is-loading', 'is-entering'); });
 }

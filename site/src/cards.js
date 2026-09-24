@@ -59,8 +59,7 @@ export function tile(s) {
   const frame = wideFrame(s);
   const iframe = frame.firstChild;
   iframe.setAttribute('aria-hidden', 'true');
-  iframe.src = item.dataset.still = stillOf(animUrl(s), s.still);
-  item.dataset.live = animUrl(s);
+  iframe.src = calm ? stillOf(animUrl(s), s.still) : animUrl(s);
   const name = el('a', 'tile-name', s.title);
   name.href = detailUrl(s);
   card.append(frame, name);
@@ -69,14 +68,27 @@ export function tile(s) {
   return item;
 }
 
-// Tiles run live only while on screen; each reload restarts the loop at tick 0.
+// Off-screen tiles hold their next animation frame instead of swapping src: a reload flashes blank.
+// ponytail: needs same-origin pages whose engine calls the global requestAnimationFrame every frame.
+function hold(iframe, off) {
+  iframe.held = off;
+  const win = iframe.contentWindow;
+  win.realRaf ??= win.requestAnimationFrame; // an own property of window, so it can't be deleted back
+  win.requestAnimationFrame = off ? cb => { iframe.pending = cb; } : win.realRaf;
+  if (off) return;
+  if (iframe.pending) win.realRaf(iframe.pending);
+  iframe.pending = null;
+}
+
+// Tiles run only while on screen and resume where they stopped.
 export function autoplayInView(list) {
+  if (calm) return;
   const observer = new IntersectionObserver(entries => {
-    for (const { target, isIntersecting } of entries) {
-      const iframe = target.querySelector('iframe');
-      const src = isIntersecting && !calm ? target.dataset.live : target.dataset.still;
-      if (iframe.getAttribute('src') !== src) iframe.src = src;
-    }
+    for (const { target, isIntersecting } of entries) hold(target.querySelector('iframe'), !isIntersecting);
   }, { rootMargin: '120px 0px' });
-  for (const item of list.children) observer.observe(item);
+  for (const item of list.children) {
+    const iframe = item.querySelector('iframe');
+    iframe.addEventListener('load', () => iframe.held && hold(iframe, true)); // lazy load replaces the window
+    observer.observe(item);
+  }
 }
