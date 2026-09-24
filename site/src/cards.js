@@ -1,4 +1,5 @@
-import { animUrl, detailUrl, metaLine, stillOf } from './showcases.js';
+import { animUrl, countryOf, detailUrl, metaLine, stillOf } from './showcases.js';
+import { flag } from './flags.js';
 import { addTilt } from './tilt.js';
 
 export const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -81,6 +82,11 @@ export function tile(s) {
   const name = el('a', 'tile-name', s.title);
   name.href = detailUrl(s);
   card.append(frame, name);
+  if (countryOf(s) !== 'other') { // a small flag in the corner; the detail page names the country
+    const badge = el('span', 'tile-flag');
+    badge.append(flag(countryOf(s)));
+    card.append(badge);
+  }
   item.append(card);
   addTilt(item, card);
   return item;

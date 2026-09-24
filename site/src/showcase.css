@@ -107,6 +107,23 @@
   border-bottom: 2px solid var(--line);
   box-shadow: none;
 }
+.tile-flag { /* country badge in the frame's corner; the stretched link above still takes the click */
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  display: flex;
+  padding: 2px;
+  background: var(--ink);
+  box-shadow: 2px 2px 0 var(--shadow);
+  pointer-events: none;
+}
+.tile-flag .flag {
+  width: 32px;
+  height: 24px;
+  margin: 0;
+  box-shadow: none;
+}
 .tile-name {
   display: block;
   padding: 14px 16px 16px;

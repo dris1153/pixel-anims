@@ -87,6 +87,8 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 .cmd .copy { top: 0; bottom: 0; margin: auto 0; height: fit-content; } /* centered without transform: hover nudges use it */
 .prompt .copy { top: 10px; }
 .hero-then { margin: 10px 0 0; color: var(--muted); font-size: .92rem; }
+.flag { display: inline-block; flex: none; width: 16px; height: 12px; margin-right: 6px; vertical-align: -1px; shape-rendering: crispEdges; box-shadow: 0 0 0 1px var(--ink); }
+.flag-globe { box-shadow: none; } /* the globe is round: no frame */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .play {
   position: absolute; top: 8px; right: 8px; z-index: 1; padding: 6px 9px;

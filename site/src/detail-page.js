@@ -1,4 +1,5 @@
-import { SHOWCASES, TAG_GROUPS, animUrl, detailUrl } from './showcases.js';
+import { COUNTRIES, SHOWCASES, TAG_GROUPS, animUrl, countryOf, detailUrl } from './showcases.js';
+import { flag } from './flags.js';
 import { addPlayToggle, calm, fitFrame } from './cards.js';
 import { setupCopy } from './copy.js';
 
@@ -37,6 +38,10 @@ function render(s, i) {
     a.textContent = names.get(t) ?? t;
     return a;
   }));
+  const country = document.createElement('a');
+  country.href = `/showcase/?tags=${countryOf(s)}`;
+  country.append(flag(countryOf(s)), new Map(COUNTRIES).get(countryOf(s)));
+  page.querySelector('[data-spec="country"]').append(country);
   page.querySelector('.prompt p').textContent = s.prompt;
   const note = page.querySelector('.note');
   if (s.note) note.textContent = s.note;

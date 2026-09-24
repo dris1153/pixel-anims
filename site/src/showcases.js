@@ -1,7 +1,8 @@
 // Gallery data. To add a showcase: drop <slug>.html into public/anims/ and add one entry.
 // Array order is display order: [0] is the landing hero, [1..3] the landing tiles.
 // Required: slug, tags (ids from TAG_GROUPS), title, res [w, h] (logical px), loop (sum(DUR) / 60, seconds), states, kind, prompt.
-// Optional: note, still (tick shown while paused, default 60), ref (true for the engine reference).
+// Optional: note, still (tick shown while paused, default 60), ref (true for the engine reference),
+// country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
     slug: "robot-cannon-blast",
@@ -69,6 +70,7 @@ export const SHOWCASES = [
   {
     slug: "samurai-quick-draw",
     tags: ["humanoid", "melee", "day"],
+    country: "jp",
     title: "Sakura Iaido",
     still: 234,
     res: [160, 90],
@@ -95,6 +97,7 @@ export const SHOWCASES = [
   {
     slug: "cultivator-flying-sword",
     tags: ["humanoid", "magic", "projectile", "dawn"],
+    country: "cn",
     title: "Cloud Peak Immortal",
     still: 282,
     res: [160, 90],
@@ -109,6 +112,7 @@ export const SHOWCASES = [
   {
     slug: "cultivator-heavenly-tribulation",
     tags: ["humanoid", "lightning", "magic", "night"],
+    country: "cn",
     title: "Heavenly Tribulation",
     still: 282,
     res: [128, 96],
@@ -123,6 +127,7 @@ export const SHOWCASES = [
   {
     slug: "monkey-king-staff-slam",
     tags: ["humanoid", "melee", "impact", "day"],
+    country: "cn",
     title: "Monkey King Staff",
     still: 294,
     res: [160, 90],
@@ -150,6 +155,7 @@ export const SHOWCASES = [
   {
     slug: "son-tinh-rising-hills",
     tags: ["humanoid", "magic", "day"],
+    country: "vn",
     title: "Son Tinh Mountain God",
     still: 280,
     res: [160, 90],
@@ -314,6 +320,7 @@ export const SHOWCASES = [
   {
     slug: "medusa-stone-gaze",
     tags: ["humanoid", "magic", "dusk"],
+    country: "gr",
     title: "Medusa Stone Gaze",
     still: 222,
     res: [128, 96],
@@ -328,6 +335,7 @@ export const SHOWCASES = [
   {
     slug: "oni-taiko-drummer",
     tags: ["creature", "impact", "night"],
+    country: "jp",
     title: "Oni Taiko Drummer",
     still: 336,
     res: [160, 90],
@@ -342,6 +350,7 @@ export const SHOWCASES = [
   {
     slug: "cuoi-banyan-moon",
     tags: ["humanoid", "magic", "space"],
+    country: "vn",
     title: "Chu Cuoi on the Moon",
     still: 240,
     res: [128, 96],
@@ -356,6 +365,7 @@ export const SHOWCASES = [
   {
     slug: "sun-priest-ankh",
     tags: ["humanoid", "magic", "dusk"],
+    country: "eg",
     title: "Sun Priest of Ra",
     still: 246,
     res: [128, 96],
@@ -370,6 +380,7 @@ export const SHOWCASES = [
   {
     slug: "thanh-giong-ascension",
     tags: ["humanoid", "breath", "magic", "dawn"],
+    country: "vn",
     title: "Thanh Giong Rises",
     still: 440,
     res: [160, 90],
@@ -414,6 +425,7 @@ export const SHOWCASES = [
   {
     slug: "ninja-shuriken-throw",
     tags: ["humanoid", "projectile", "night"],
+    country: "jp",
     title: "Rooftop Shuriken",
     still: 228,
     res: [160, 90],
@@ -467,10 +479,13 @@ export const SHOWCASES = [
 
 // Filter chips on /showcase/: OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
+export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
   { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning'], ['craft', 'Craft'], ['heal', 'Heal']] },
   { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater'], ['interior', 'Interior'], ['space', 'Space']] },
+  { label: 'Country', flags: true, tags: COUNTRIES.filter(([id]) => SHOWCASES.some(s => countryOf(s) === id)) },
   { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
 

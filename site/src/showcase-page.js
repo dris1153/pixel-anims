@@ -1,5 +1,6 @@
-import { SHOWCASES, TAG_GROUPS, resTag } from './showcases.js';
+import { SHOWCASES, TAG_GROUPS, countryOf, resTag } from './showcases.js';
 import { autoplayInView, tile } from './cards.js';
+import { flag } from './flags.js';
 
 const list = document.getElementById('showcase-tiles');
 const search = document.getElementById('showcase-search');
@@ -8,7 +9,7 @@ const empty = document.getElementById('showcase-empty');
 const clearLink = document.querySelector('.filter-clear');
 const items = SHOWCASES.map(s => ({
   el: tile(s),
-  tags: new Set([...s.tags, resTag(s)]),
+  tags: new Set([...s.tags, resTag(s), countryOf(s)]),
   text: `${s.title} ${s.prompt}`.toLowerCase(),
 }));
 list.append(...items.map(item => item.el));
@@ -40,6 +41,7 @@ for (const group of TAG_GROUPS) {
     chip.className = 'chip';
     chip.dataset.tag = id;
     chip.textContent = name;
+    if (group.flags) chip.prepend(flag(id));
     chip.addEventListener('click', () => {
       if (!picked.delete(id)) picked.add(id);
       apply();
