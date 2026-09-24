@@ -256,6 +256,20 @@ export const SHOWCASES = [
       "city at dusk, 160×90.",
   },
   {
+    slug: "netrunner-firewall-breach",
+    tags: ["humanoid", "interior", "night"],
+    title: "Neon Netrunner",
+    still: 282,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "type", "firewall", "crack", "shatter", "stretch", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art cyberpunk netrunner: sit at a floating holo keyboard, type faster as green code streams upward, a " +
+      "red firewall cube appears and cracks, shatters into data bits, lean back and stretch. Rain-streaked neon " +
+      "apartment at night, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
