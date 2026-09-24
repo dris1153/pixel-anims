@@ -66,10 +66,12 @@ function play(targets, cls) {
   });
 }
 
-// SHOWCASES is newest first, so Oldest first just reverses it. Moving the existing nodes keeps their autoplay observers.
+// SHOWCASES is newest first, so Oldest first just reverses it. A plain append would reload every booted iframe at
+// once; moveBefore keeps them running, and where it is missing (Safari) CSS order reorders without moving anything.
 function arrange() {
   order = sort.value === 'oldest' ? [...items].reverse() : items;
-  list.append(...order.map(item => item.el));
+  if ('moveBefore' in Element.prototype) for (const item of order) list.moveBefore(item.el, null);
+  else order.forEach((item, k) => { item.el.style.order = k; });
 }
 
 function searchWords() {
