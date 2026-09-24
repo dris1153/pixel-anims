@@ -64,6 +64,15 @@ a:is(:hover, :focus-visible) .nudge-ne {
   animation: fade-rise var(--duration-fast) var(--ease-smooth-out);
 }
 
+/* Fitted frames fade their iframe in once it has loaded, instead of popping in over the matte. */
+.frame.is-fit iframe {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.frame.is-loaded iframe {
+  opacity: 1;
+}
+
 /* Landing sections: heading + lede rise in on first view (transitions.dev "texts reveal").
    .reveal is only set by JS when motion is allowed, so without it everything stays visible. */
 @media screen { /* print has no scroll, so nothing would ever reveal */

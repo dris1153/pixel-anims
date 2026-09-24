@@ -35,6 +35,9 @@ export function fitFrame(frame, [w, h]) {
   frame.classList.add('is-fit');
   fitObserver?.observe(frame);
   fitNow(frame);
+  const iframe = frame.querySelector('iframe'), shown = () => frame.classList.add('is-loaded'); // fades it in (motion.css)
+  iframe.addEventListener('load', shown);
+  if (iframe.contentDocument?.readyState === 'complete' && iframe.contentWindow.location.href !== 'about:blank') shown(); // loaded before this ran
 }
 function fitNow(frame) {
   const w = +frame.dataset.w, h = +frame.dataset.h, dpr = devicePixelRatio || 1, iframe = frame.querySelector('iframe');
