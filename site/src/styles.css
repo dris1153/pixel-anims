@@ -181,7 +181,7 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
   .flow li::after { top: 8px; left: -30px; }
 }
 @media (max-width: 560px) {
-  .tab-long { display: none; } /* "Plugin / npx / Manual" fits one row */
+  .tab-long { display: none; } /* short agent names keep the tab rows compact */
   .cmd { padding-right: 70px; }
   .cmd .copy { padding: 8px 9px; }
   .prompt { padding-right: 16px; }
