@@ -6,6 +6,41 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "than-tru-troi-sky-pillar",
+    tags: ["humanoid", "magic", "impact", "dawn"],
+    country: "vn",
+    title: "Than Tru Troi Pillars the Sky",
+    still: 820,
+    res: [160, 90],
+    loop: 16,
+    states: ["chaos", "wake", "dig", "pillar", "light", "break", "mountains", "waters", "first day", "return"],
+    kind: "Made with the skill",
+    note: "A creation myth in one frame: the sky is a single bowl whose height is one parameter, the pillar's rocks fly on arcs timed to land as mountains and islands, and a bank of mist hides the world while it unmakes itself for the loop.",
+    prompt:
+      "Pixel art the Vietnamese creation myth of Thần Trụ Trời, the giant who pillared the sky, 160×90, one fixed shot, " +
+      "16-second seamless loop. Scene: the beginning of the world: heaven and earth pressed together into one dark, " +
+      "churning mass of cloud and clay, with only a thin seam of faint light between them; by the end the same frame " +
+      "holds a whole new world, a sky rounded like an upturned bowl over a broad flat earth, mountains on the left, a " +
+      "winding river through the middle and a new sea on the right. Keep the frame readable: the giant and the one " +
+      "change happening at a time. 1. chaos: heaven and earth are one dark mass, slowly churning, with a thin seam of " +
+      "light across the middle, dust swirling and embers of light drifting; a giant sleeps curled inside the seam. 2. " +
+      "wake: the giant wakes and rises to his knees, bronze-skinned, long black hair, a loincloth of leaves, his broad " +
+      "back pressing up against the sky; the seam of light widens around him. 3. dig: bracing the sky on his shoulders, " +
+      "he scoops up earth with his great hands, leaving deep pits in the ground, and heaps rocks and clay into a rough " +
+      "pillar beside him. 4. pillar: block by block the pillar grows taller and he heaves the sky up on top of it; the " +
+      "dark mass above lifts and curves into a great dome, and cracks of pale light race across its underside. 5. " +
+      "light: the sky lifts clear of the earth for the first time; light floods in, a dawn band opens along the " +
+      "horizon, the dome turns from black to deep blue and the first stars scatter across it. 6. break: with the sky " +
+      "set high, he raises both fists and smashes the pillar; it shatters from the top down into a storm of flying " +
+      "rocks and clay. 7. mountains: the rocks arc across the world and land as mountains, hills and a chain of small " +
+      "islands, each one thudding down in a puff of dust. 8. waters: the pits he dug fill up, springs burst from the " +
+      "ground, and a river snakes out through the land to pour into a newborn sea that spreads to the right. 9. first " +
+      "day: the sun rises for the first time between the mountains, green spreads over the hills, a flock of Lạc birds " +
+      "wheels across the new sky, and the giant straightens and watches, his work done. 10. return: dusk falls, a mist " +
+      "rolls back over the land, the sky sinks slowly toward the earth until heaven and earth press together again, and " +
+      "the giant curls up to sleep in the last seam of light, the tale ready to begin anew.",
+  },
+  {
     slug: "co-loa-magic-crossbow",
     tags: ["humanoid", "creature", "projectile", "magic", "day"],
     country: "vn",
