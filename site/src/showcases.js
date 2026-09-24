@@ -6,6 +6,45 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "king-arthur-avalon",
+    tags: ["humanoid", "melee", "magic", "night"],
+    country: "gb-eng",
+    title: "King Arthur, Once and Future",
+    still: 660,
+    res: [160, 90],
+    loop: 20,
+    states: ["stone", "trial", "arthur", "crowned", "excalibur", "camelot", "grail", "mordred", "camlann", "bedivere", "avalon", "return"],
+    kind: "Made with the skill",
+    note: "Twelve states over twenty seconds and four seasons in one valley: snow is a palette remap of the spring grass, Camelot rises and falls part by part, the barge shrinks into the mist, and a mote of light carries the sword back to the stone.",
+    prompt:
+      "Pixel art the legend of King Arthur, the once and future king, 160×90, one fixed shot, 20-second seamless " +
+      "loop. Scene: a legendary English valley: on the left a snowy churchyard on a hill with a small stone chapel " +
+      "and a sword thrust through an anvil into a great stone; in the middle a still, misty lake; far across the " +
+      "water the Isle of Avalon, a lone green tor crowned with a tower, half-hidden in mist; on the right an empty " +
+      "green hill where Camelot will rise. The seasons turn with the tale, from winter snow through spring and " +
+      "summer to a stormy dusk and back to winter. Keep the frame readable: Arthur and one new arrival at a time, " +
+      "each leaving before the next appears. 1. stone: a winter night, snow drifting down, the sword in the anvil " +
+      "glowing faintly silver in the churchyard while candlelight flickers in the chapel window. 2. trial: armored " +
+      "knights come one after another, heave at the hilt with all their strength, and stagger back; the sword does " +
+      "not move. 3. arthur: a boy squire in a plain tunic runs up, grips the hilt and draws the sword out in one " +
+      "easy pull; a pillar of white light bursts from the stone, the snow swirls upward and the chapel bell swings. " +
+      "4. crowned: Merlin, in a blue robe scattered with stars, appears in a puff of smoke and sets a golden crown " +
+      "on the boy's head as he grows into a young king. 5. excalibur: Arthur rows out onto the lake; an arm clothed " +
+      "in white samite rises from the water holding Excalibur in its scabbard; he takes the sword and the arm sinks " +
+      "back without a ripple. 6. camelot: spring comes, the snow melts into green and flowers, and on the right " +
+      "hill the white walls and towers of Camelot rise stone by stone, with red banners and gold pennants " +
+      "unfurling. 7. grail: on a summer evening the sky opens above Camelot and the Holy Grail appears, a golden " +
+      "cup floating in a beam of light, rays sweeping across the valley. 8. mordred: storm clouds roll in at dusk; " +
+      "Mordred, in black armor under a red and black banner, rides up out of the valley toward the king. 9. " +
+      "camlann: Arthur and Mordred clash on the hillside, Excalibur against Mordred's blade, sparks flying, until " +
+      "Mordred falls and Arthur sinks to one knee, wounded. 10. return of the sword: a knight, Sir Bedivere, hurls " +
+      "Excalibur spinning out over the lake; the white arm rises, catches it, brandishes it three times and draws " +
+      "it under. 11. avalon: a black barge with three veiled queens glides out of the mist, carries the king away " +
+      "across the lake to the Isle of Avalon, and fades into the fog, while Camelot crumbles into grey ruins. 12. " +
+      "return: winter falls again, snow covers the ruins until they fade into the hill, and from the lake a silver " +
+      "light rises and settles into the stone as a sword in the anvil once more, the tale ready to begin anew.",
+  },
+  {
     slug: "koschei-deathless",
     tags: ["humanoid", "creature", "magic", "lightning", "night"],
     country: "ru",
@@ -780,7 +819,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
