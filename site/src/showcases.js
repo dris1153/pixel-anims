@@ -54,6 +54,19 @@ export const SHOWCASES = [
       "drift back. Deep sea with light rays and bubbles.",
   },
   {
+    slug: "blacksmith-anvil-quench",
+    tags: ["humanoid", "craft", "interior"],
+    title: "Forge Blacksmith",
+    still: 210,
+    res: [128, 96],
+    loop: 7.2,
+    states: ["idle", "raise", "strike", "quench", "recover"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art blacksmith: idle, raise the hammer, strike glowing steel on the anvil with sparks, quench it in water " +
+      "with steam, recover. Forge interior.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -123,8 +136,8 @@ export const SHOWCASES = [
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
-  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning']] },
-  { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater']] },
+  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning'], ['craft', 'Craft']] },
+  { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater'], ['interior', 'Interior']] },
   { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
 
