@@ -104,6 +104,7 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
 .frame.is-fit { background: repeating-conic-gradient(var(--deep) 0 25%, var(--ink) 0 50%) 0 0 / 4px 4px; } /* matte */
 .frame.is-fit iframe { inset: auto; left: 50%; top: 50%; } /* fitFrame() sizes it and centers it with a transform */
+.frame .poster { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); image-rendering: pixelated; } /* sized by fitNow() */
 .screen figcaption { margin-top: 16px; font: 400 .72rem var(--display); color: var(--muted); letter-spacing: .06em; }
 .live { color: #e0665a; margin-right: 8px; } /* lighter than --red: small text needs 4.5:1 on ink */
 .live::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; background: var(--red); animation: blink 1.2s steps(1) infinite; }
