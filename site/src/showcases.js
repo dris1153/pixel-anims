@@ -270,6 +270,20 @@ export const SHOWCASES = [
       "apartment at night, 128×96.",
   },
   {
+    slug: "inventor-clockwork-bird",
+    tags: ["humanoid", "craft", "interior"],
+    title: "Clockwork Inventor",
+    still: 240,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "crank", "redline", "whistle", "flight", "land"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art steampunk inventor: crank a brass contraption on the workbench, gears spin faster and a pressure " +
+      "gauge climbs into the red, steam whistles, a clockwork bird pops out, flutters one loop around the room and " +
+      "lands back in its box. Cluttered workshop interior, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
