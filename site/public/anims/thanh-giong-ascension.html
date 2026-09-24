@@ -1,0 +1,773 @@
+<title>Thanh Giong Rises</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #10101c; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #10101c; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art Thanh Giong at the edge of a Van Lang village at dawn; the silent boy hears the war drum, grows into a giant, is armoured in iron, mounts a fire-breathing iron horse, breaks his staff on the charge, sweeps the invaders away with a golden bamboo clump and rides up into the clouds, until the boy lies on his mat again"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const GROUND = 77;                 // the packed earth in front of the hut
+const FY = GROUND;                 // sparks, thatch and dust land here
+const POSE_STEP = 6;               // 10 fps pose frames
+const HERO_X = 42;                 // where the giant stands before he mounts
+const GROVE_X = 49;                // the bamboo clump he tears out and later replants
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#10101c',
+  '#2a2a5a', '#5a3a6a', '#a85a6a', '#e89070', '#f8c890',
+  '#3a3a60', '#5a5078',
+  '#f0d0c0',
+  '#2a2230', '#4a3a48',
+  '#c0302a',
+  '#2e5a30', '#5a8a3a', '#a8c060',
+  '#4a3020', '#7a5030',
+  '#8a6a30', '#c8a050',
+  '#a86a1a', '#e8b030', '#ffe890',
+  '#8a5030', '#d09060',
+  '#2a3040', '#50607a', '#8a9ab0',
+  '#d04020', '#f08a30',
+  '#ffffff',
+];
+const INK = 0, SKY0 = 1, SKY1 = 2, SKY2 = 3, SKY3 = 4, SKY4 = 5, MTN_D = 6, MTN_M = 7, CLOUD = 8,
+  SMOKE_D = 9, SMOKE_M = 10, RED = 11, PAD_D = 12, PAD_M = 13, PAD_L = 14, EARTH_D = 15, EARTH_M = 16,
+  THATCH_D = 17, THATCH = 18, GOLD_D = 19, GOLD_M = 20, GOLD_L = 21, SKIN_D = 22, SKIN_L = 23,
+  IRON_D = 24, IRON_M = 25, IRON_L = 26, FIRE_D = 27, FIRE_M = 28, WHITE = 29;
+
+// One step brighter per ramp; green and thatch warm toward gold.
+const LIGHTEN = Uint8Array.of(
+  SMOKE_D,
+  SKY1, SKY2, SKY3, SKY4, GOLD_L,
+  MTN_M, SKY2,
+  WHITE,
+  SMOKE_M, MTN_M,
+  FIRE_M,
+  PAD_M, PAD_L, GOLD_L,
+  EARTH_M, THATCH_D,
+  THATCH, GOLD_L,
+  GOLD_M, GOLD_L, WHITE,
+  SKIN_L, SKIN_L,
+  IRON_M, IRON_L, WHITE,
+  FIRE_M, GOLD_L,
+  WHITE);
+const RAMP_FIRE = Uint8Array.of(WHITE, GOLD_L, FIRE_M, FIRE_D, SMOKE_M);
+const RAMP_SPARK = Uint8Array.of(WHITE, GOLD_L, GOLD_M, GOLD_D);
+const RAMP_THATCH = Uint8Array.of(THATCH, THATCH_D, EARTH_M, EARTH_D);
+const RAMP_DUST = Uint8Array.of(THATCH, EARTH_M, EARTH_D, SMOKE_D);
+const RAMPS = [RAMP_FIRE, RAMP_SPARK, RAMP_THATCH, RAMP_DUST];
+const RIM = Uint8Array.of(GOLD_M, GOLD_L, WHITE);
+const RIM_BANDS = Uint16Array.of(16, 30, 48);
+const LIGHT = Float32Array.of(0.8, -0.6);     // dawn breaking behind Sóc Sơn, on the right
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[RED] = RIM_OK[FIRE_M] = RIM_OK[FIRE_D] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY0] = AIR[SKY1] = AIR[SKY2] = AIR[SKY3] = AIR[SKY4] = 1;
+
+const STILL = 0, CALL = 1, GROW = 2, FORGE = 3, CHARGE = 4, BAMBOO = 5, ASCEND = 6, RETURN = 7;
+const DUR = Uint16Array.of(84, 54, 78, 84, 78, 84, 78, 60); // L = 600: bamboo sway 120, clouds 600
+const EASE = Uint16Array.of(6, 6, 6, 6, 18, 12, 12, 6);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 0, 1, 0, 0, 0);
+const LEAN = 0, NP = 1;                         // almost everything is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = [
+  REST, REST, REST, REST,
+  Float32Array.of(0.4),                         // leans into the charge
+  Float32Array.of(0.2),
+  Float32Array.of(0.5),                         // low over the horse's neck as it climbs
+  REST,
+];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables
+const GROVE = Int8Array.of(32, 14, 35, 8, 38, 18, 41, 6, 44, 12, 46, 20, 51, 16); // bamboo stalks: x, tip y
+const COLS = Int16Array.of(92, 106, 122);           // invader smoke columns (and banner poles)
+const TWO_PI = Math.PI * 2;
+// Horse gallop: foot offsets from each leg root (hind near, hind far, fore near, fore far), 4 frames of dx, dy
+const GAL = Int8Array.of(-8, 13, -5, 11, 8, 11, 5, 13, 0, 10, 2, 9, -2, 9, 0, 10, -4, 13, -2, 13, 4, 8, 6, 10, 2, 9, 0, 10, 3, 13, 1, 13);
+const NZ = new Uint8Array(60 * 64);                 // smoke noise, wraps every 64 rows as it rises
+const HP = new Int16Array(8);                       // horse: hindquarter, chest, poll, muzzle
+const plX = new Float32Array(4), plY = new Float32Array(4), plV = new Float32Array(4), plOn = new Uint8Array(4); // shed armour plates
+const fX = new Float32Array(64), fY = new Float32Array(64), fVX = new Float32Array(64), fVY = new Float32Array(64), fA = new Int16Array(64).fill(-1); // flame puffs
+const bkX = new Float32Array(1), bkY = new Float32Array(1), bkV = new Float32Array(2); // the broken staff end
+const M_NONE = 0, M_LIE = 1, M_SIT = 2, M_STAND = 3, M_VAULT = 4, M_RIDE = 5;
+let mode = M_LIE, eyes = 0, fist = 0, sc = 1, hipX = 0, hipY = 0, sx = 0, sy = 0, hdX = 0, hdY = 0, hr = 4, armor = 0,
+  nhX = 0, nhY = 0, fhX = 0, fhY = 0, staff = 0, st0x = 0, st0y = 0, st1x = 0, st1y = 0, bkOn = 0,
+  hOn = 0, hX = 0, hY = 0, rear = 0, gal = -1, flameOn = 0, clMode = 0, clX = 0, clY = 0, clA = 0, gold = 0,
+  roof = 0, smoke = 0.55, wind = 0, banners = 1, pulse = 0, sweepA0 = 0, sweepOn = 0;
+
+function buildBackground() {
+  const seed = Uint32Array.of(1010);
+  const rnd = () => { let x = seed[0]; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; seed[0] = x; return seed[0] / 4294967296; };
+  const dith = (x, y, v) => v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+  const EDGE = [0, 12, 24, 36, 46, 999];
+  for (let y = 0; y < H; y++) {
+    let b = 0;
+    while (y >= EDGE[b + 1]) b++;
+    const seam = b < 4 && y === EDGE[b + 1] - 1; // one dithered row joins each band to the next
+    for (let x = 0; x < W; x++) bg[y * W + x] = SKY0 + b + (seam && dith(x, y, 0.5) ? 1 : 0);
+  }
+  lighten(142, 44, 26, bg);                                              // dawn breaking behind the mountain
+  for (let x = 96; x < W; x++) { // Sóc Sơn
+    const top = Math.round(24 + Math.abs(x - 138) * 0.62 + Math.sin(x * 0.5) * 0.8);
+    for (let y = top; y < 56; y++) plot(bg, x, y, x > 138 + (y - 24) * 0.2 ? MTN_D : y === top ? MTN_M : (x + y) % 7 === 0 ? MTN_D : MTN_M);
+  }
+  for (let y = 54; y < GROUND; y++) for (let x = 0; x < W; x++) { // paddies stepping down, water catching the sky
+    const band = (y - 54) / 4 | 0, dike = (y - 54) % 4 === 0;
+    plot(bg, x, y, dike ? PAD_D : (x + band * 13) % 23 < 5 ? (y < 62 ? SKY3 : SKY4) : band & 1 ? PAD_M : PAD_L);
+  }
+  for (let y = GROUND - 3; y < H; y++) for (let x = 0; x < W; x++) plot(bg, x, y, y === GROUND - 3 ? PAD_D : (x * 3 + y * 5) % 11 === 0 ? EARTH_D : EARTH_M); // packed earth
+  // Stilt hut: posts, floor, woven walls, dark doorway (the thatch is drawn live so it can burst).
+  for (const px of [7, 17, 27]) for (let y = 66; y < GROUND; y++) { plot(bg, px, y, EARTH_D); plot(bg, px + 1, y, EARTH_M); }
+  hline(bg, 4, 30, 64, THATCH); hline(bg, 4, 30, 65, EARTH_D);
+  for (let y = 57; y < 64; y++) for (let x = 7; x <= 27; x++) plot(bg, x, y, x >= 13 && x <= 21 ? EARTH_D : (x + y) % 3 === 0 ? THATCH : THATCH_D);
+  hline(bg, 11, 23, 63, THATCH);                                         // the straw mat
+  for (let i = 0; i < NZ.length; i++) NZ[i] = rnd() * 255 | 0;
+  for (let k = 0; k < 3; k++) for (let i = 0; i < NZ.length; i++) { // soften the smoke noise into billows
+    const x = i % 60, y = i / 60 | 0;
+    NZ[i] = (NZ[i] * 2 + NZ[((y + 63) % 64) * 60 + x] + NZ[y * 60 + (x + 59) % 60] + NZ[((y + 1) % 64) * 60 + x]) / 5 | 0;
+  }
+}
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return Math.round(a + (b - a) * e);
+}
+function horseGeo() { // hindquarter, chest, poll and muzzle from the saddle point and how far it rears
+  const th = -rear * 0.55, c = Math.cos(th), s = Math.sin(th);
+  const qx = hX - 12, qy = hY + 6, cx = qx + 24 * c, cy = qy + 24 * s, na = th - 1.05, ha = th + 0.6;
+  const px = cx + Math.cos(na) * 12, py = cy + Math.sin(na) * 12;
+  HP[0] = qx; HP[1] = qy; HP[2] = Math.round(cx); HP[3] = Math.round(cy); HP[4] = Math.round(px); HP[5] = Math.round(py);
+  HP[6] = Math.round(px + Math.cos(ha) * 9); HP[7] = Math.round(py + Math.sin(ha) * 9);
+}
+function heroFrame(hx, hy, s, lean) { // hips to shoulders to head at scale s
+  hipX = hx; hipY = hy; sc = s;
+  sx = Math.round(hx + lean * 6 * s); sy = Math.round(hy - 16 * s);
+  hdX = Math.round(sx + 1.5 * s); hdY = Math.round(sy - 6 * s); hr = Math.max(1.6, 4.2 * s);
+}
+
+// Freeze the smooth pose onto the pixel grid; the sprite only changes on these frames.
+function sample() {
+  snap.set(pose);
+  const lean = pose[LEAN];
+  mode = M_NONE; eyes = 0; fist = 0; armor = 0; staff = 0; hOn = 0; gal = -1; rear = 0; flameOn = 0; pulse = 0; sweepOn = 0;
+  clMode = 0; clX = GROVE_X; clY = GROUND - 1; clA = -1.57;
+  hX = 66; hY = 50;
+  // The boy, the growth, the giant.
+  if (state === STILL || state === CALL || (state === GROW && stT < 12)) {
+    mode = state === CALL && stT >= 30 || state === GROW ? M_SIT : M_LIE;
+    eyes = state === CALL && stT >= 18 || state === GROW ? 1 : 0;
+    fist = state === CALL && stT >= 42 || state === GROW ? 1 : 0;
+  } else if (state === GROW || (state === FORGE && stT < 66)) {
+    const s = state === FORGE || stT >= 60 ? 1 : stT >= 36 ? 0.55 : 0.28;
+    heroFrame(HERO_X, Math.round(GROUND - 25 * s), s, 0);
+    mode = M_STAND;
+    const flex = state === GROW && (stT - 12) % 24 < 6;                  // fists up as each jolt lands
+    nhX = flex ? Math.round(sx + 6 * s) : Math.round(sx + 3 * s); nhY = flex ? Math.round(sy - 2 * s) : Math.round(sy + 14 * s);
+    fhX = flex ? Math.round(sx - 5 * s) : Math.round(sx - 3 * s); fhY = flex ? Math.round(sy - 2 * s) : Math.round(sy + 13 * s);
+    if (state === GROW) pulse = (stT - 12) % 24 < 12 ? 1 : 0;
+    if (state === FORGE) armor = (stT >= 6 ? 1 : 0) | (stT >= 18 ? 2 : 0) | (stT >= 30 ? 4 : 0) | (stT >= 42 ? 8 : 0);
+    if (state === FORGE && stT >= 54) { staff = 1; nhX = sx + 8; nhY = sy + 9; }
+  } else if (state === FORGE) { // vaults onto the horse
+    const u = Math.min(1, (stT - 66) / 12);
+    heroFrame(mix(HERO_X, hX, u), Math.round(52 + (hY - 52) * u - 12 * Math.sin(Math.PI * u)), 1, 0);
+    mode = u < 1 ? M_VAULT : M_RIDE; armor = 15; staff = 1;
+    nhX = sx + 8; nhY = sy + 9; fhX = sx + 7; fhY = sy + 8;
+  } else if (state === CHARGE || state === BAMBOO || (state === ASCEND && stT < 72)) {
+    mode = M_RIDE; armor = 15; hOn = 1;
+    if (state === ASCEND) { // gallops off toward the mountain and up into the clouds, shedding the armour
+      const u = ease(stT / 66);
+      hX = 66 + Math.round(110 * u); hY = 50 - Math.round(90 * u * u);
+      gal = (stT / 6 | 0) & 3; armor = 15 >> Math.max(0, Math.min(4, (stT - 24) / 10 | 0));
+    }
+    if (state === CHARGE) rear = stT < 24 ? ease(stT / 24) : stT < 54 ? 1 : 1 - ease((stT - 54) / 12);
+    horseGeo();
+    heroFrame((HP[0] + HP[2]) >> 1, ((HP[1] + HP[3]) >> 1) - 6, 1, lean);  // in the saddle, however the horse tilts
+    fhX = sx + 9; fhY = sy + 9;                                          // reins
+    if (state === CHARGE) {
+      flameOn = stT >= 12 && stT < 54 ? 1 : 0;
+      staff = stT < 54 ? 1 : stT < 78 ? 2 : 0;
+      if (stT < 18) { nhX = sx + 6; nhY = sy + 4; }
+      else if (stT < 54) { nhX = sx + 3; nhY = sy - 10; }               // whirling it overhead
+      else { nhX = sx + 11; nhY = sy + 5; }                              // the blow
+    } else if (state === BAMBOO) {
+      staff = 0; flameOn = stT >= 24 && stT < 60 ? 1 : 0;
+      if (stT < 18) { const e = ease(stT / 18); nhX = mix(sx + 6, GROVE_X + 3, e); nhY = mix(sy + 4, 42, e); }
+      else { // tears the clump out and sweeps it in one arc over his head
+        const a = stT < 24 ? -2.45 : stT < 66 ? -2.45 + 2.15 * ease((stT - 24) / 42) : -0.3;
+        nhX = Math.round(sx + Math.cos(a) * 12); nhY = Math.round(sy + Math.sin(a) * 12);
+        clMode = 1; clX = nhX; clY = nhY; clA = a; sweepOn = stT >= 24 && stT < 66 ? 1 : 0; sweepA0 = a;
+      }
+      gold = stT < 30 ? 0 : Math.min(1, (stT - 30) / 30);
+    } else { // ASCEND: flings the golden clump back to the grove, then rides
+      if (stT < 6) { nhX = Math.round(sx + Math.cos(-0.3) * 12); nhY = Math.round(sy + Math.sin(-0.3) * 12); clMode = 1; clX = nhX; clY = nhY; clA = -0.3; }
+      else if (stT < 12) { const u = (stT - 6) / 6; clMode = 1; clX = mix(sx + 11, GROVE_X, u); clY = mix(sy - 4, GROUND - 1, u) - Math.round(10 * Math.sin(Math.PI * u)); clA = -0.3 - 1.27 * u; nhX = sx + 8; nhY = sy + 6; }
+      else { clMode = 2; nhX = sx + 10; nhY = sy + 8; }
+      gold = 1;
+    }
+  }
+  if (state === FORGE && stT >= 54) hOn = 1;
+  if (state === FORGE && stT >= 54 && stT < 60) hY = 50 - (60 - stT) * 12;  // slams down out of the sky
+  if (state === RETURN) {
+    clMode = 2; gold = 1 - ease(stT / 48);
+    mode = stT >= 30 ? M_LIE : M_NONE;
+  }
+  if (state >= ASCEND && state !== RETURN && stT >= 12) clMode = 2;
+  if (hOn) horseGeo();
+  // Staff geometry: upright, whirling, the strike, then snapped short.
+  if (staff) {
+    if (state === CHARGE && stT >= 18 && stT < 54) { const p = (stT - 18) * 0.2; st0x = Math.round(nhX - Math.cos(p) * 17); st0y = Math.round(nhY - Math.sin(p) * 17 * 0.5); st1x = Math.round(nhX + Math.cos(p) * 17); st1y = Math.round(nhY + Math.sin(p) * 17 * 0.5); }
+    else if (state === CHARGE && stT >= 54) { const len = staff === 2 ? 12 : 28; st0x = nhX - 5; st0y = nhY - 3; st1x = Math.round(nhX + Math.cos(0.5) * len); st1y = Math.round(nhY + Math.sin(0.5) * len); }
+    else { st0x = nhX; st0y = nhY - 24; st1x = nhX; st1y = nhY + 10; }
+  }
+  // The world around him.
+  roof = state === GROW ? (stT >= 60 ? 3 : stT >= 36 ? 2 : stT >= 12 ? 1 : 0) : state > GROW && state < RETURN ? 3 : state === RETURN ? Math.max(0, 3 - Math.max(0, (stT - 6) / 12 | 0)) : 0;
+  smoke = state === STILL ? 0.55 + 0.2 * stT / 84 : state === BAMBOO ? 0.75 * (1 - ease((stT - 40) / 36)) : state === ASCEND ? 0 : state === RETURN ? 0.55 * ease(stT / 54) : 0.75;
+  wind = state === BAMBOO ? Math.round(30 * ease((stT - 36) / 40)) : 0;
+  banners = smoke > 0.35 && !(state === BAMBOO && stT >= 44) ? 1 : 0;
+  // Light: the boy, the growth pulse, the forge sparks, the horse's fire, the golden trail.
+  if (mode === M_LIE || mode === M_SIT) { srcX = 18; srcY = 60; rim = state === GROW ? 3 : 0; }
+  else if (hOn && (flameOn || state === FORGE)) { srcX = HP[6]; srcY = HP[7]; rim = flameOn ? 3 : 2; }
+  else { srcX = hdX; srcY = sy; rim = pulse ? 4 : state === ASCEND ? 2 : 1; }
+  if (state === FORGE && stT < 54 && stT % 12 < 6) { srcX = sx; srcY = sy + 6; rim = 3; } // plates clamping on
+}
+
+function puff(x, y, vx, vy) {
+  for (let k = 0; k < 64; k++) if (fA[k] < 0) { fX[k] = x; fY[k] = y; fVX[k] = vx; fVY[k] = vy; fA[k] = 0; return; }
+}
+function step() {
+  if (tick % POSE_STEP === 0) sample();
+  if (state === CALL && (stT === 6 || stT === 24 || stT === 42)) shakeT = 3;  // the war drum
+  if (state === GROW && (stT === 12 || stT === 36 || stT === 60)) { // each jolt of growth
+    shakeT = 8; flashT = 2;
+    for (let k = 0; k < 10 + stT / 6; k++) spawn(BURST, 30 + rand() * 20, 8 + rand() * 20, 48 + rand() * 8, (rand() - 0.3) * 1.6, -0.8 - rand() * 1.2, 2);
+  }
+  if (state === FORGE && stT < 54 && stT % 12 === 6) for (let k = 0; k < 12; k++) spawn(BURST, 12 + rand() * 10, sx + (rand() - 0.5) * 10, sy + 4 + (stT / 12 | 0) * -3 + rand() * 10, (rand() - 0.5) * 2, -rand() * 1.5, 1); // plates clamp on
+  if (state === FORGE && stT === 60) { // the iron horse lands
+    shakeT = 10; flashT = 2;
+    for (let k = 0; k < 18; k++) spawn(BURST, 24 + rand() * 20, hX - 14 + rand() * 30, GROUND - 1, (rand() - 0.5) * 2.4, -0.6 - rand() * 1.4, 3);
+  }
+  if (hOn && tick % 4 === 0 && !flameOn) spawn(TRAIL, 10 + rand() * 6, HP[6] + 1, HP[7], 0.4 + rand() * 0.3, -0.3 - rand() * 0.3, 0); // fire curling from its nostrils
+  if (flameOn) { // the breath: a jet of fire across the paddies
+    const ang = state === CHARGE ? -0.1 : -0.35;
+    for (let j = 0; j < 2; j++) puff(HP[6] + 1, HP[7], Math.cos(ang) * (2.2 + rand() * 0.6), Math.sin(ang) * 2.2 + (rand() - 0.5) * 0.5);
+  }
+  for (let k = 0; k < 64; k++) { if (fA[k] < 0) continue; if (++fA[k] > 34) { fA[k] = -1; continue; } fX[k] += fVX[k]; fY[k] += fVY[k]; fVX[k] *= 0.97; fVY[k] = fVY[k] * 0.97 - 0.02; }
+  if (state === CHARGE && stT === 54) { // the staff snaps
+    for (let k = 0; k < 16; k++) spawn(BURST, 14 + rand() * 12, st1x, st1y, (rand() - 0.3) * 2.4, -rand() * 2, 1);
+    bkOn = 1; bkX[0] = st1x; bkY[0] = st1y; bkV[0] = 1.4; bkV[1] = -1.8; shakeT = 6;
+  }
+  if (bkOn) { bkX[0] += bkV[0]; bkY[0] += bkV[1]; bkV[1] += 0.12; if (bkY[0] > GROUND) { bkOn = 0; for (let k = 0; k < 5; k++) spawn(BURST, 12, bkX[0], GROUND - 1, (rand() - 0.5), -rand(), 3); } }
+  if (state === BAMBOO && stT === 18) for (let k = 0; k < 16; k++) spawn(BURST, 24 + rand() * 18, GROVE_X + (rand() - 0.5) * 8, GROUND - 1, (rand() - 0.5) * 2, -0.8 - rand() * 1.4, 3); // roots and all
+  if (state === BAMBOO && stT === 44) for (let k = 0; k < 9; k++) spawn(MOTE, 40 + rand() * 20, COLS[k % 3] + 2, 40 + rand() * 6, 0, -0.1, 0); // banners torn away
+  if (state === ASCEND && stT >= 30 && stT < 70 && stT % 10 === 0) { const k = (stT - 30) / 10; plX[k] = sx + (k & 1 ? -3 : 4); plY[k] = sy + 4 + k * 3; plV[k] = -0.6; plOn[k] = 1; } // a plate comes away
+  for (let k = 0; k < 4; k++) if (plOn[k]) { plY[k] += plV[k]; plV[k] += 0.08; plX[k] -= 0.3; if (plY[k] > GROUND - 2) { plOn[k] = 0; for (let j = 0; j < 4; j++) spawn(BURST, 14, plX[k], GROUND - 2, (rand() - 0.5) * 1.4, -rand(), 1); } }
+  if (state === ASCEND && stT >= 12) for (let j = 0; j < 2; j++) spawn(MOTE, 24 + rand() * 20, HP[0] + (rand() - 0.5) * 8, HP[1] + 6 + rand() * 4, 0, 0.1, 1); // golden trail
+  if (state === RETURN && stT < 24 && stT % 2 === 0) spawn(MOTE, 22 + rand() * 8, rand() * W, 2 + rand() * 30, 0, 0.35, 1); // light drifting down like pollen
+  if (state === RETURN && stT === 30) for (let k = 0; k < 8; k++) spawn(MOTE, 16 + rand() * 8, 17 + (rand() - 0.5) * 8, 61, 0, -0.3, 1);
+}
+
+function limb(ax, ay, bx, by, l1, l2, side, r0, r1, r2, dark, base, light) {
+  joint(ax, ay, bx, by, l1, l2, side);
+  capsule(spr, ax, ay, r0, jx, jy, r1, dark, base, light);
+  capsule(spr, jx, jy, r1, bx, by, r2, dark, base, light);
+}
+
+function drawBoy() { // three years old, silent on the mat; then sitting up, fist raised
+  if (mode === M_LIE) {
+    capsule(spr, 12, 62, 1, 18, 62, 1.3, SKIN_D, SKIN_L, SKIN_L); plot(spr, 14, 62, EARTH_M); plot(spr, 15, 62, EARTH_M);
+    disc(20, 61, 1.8, SKIN_L, spr); plot(spr, 20, 59, INK); plot(spr, 21, 59, INK); plot(spr, 21, 61, eyes ? INK : SKIN_D);
+  } else {
+    capsule(spr, 15, 62, 1, 20, 62, 1, SKIN_D, SKIN_L, SKIN_L);                 // legs forward
+    capsule(spr, 16, 62, 1.4, 17, 58, 1.5, SKIN_D, SKIN_L, SKIN_L); plot(spr, 16, 61, EARTH_M); plot(spr, 17, 61, EARTH_M);
+    disc(18, 55, 1.8, SKIN_L, spr); plot(spr, 18, 53, INK); plot(spr, 17, 53, INK); plot(spr, 19, 55, INK);
+    if (fist) { line(spr, 18, 58, 21, 54, SKIN_L); plot(spr, 21, 53, SKIN_L); plot(spr, 22, 53, SKIN_D); }
+    else line(spr, 18, 58, 20, 60, SKIN_L);
+  }
+}
+function drawLegsStand() {
+  const s = sc;
+  for (let k = -1; k <= 1; k += 2) {
+    const fx = Math.round(hipX + k * 3 * s + s), dark = k < 0;
+    limb(Math.round(hipX + k * 2 * s), hipY, fx, GROUND - 1, 13 * s, 13 * s, -1, Math.max(0.9, 2.6 * s), Math.max(0.8, 2.3 * s), Math.max(0.8, 2 * s), SKIN_D, dark ? SKIN_D : SKIN_L, SKIN_L);
+    if (armor & 1) capsule(spr, jx, jy, 2.4, fx, GROUND - 2, 2.1, IRON_D, IRON_M, IRON_L);
+  }
+}
+function drawTorsoHead() {
+  const s = sc;
+  capsule(spr, hipX, hipY, Math.max(1.2, 4.2 * s), sx, sy + Math.round(2 * s), Math.max(1.4, 5 * s), SKIN_D, SKIN_L, SKIN_L);
+  if (armor & 2) { capsule(spr, hipX, hipY - 3, 4.4, sx, sy + 3, 5.4, IRON_D, IRON_M, IRON_L); hline(spr, hipX - 4, hipX + 4, hipY - 3, GOLD_M); hline(spr, sx - 3, sx + 3, sy + 1, GOLD_M); }
+  else for (let y = hipY - Math.round(2 * s); y <= hipY + Math.round(2 * s); y++) hline(spr, hipX - Math.round(4 * s), hipX + Math.round(4 * s), y, EARTH_M); // loincloth
+  disc(hdX, hdY, hr, SKIN_L, spr);
+  plot(spr, Math.round(hdX + hr * 0.6), hdY, INK);                       // eye
+  if (armor & 8) { // iron helm with a gold crest
+    for (let dy = -Math.ceil(hr); dy <= 0; dy++) for (let dx = -Math.ceil(hr); dx <= Math.ceil(hr); dx++) if (dx * dx + dy * dy <= hr * hr + 1) plot(spr, hdX + dx, hdY + dy - 1, dy < -hr * 0.6 ? IRON_L : IRON_M);
+    line(spr, hdX, hdY - Math.round(hr) - 1, hdX - 2, hdY - Math.round(hr) - 5, GOLD_L);
+  } else { line(spr, hdX - 1, hdY - Math.round(hr), hdX, hdY - Math.round(hr) - Math.max(1, Math.round(2 * s)), INK); plot(spr, hdX - 1, hdY - Math.round(hr) + 1, INK); } // tuft of hair
+  if (armor & 4) for (let k = -1; k <= 1; k += 2) { disc(sx + k * 3, sy + 2, 3, IRON_M, spr); plot(spr, sx + k * 3, sy, IRON_L); plot(spr, sx + k * 3 + 2, sy + 3, GOLD_M); }
+}
+function drawArm(ax, ay, bx, by, near) {
+  const s = sc, l = 9 * s;
+  limb(ax, ay, bx, by, l, l, 1, Math.max(0.8, 2 * s), Math.max(0.8, 1.8 * s), Math.max(0.8, 1.6 * s), SKIN_D, near ? SKIN_L : SKIN_D, SKIN_L);
+  if (armor & 4) capsule(spr, jx, jy, 1.9, bx, by, 1.7, IRON_D, IRON_M, IRON_L);
+  rect(spr, bx - 1, by - 1, 2, 2, near ? SKIN_L : SKIN_D);
+}
+function drawHorse() {
+  const qx = HP[0], qy = HP[1], cx = HP[2], cy = HP[3], px = HP[4], py = HP[5], mx = HP[6], my = HP[7];
+  for (let k = 0; k < 4; k++) { // legs: planted, rearing, or galloping
+    const hind = k < 2, rx = hind ? qx - 2 + (k & 1) * 3 : cx - 1 + (k & 1) * 3, ry = (hind ? qy : cy) + 4;
+    let fx = rx + (k & 1 ? 2 : 0), fy = GROUND - 1;
+    if (gal >= 0) { fx = rx + GAL[gal * 8 + k * 2]; fy = ry + GAL[gal * 8 + k * 2 + 1]; }
+    else if (!hind && rear > 0.3) { fx = rx + 6 - (k & 1) * 2; fy = ry + 6; }
+    limb(rx, ry, fx, fy, 8, 8, hind ? 1 : -1, 2.2, 1.6, 1.3, IRON_D, k & 1 ? IRON_D : IRON_M, IRON_L);
+  }
+  capsule(spr, qx, qy, 6.5, cx, cy, 7, IRON_D, IRON_M, IRON_L);           // barrel
+  capsule(spr, cx + 1, cy - 3, 4, px, py, 3, IRON_D, IRON_M, IRON_L);      // neck
+  capsule(spr, px, py, 3.2, mx, my, 2.2, IRON_D, IRON_M, IRON_L);          // head
+  plot(spr, px - 1, py - 3, IRON_M); plot(spr, px, py - 3, IRON_L);        // ears
+  plot(spr, px + 1, py, RED); plot(spr, px + 2, py, GOLD_L);                // the glowing eye
+  for (let k = 0; k < 5; k++) plot(spr, Math.round(cx + (px - cx) * k / 5) - 2, Math.round(cy + (py - cy) * k / 5) - 3 - ((k + gal + 4) & 1), k & 1 ? FIRE_M : RED); // mane of fire
+  line(spr, qx - 5, qy - 3, qx - 11, qy + 2 + (gal & 1), FIRE_D); line(spr, qx - 6, qy - 2, qx - 10, qy + 5, FIRE_M); // tail
+}
+function drawRider() { // astride: far leg behind the horse, near leg in front
+  const kx = hipX + 5, ky = hipY + 8;
+  capsule(spr, hipX, hipY, 2.6, kx, ky, 2.3, SKIN_D, SKIN_L, SKIN_L);
+  capsule(spr, kx, ky, 2.3, kx - 2, ky + 8, 2, IRON_D, IRON_M, IRON_L);
+}
+
+function drawActor() {
+  if (mode === M_NONE) return;
+  if (mode === M_LIE || mode === M_SIT) { drawBoy(); return; }
+  if (mode === M_RIDE) { capsule(spr, hipX - 1, hipY, 2.3, hipX + 3, hipY + 8, 2, IRON_D, IRON_D, IRON_M); drawHorse(); }
+  else if (hOn) drawHorse();
+  if (mode === M_STAND) drawLegsStand();
+  if (mode === M_VAULT) { capsule(spr, hipX, hipY, 2.6, hipX + 4, hipY + 6, 2.2, SKIN_D, SKIN_L, SKIN_L); capsule(spr, hipX + 4, hipY + 6, 2.2, hipX, hipY + 11, 2, IRON_D, IRON_M, IRON_L); }
+  drawArm(Math.round(sx - 2 * sc), Math.round(sy + sc), fhX, fhY, false);
+  drawTorsoHead();
+  if (mode === M_RIDE) drawRider();
+  if (staff) line2(spr, st0x, st0y, st1x, st1y, IRON_L, IRON_D);
+  drawArm(Math.round(sx + 2 * sc), Math.round(sy + 2 * sc), nhX, nhY, true);
+}
+
+function stalk(x0, y0, a, len, off, gk, gold) { // one bamboo cane from its foot along angle a, with nodes and a leafy top
+  const c = Math.cos(a), s = Math.sin(a), px = -s * off, py = c * off;
+  const g = gold > gk, base = g ? GOLD_M : PAD_M, dark = g ? GOLD_D : PAD_D, leaf = g ? GOLD_L : PAD_L;
+  for (let t = 0; t <= len; t++) {
+    const x = Math.round(x0 + px + c * t), y = Math.round(y0 + py + s * t);
+    plot(buf, x, y, t % 6 === 0 ? dark : base);
+    if (t > len - 12 && t % 3 === 0) { plot(buf, x + (t & 1 ? 2 : -2), y - 1, leaf); plot(buf, x + (t & 1 ? 1 : -1), y, leaf); }
+  }
+}
+function drawClump(x, y, a, gold, roots) {
+  for (let k = 0; k < 4; k++) stalk(x, y, a + (k - 1.5) * 0.06, 34 + k * 3, (k - 1.5) * 2, k / 4, gold);
+  if (roots) for (let k = -2; k <= 2; k++) line(buf, x, y, x - Math.round(Math.cos(a) * 4) + k, y - Math.round(Math.sin(a) * 4) + (k & 1), EARTH_D);
+}
+function drawUnder() {
+  for (let k = 0; k < 2; k++) { // slow clouds past the mountain
+    const cx = Math.round(((k * 90 + tick * 170 / 600) % 170)) - 10, cy = 18 + k * 12;
+    hline(buf, cx, cx + 18, cy, CLOUD); hline(buf, cx + 3, cx + 14, cy - 1, CLOUD); hline(buf, cx + 2, cx + 16, cy + 1, SKY4);
+  }
+  const drift = Math.floor(tick * 64 / 600) % 64;
+  if (smoke > 0.01) for (let y = 16; y < 56; y++) for (let x = 80; x < 140; x++) { // invader smoke: billowing columns, blown right by the sweep
+    const sxw = x - wind, h = (56 - y) / 40;
+    let w = 0;
+    for (let k = 0; k < 3; k++) w = Math.max(w, 1 - Math.abs(sxw - COLS[k]) / (6 + (56 - y) * 0.4));
+    const n = NZ[((y + drift) & 63) * 60 + ((x - 80 + 60) % 60)] / 255;
+    const v = n * 0.9 + w * 0.7 - h * 0.25;
+    if (v > 1.2 - smoke * 0.8) plot(buf, x, y, v > 1.35 - smoke * 0.6 ? SMOKE_D : SMOKE_M);
+  }
+  if (banners) for (let k = 0; k < 3; k++) { // torn banners on their poles
+    const px = COLS[k] - 4 + k * 2, top = 38 + k * 2, fl = ((tick / 12 | 0) + k) & 1;
+    line(buf, px, top, px, 55, INK);
+    for (let r = 0; r < 4; r++) hline(buf, px + 1, px + 5 - (r === 1 ? 2 : 0) - fl * (r & 1), top + r, RED);
+  }
+  // Bamboo grove, swaying from the top.
+  for (let k = 0; k < GROVE.length; k += 2) {
+    const x0 = GROVE[k], tip = GROVE[k + 1], len = GROUND - tip, sw = Math.sin(tick * TWO_PI / 120 + k) * 2.4;
+    for (let y = GROUND; y >= tip; y--) {
+      const f = (GROUND - y) / len, x = x0 + Math.round(sw * f * f);
+      plot(buf, x, y, (GROUND - y) % 6 === 0 ? PAD_D : PAD_M); plot(buf, x + 1, y, PAD_D);
+      if (y < tip + 14 && y % 3 === 0) { plot(buf, x + 2, y - 1, PAD_L); plot(buf, x - 1, y, PAD_L); plot(buf, x - 2, y - 1, PAD_M); }
+    }
+  }
+  if (clMode === 0) drawClump(GROVE_X, GROUND - 1, -1.57 + Math.sin(tick * TWO_PI / 120) * 0.04, 0, false);
+  if (clMode === 2) drawClump(GROVE_X, GROUND - 1, -1.57 + Math.sin(tick * TWO_PI / 120) * 0.04, gold, false);
+  for (let y = 44; y < 57; y++) { // thatch roof, torn open a chunk at a time as he grows
+    const hw = Math.round((y - 44) * 1.15) + 1;
+    for (let x = 17 - hw; x <= 17 + hw; x++) {
+      let hole = false;
+      for (let k = 0; k < roof; k++) { const dx = x - (11 + k * 6), dy = y - (50 - (k & 1) * 2); if (dx * dx + dy * dy < 9 + ((x * 7 + y * 3) % 5)) hole = true; }
+      if (!hole) plot(buf, x, y, y === 56 ? THATCH_D : (x + y * 2) % 5 === 0 ? THATCH_D : THATCH);
+    }
+  }
+}
+function drawOver() {
+  drawParticles(false);
+  if (state === CALL) for (let b = 6; b <= 42; b += 18) { // the war drum's rings rolling in from the left
+    const age = stT - b;
+    if (age < 0 || age > 40) continue;
+    const r = 4 + age * 2.4, c = age < 12 ? GOLD_L : age < 26 ? SKY4 : PAD_L;
+    for (let t = -1.2; t <= 1.2; t += 0.03) { const x = -8 + Math.round(Math.cos(t) * r), y = 62 + Math.round(Math.sin(t) * r * 0.6); if (age < 20 || ((x + y) & 1)) plot(buf, x, y, c); }
+  }
+  if (pulse) { halo(hdX, sy + 4, 26, GOLD_L, SKY4); ring(hdX, sy + 4, 10 + ((stT - 12) % 24) * 1.2, GOLD_L); }
+  for (let k = 0; k < 64; k++) { // fire breath, swelling as it goes
+    if (fA[k] < 0) continue;
+    const a = fA[k], r = a < 6 ? 1 : a < 16 ? 2 : 3, c = a < 4 ? WHITE : a < 10 ? GOLD_L : a < 20 ? FIRE_M : a < 28 ? FIRE_D : SMOKE_M;
+    disc(Math.round(fX[k]), Math.round(fY[k]), r, c);
+  }
+  if (sweepOn) { // the arc the clump carves through the air
+    for (let t = -2.45; t <= sweepA0; t += 0.02) { const x = sx + Math.round(Math.cos(t) * 50), y = sy + Math.round(Math.sin(t) * 50); if ((x + y) & 1) plot(buf, x, y, sweepA0 - t < 0.5 ? WHITE : GOLD_L); }
+  }
+  if (clMode === 1) drawClump(clX, clY, clA, gold, true);
+  if (bkOn) line2(buf, Math.round(bkX[0]), Math.round(bkY[0]), Math.round(bkX[0] + 5), Math.round(bkY[0] + 4), IRON_L, IRON_D); // the snapped end
+  for (let k = 0; k < 4; k++) if (plOn[k]) { const x = Math.round(plX[k]), y = Math.round(plY[k]); hline(buf, x, x + 2, y, IRON_L); hline(buf, x, x + 2, y + 1, IRON_M); plot(buf, x + 3, y, (tick >> 2) & 1 ? WHITE : GOLD_L); }
+  drawParticles(true);
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

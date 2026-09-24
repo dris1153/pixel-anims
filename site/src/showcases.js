@@ -368,6 +368,38 @@ export const SHOWCASES = [
       "the priest bows. Desert temple at dusk, 128×96.",
   },
   {
+    slug: "thanh-giong-ascension",
+    tags: ["humanoid", "breath", "magic", "dawn"],
+    title: "Thanh Giong Rises",
+    still: 440,
+    res: [160, 90],
+    loop: 10,
+    states: ["still", "call", "grow", "forge", "charge", "bamboo", "ascend", "return"],
+    kind: "Made with the skill",
+    note: "The longest brief so far: eight beats, a hero drawn at three sizes, an iron horse, and a village that puts itself back together for the loop.",
+    prompt:
+      "Pixel art Thánh Gióng, the Vietnamese boy-hero who grew into a giant, 160×90, one fixed shot, 10-second " +
+      "seamless loop. Scene: the edge of a Văn Lang village at dawn: a thatched stilt hut on the left with a dense " +
+      "bamboo grove beside it, rice paddies across the middle, Sóc Sơn mountain on the right horizon under slow " +
+      "clouds, and dark invader smoke with torn banners rising beyond the paddies. " +
+      "1. still: a three-year-old boy lies silent on a straw mat in the hut doorway; the bamboo sways and the smoke " +
+      "creeps closer. " +
+      "2. call: a war drum booms from off-screen left, rings of sound rolling across the paddies; the boy's eyes open, " +
+      "he sits up and lifts a small fist toward the smoke. " +
+      "3. grow: he grows in three jolts, each with a pulse of golden light and thatch bursting off the hut roof, until " +
+      "he stands a giant twice the height of the hut. " +
+      "4. forge: iron armor clamps onto him plate by plate in showers of sparks, an iron staff drops into his hand, and " +
+      "an iron horse slams down beside him, eyes glowing red and fire curling from its nostrils; he vaults onto its back. " +
+      "5. charge: the horse rears and breathes a long jet of flame across the paddies toward the smoke; he whirls the " +
+      "staff overhead and strikes, and the staff snaps in a burst of sparks. " +
+      "6. bamboo: without stopping he tears a whole bamboo clump out of the grove, roots and all, and sweeps it in one " +
+      "huge arc; the horse's fire scorches the stalks gold as the sweep blows the smoke and banners apart. " +
+      "7. ascend: he gallops toward the mountain, sheds the armor piece by piece, each plate glinting as it falls, and " +
+      "horse and rider climb into the clouds on a trail of golden light. " +
+      "8. return: light drifts down like pollen, the golden bamboo fades back to green, the hut's roof is whole again, " +
+      "the smoke begins to gather on the horizon, and a small boy lies silent on the mat, the legend ready to begin again.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
