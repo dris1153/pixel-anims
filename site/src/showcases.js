@@ -28,6 +28,19 @@ export const SHOWCASES = [
     prompt: "Pixel art archer: idle, draw the bow, release an arrow across the screen, recover. Misty forest at dawn.",
   },
   {
+    slug: "golem-ground-slam",
+    tags: ["creature", "impact", "day"],
+    title: "Canyon Golem",
+    still: 270,
+    res: [160, 90],
+    loop: 7.2,
+    states: ["idle", "raise", "slam", "recover"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art stone golem: idle breathing with drifting pebbles, raise both fists, ground slam with a shockwave " +
+      "and flying rocks, recover. Desert canyon at noon, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -97,8 +110,8 @@ export const SHOWCASES = [
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
-  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath']] },
-  { label: 'Setting', tags: [['dawn', 'Dawn'], ['dusk', 'Dusk'], ['night', 'Night']] },
+  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact']] },
+  { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']] },
   { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
 
