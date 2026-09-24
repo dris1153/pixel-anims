@@ -148,6 +148,20 @@ export const SHOWCASES = [
       "ember egg pulses, the phoenix rises from it and folds its wings. Volcanic ridge at dusk, 128×96.",
   },
   {
+    slug: "son-tinh-rising-hills",
+    tags: ["humanoid", "magic", "day"],
+    title: "Son Tinh Mountain God",
+    still: 280,
+    res: [160, 90],
+    loop: 8,
+    states: ["rain", "flood", "raise", "drain", "clear"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art Vietnamese mountain god Son Tinh: stand on a hilltop in the rain, flood water rises from below, he " +
+      "raises both arms and the hills climb higher step by step, the water drains and the rain stops. Misty " +
+      "northern Vietnam hills in a storm, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
