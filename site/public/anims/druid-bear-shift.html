@@ -1,0 +1,641 @@
+<title>Druid Bear Shift</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #0c140e; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #0c140e; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art druid with a wooden staff in an ancient forest glade; leaves swirl around her, she bursts into a bear that roars, then swirls back into human form"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 128, H = 96;             // logical resolution
+const GROUND = 82;                 // mossy floor of the glade
+const FY = GROUND - 1;             // leaves come to rest here
+const POSE_STEP = 6;               // 10 fps pose frames
+const AX = 52;                     // where she stands (the bear is centered here too)
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#0c140e',
+  '#d8e8b0', '#6a9a78', '#4a7a5e',
+  '#1e3a22', '#2e5a2e', '#4e8a3a', '#9ac048', '#e0c050',
+  '#2a1e16', '#4a3424', '#6e5036',
+  '#4a5048', '#7a8274', '#a8b0a0',
+  '#7af0a0', '#c8ffd8',
+  '#a89a78', '#e0d4b0',
+  '#3e5a22', '#5e7e30', '#8aa84a',
+  '#6a2a1a', '#a84a24', '#d8783a',
+  '#c88a6a', '#f0c0a0',
+  '#3a2418', '#6a4028', '#9a6a3e',
+  '#a02a2a', '#ffffff',
+];
+const INK = 0, SKY_L = 1, FAR1 = 2, FAR2 = 3, LEAF_D = 4, LEAF_M = 5, LEAF_L = 6, LEAF_Y = 7, GOLDLEAF = 8,
+  BARK_D = 9, BARK_M = 10, BARK_L = 11, STONE_D = 12, STONE_M = 13, STONE_L = 14, SPIRIT_M = 15, SPIRIT_L = 16,
+  DRESS_D = 17, DRESS_L = 18, CLOAK_D = 19, CLOAK_M = 20, CLOAK_L = 21, HAIR_D = 22, HAIR_M = 23, HAIR_L = 24,
+  SKIN_D = 25, SKIN_L = 26, BEAR_D = 27, BEAR_M = 28, BEAR_L = 29, RED = 30, WHITE = 31;
+
+// One step brighter per ramp; sunlit greens go to yellow-green, fur and hair warm toward gold.
+const LIGHTEN = Uint8Array.of(
+  LEAF_D,
+  WHITE, SKY_L, FAR1,
+  LEAF_M, LEAF_L, LEAF_Y, SKY_L, SKY_L,
+  BARK_M, BARK_L, DRESS_D,
+  STONE_M, STONE_L, SKY_L,
+  SPIRIT_L, WHITE,
+  DRESS_L, WHITE,
+  CLOAK_M, CLOAK_L, LEAF_Y,
+  HAIR_M, HAIR_L, GOLDLEAF,
+  SKIN_L, WHITE,
+  BEAR_M, BEAR_L, DRESS_D,
+  RED, WHITE);
+const RAMP_LEAF = Uint8Array.of(LEAF_Y, LEAF_L, LEAF_M, LEAF_D);
+const RAMP_AUTUMN = Uint8Array.of(GOLDLEAF, HAIR_L, HAIR_M, BARK_M);
+const RAMP_SPIRIT = Uint8Array.of(WHITE, SPIRIT_L, SPIRIT_M, LEAF_L);
+const RAMP_DUST = Uint8Array.of(DRESS_L, DRESS_D, BARK_L, BARK_M);
+const RAMPS = [RAMP_LEAF, RAMP_AUTUMN, RAMP_SPIRIT, RAMP_DUST];
+const RIM = Uint8Array.of(SPIRIT_M, SPIRIT_L, WHITE);
+const RIM_BANDS = Uint16Array.of(12, 20, 30);
+const LIGHT = Float32Array.of(-0.6, -0.8);    // sun shafts through the canopy, from the upper left
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[SPIRIT_M] = RIM_OK[SPIRIT_L] = 0;      // the staff's seed and the bear's markings glow on their own
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY_L] = AIR[FAR1] = AIR[FAR2] = 1;
+
+// Head facing right, 7x7: h/H auburn hair, l leaf crown, s/d skin, e eye
+const HEAD = ['.lHlHl.', 'hhhHHHh', 'hhhssss', 'hhhsess', 'hhhssss', 'hhhhsds', 'hhhhss.'];
+
+const IDLE = 0, SWIRL = 1, SHIFT = 2, ROAR = 3, REVERT = 4, SETTLE = 5;
+const DUR = Uint16Array.of(96, 84, 36, 96, 72, 96); // L = 480: breath 96, leaf-ball 24
+const EASE = Uint16Array.of(6, 60, 6, 18, 30, 60);
+const EASE_OUT = Uint8Array.of(0, 0, 1, 1, 0, 0);
+const BURST_T = 6;                                // leaves burst and she is a bear, in SHIFT ticks
+const ROAR_T = 18;                                // the roar, in ROAR ticks
+const BACK_T = 42;                                // leaves burst and she is herself again, in REVERT ticks
+const RAISE = 0, CROUCH = 1, REAR = 2, JAW = 3, NP = 4;
+const REST = Float32Array.of(0, 0, 0, 0);         // staff planted, standing easy
+const TARGET = [
+  REST,
+  Float32Array.of(1, 0.5, 0, 0),                  // staff raised, sinking into the swirl
+  Float32Array.of(0, 0, 0, 0),                    // the bear lands square on all fours
+  Float32Array.of(0, 0, 1, 1),                    // rears and roars
+  Float32Array.of(1, 0.5, 0, 0),                  // drops, and comes back as she left: staff raised
+  REST,
+];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+const headMap = new Uint8Array(49);
+const BALL = 360, BLX = new Int8Array(BALL), BLY = new Int8Array(BALL); // the leaf ball that hides each change
+const RUNE = new Int16Array(24);                 // spiral carved on the standing stone, as x, y pairs
+let qBear = 0, qBob = 0, qSway = 0, qGlow = 0, cx = AX, hipY = 0, chestY = 0, hx = 0, hy = 0;
+let hdX = 0, hdY = 0, fhX = 0, fhY = 0, stBX = 0, stBY = 0, stTX = 0, stTY = 0;
+let sy = 0, hcx = 0, hcy = 0, snX = 0, snY = 0, fp1X = 0, fp1Y = 0, fp2X = 0, fp2Y = 0, qJaw = 0;
+let roarAge = 99;
+
+function buildBackground() {
+  const seed = Uint32Array.of(90210);
+  const rnd = () => { let x = seed[0]; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; seed[0] = x; return seed[0] / 4294967296; };
+  const dith = (x, y, v) => v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) bg[y * W + x] = y < 34 ? FAR1 : y === 34 && dith(x, y, 0.5) ? FAR1 : FAR2;
+  for (let k = 0; k < 11; k++) { // misty trunks deep in the wood
+    const x0 = rnd() * W | 0, w = 2 + (rnd() * 3 | 0);
+    for (let y = 8; y < GROUND; y++) for (let x = x0; x < x0 + w; x++) plot(bg, x, y, y < 34 ? FAR2 : LEAF_D);
+  }
+  for (let y = 0; y < 26; y++) { // canopy: dense at the top, holes of sky, a ragged lower edge
+    for (let x = 0; x < W; x++) {
+      const n = Math.sin(x * 0.31 + y * 0.2) + Math.sin(x * 0.13 - y * 0.5 + 1) + (rnd() - 0.5) * 0.6, thr = -1.6 + y * 0.14;
+      if (n > thr) plot(bg, x, y, n > thr + 0.5 ? LEAF_D : LEAF_M);
+      else if (y < 10 && n < thr - 0.9) plot(bg, x, y, SKY_L);
+    }
+  }
+  // Sun shafts slanting down into the glade: one flat step brighter, no dither.
+  for (let y = 10; y < GROUND + 4; y++) {
+    for (const [x0, w] of [[26, 7], [44, 4]]) {
+      const xs = Math.round(x0 + (y - 10) * 0.42);
+      for (let x = xs; x < xs + w; x++) if (x >= 0 && x < W) bg[y * W + x] = LIGHTEN[bg[y * W + x]];
+    }
+  }
+  // Standing stone with a carved spiral, older than the trees.
+  for (let y = 56; y < GROUND; y++) {
+    const hw = y < 60 ? 3 + (y - 56) * 0.6 : 5.5;
+    for (let x = Math.round(93 - hw); x <= Math.round(93 + hw); x++) plot(bg, x, y, x < 91 ? STONE_L : x > 95 ? STONE_D : STONE_M);
+  }
+  for (let k = 0; k < 12; k++) {
+    const a = k * 0.9, r = 0.4 + k * 0.28;
+    RUNE[k * 2] = Math.round(93 + Math.cos(a) * r); RUNE[k * 2 + 1] = Math.round(67 + Math.sin(a) * r);
+    plot(bg, RUNE[k * 2], RUNE[k * 2 + 1], STONE_D);
+  }
+  // Two ancient trunks frame the glade, mossy, roots spilling over the floor.
+  const trunk = (x0, x1, lit) => {
+    for (let y = 0; y < GROUND + 2; y++) {
+      const flare = y > GROUND - 10 ? (y - GROUND + 10) * 0.8 : 0;
+      for (let x = Math.round(x0 - flare); x <= Math.round(x1 + flare); x++) {
+        let c = (x + (y >> 2)) % 5 === 0 ? BARK_D : x === Math.round((lit ? x1 : x0) + (lit ? flare : -flare)) ? BARK_L : BARK_M;
+        if (Math.sin(x * 0.9 + y * 0.35) > 0.8 && y > 20) c = LEAF_L;     // moss
+        plot(bg, x, y, c);
+      }
+    }
+  };
+  trunk(-3, 11, 1); trunk(113, 131, 0);
+  for (let x = 0; x < W; x++) { // mossy floor
+    const top = GROUND + Math.round(Math.sin(x * 0.2) * 0.6);
+    for (let y = top; y < H; y++) bg[y * W + x] = y === top ? LEAF_L : y < top + 4 ? LEAF_M : y === top + 4 && dith(x, y, 0.5) ? LEAF_M : LEAF_D;
+    if (x % 7 === 3 && x > 14 && x < 110) plot(bg, x, top - 1, LEAF_M);  // grass tufts
+    if (x % 19 === 11 && x > 14 && x < 110) plot(bg, x, top - 1, GOLDLEAF); // buttercups
+  }
+  for (let x = AX - 12; x <= AX + 20; x++) plot(bg, x, GROUND, x & 1 ? LEAF_M : BARK_L); // a trodden patch
+  for (const [x0, y0] of [[104, GROUND - 1], [108, GROUND - 2]]) { // toadstools by the right trunk
+    plot(bg, x0, y0 + 1, DRESS_L); hline(bg, x0 - 1, x0 + 1, y0, RED); plot(bg, x0, y0 - 1, RED); plot(bg, x0 - 1, y0, WHITE);
+  }
+  for (let k = 0; k < BALL; k++) { // leaf-ball offsets inside an ellipse
+    const a = rnd() * 6.283, r = Math.sqrt(rnd());
+    BLX[k] = Math.round(Math.cos(a) * r * 17); BLY[k] = Math.round(Math.sin(a) * r * 15);
+  }
+  const HMAP = { '.': EMPTY, h: HAIR_M, H: HAIR_L, l: LEAF_L, s: SKIN_L, d: SKIN_D, e: INK };
+  HEAD.forEach((row, y) => { for (let x = 0; x < 7; x++) headMap[y * 7 + x] = HMAP[row[x]]; });
+}
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+
+// Freeze the smooth pose onto the pixel grid; the sprite only changes on these frames.
+function sample() {
+  snap.set(pose);
+  qBear = (state === SHIFT && stT >= BURST_T) || state === ROAR || (state === REVERT && stT < BACK_T) ? 1 : 0;
+  qBob = (tick / 48 | 0) & 1;                              // breath, a 96-tick cycle
+  qSway = Math.round(Math.sin(tick / 96 * 6.2832));
+  qGlow = state === SWIRL || (state === REVERT && stT >= BACK_T) ? 1 : 0;
+  const drop = state === REVERT ? 1 : state === ROAR ? ease((stT - 60) / 30) : 0; // after the roar it drops back to all fours
+  const r = pose[RAISE], c = pose[CROUCH], R = pose[REAR] * (1 - drop);
+  hipY = GROUND - 12 + Math.round(c * 2); chestY = hipY - 9 + qBob; hx = cx - 3; hy = chestY - 7;
+  hdX = cx + 5 + Math.round(r * 2); hdY = chestY + 7 - Math.round(r * 12);  // staff hand: at her hip, then raised
+  fhX = cx - 3 - Math.round(r * 3); fhY = chestY + 9 - Math.round(r * 9);   // free hand opens palm-up to the swirl
+  const a = -1.5708 + r * 0.35, dx = Math.cos(a), dy = Math.sin(a), down = (1 - r) * (GROUND - 1 - hdY) + r * 8, up = 13 + r * 3;
+  stBX = Math.round(hdX - dx * down); stBY = Math.round(hdY - dy * down);
+  stTX = Math.round(hdX + dx * up); stTY = Math.round(hdY + dy * up);
+  // The bear: shoulders and head lift as it rears, fore paws come off the ground.
+  sy = GROUND - 18 - Math.round(R * 8) + qBob;
+  hcx = cx + 16; hcy = sy - 2 - Math.round(R * 3);
+  snX = cx + 23; snY = hcy + 2 - Math.round(R * 4);
+  fp1X = cx + 8 + Math.round(R * 6); fp1Y = GROUND - 2 - Math.round(R * 12);
+  fp2X = cx + 12 + Math.round(R * 5); fp2Y = GROUND - 2 - Math.round(R * 8);
+  qJaw = pose[JAW] * (1 - drop) > 0.4 ? 1 : 0;
+
+  if (state === SWIRL || (state === REVERT && stT < BACK_T)) { srcX = cx; srcY = qBear ? sy + 4 : chestY + 6; rim = 2; } // swirl center
+  else if (qBear) { srcX = cx + 2; srcY = sy - 12; rim = 1; }
+  else { srcX = stTX; srcY = stTY; rim = 1; }
+}
+
+function step() {
+  roarAge++;
+  if (tick % POSE_STEP === 0) sample();
+  if ((state === SHIFT && stT === BURST_T) || (state === REVERT && stT === BACK_T)) leafBurst();
+  if (state === ROAR && stT === ROAR_T) { roarAge = 0; shakeT = 14; }
+
+  if (tick % 10 === 5) spawn(MOTE, 200 + rand() * 60, rand() * W, -2, 0, 0.35 + rand() * 0.15, rand() < 0.3 ? 1 : 0); // leaves adrift
+  if ((state === SWIRL || (state === REVERT && stT < BACK_T)) && stT > 6 && stT % 2 === 0)
+    spawnOrbit(14 + rand() * 8, 0.1 + rand() * 0.05, 0.965 + rand() * 0.015, 0, 6.283, rand() < 0.25 ? 1 : 0);
+  if (state === SWIRL && stT % 6 === 3) spawn(MOTE, 30, stTX + (rand() - 0.5) * 4, stTY, 0, -0.3, 2); // sparks off the seed
+  if (state === ROAR && stT > ROAR_T && stT < ROAR_T + 24 && stT % 2 === 0) // the roar strips leaves off the floor
+    spawn(TRAIL, 20 + rand() * 20, snX + 4, snY + 2 + (rand() - 0.5) * 12, 2 + rand() * 1.5, (rand() - 0.5) * 0.6, rand() < 0.3 ? 1 : 0);
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === MOTE && pvy[i] > 0 && py[i] >= FY - 1) pKind[i] = 0; // settled
+}
+function leafBurst() {
+  flashT = 2; shakeT = 8;
+  for (let n = 0; n < 44; n++) {
+    const t = rand() * 6.283, v = 0.8 + rand() * 2;
+    spawn(BURST, 24 + rand() * 24, AX + Math.cos(t) * 5, GROUND - 12 + Math.sin(t) * 5, Math.cos(t) * v, Math.sin(t) * v - 0.8,
+      n % 4 === 0 ? 1 : n % 7 === 0 ? 2 : 0);
+  }
+}
+
+function drawDruid() {
+  for (let y = chestY + 1; y < GROUND; y++) { // moss-green cloak spilling behind her
+    const t = (y - chestY) / (GROUND - chestY), back = Math.round(4 + t * 5 + qSway * t);
+    for (let x = cx - back; x <= cx; x++) plot(spr, x, y, x <= cx - back + 1 ? CLOAK_L : x > cx - 2 ? CLOAK_D : CLOAK_M);
+  }
+  capsule(spr, hx + 2, hy + 3, 2.5, cx - 4 + qSway, chestY + 9, 1.8, HAIR_D, HAIR_M, HAIR_L); // auburn hair
+  joint(cx - 2, chestY + 2, fhX, fhY, 4, 4, -1); // free arm
+  capsule(spr, cx - 2, chestY + 2, 1.6, jx, jy, 1.5, DRESS_D, DRESS_D, DRESS_L);
+  capsule(spr, jx, jy, 1.2, fhX, fhY, 1, SKIN_D, SKIN_D, SKIN_L);
+  for (let y = chestY; y < GROUND; y++) { // linen dress, belted, flaring to the moss
+    const t = y < hipY ? 0 : (y - hipY) / (GROUND - 1 - hipY), hw = y < hipY ? 3 : Math.round(3 + t * 3);
+    for (let x = cx - hw; x <= cx + hw; x++) plot(spr, x, y, y === hipY ? (x === cx + 1 ? GOLDLEAF : BARK_M) : x <= cx - hw + 1 ? DRESS_L : x >= cx + hw ? DRESS_D : DRESS_L);
+  }
+  for (let r = 0; r < 7; r++) {
+    for (let c = 0; c < 7; c++) {
+      const v = headMap[r * 7 + c];
+      if (v !== EMPTY) plot(spr, hx + c, hy + r, v);
+    }
+  }
+  line2(spr, stBX, stBY, stTX, stTY, BARK_L, BARK_D); // gnarled staff, a curl at the crown holding a living seed
+  plot(spr, stTX - 1, stTY - 1, BARK_L); plot(spr, stTX - 2, stTY, BARK_D); plot(spr, stTX + 1, stTY + 2, LEAF_L); plot(spr, stTX - 2, stTY + 3, LEAF_Y);
+  plot(spr, stTX, stTY, qGlow ? SPIRIT_L : SPIRIT_M);
+  joint(cx + 2, chestY + 2, hdX, hdY, 3.5, 3.5, 1); // staff arm
+  capsule(spr, cx + 2, chestY + 2, 1.6, jx, jy, 1.5, DRESS_D, DRESS_L, DRESS_L);
+  capsule(spr, jx, jy, 1.2, hdX, hdY, 1, SKIN_D, SKIN_L, SKIN_L);
+  plot(spr, hdX, hdY, SKIN_L); plot(spr, hdX + 1, hdY, SKIN_D);
+  if (qGlow) plot(spr, fhX, fhY - 1, SPIRIT_L); // light in her open palm
+}
+
+function drawBear() {
+  capsule(spr, cx - 4, GROUND - 12, 3.4, cx - 4, GROUND - 2, 2.8, BEAR_D, BEAR_D, BEAR_M); // far hind leg
+  capsule(spr, cx + 10, sy + 3, 3.4, fp2X, fp2Y, 2.8, BEAR_D, BEAR_D, BEAR_M);             // far fore leg
+  capsule(spr, cx - 10, GROUND - 16, 7.5, cx + 5, sy, 8.5, BEAR_D, BEAR_M, BEAR_L);         // body
+  capsule(spr, cx, sy - 5, 4.5, cx + 5, sy - 5, 4.5, BEAR_D, BEAR_M, BEAR_L);               // shoulder hump
+  capsule(spr, cx - 9, GROUND - 13, 3.8, cx - 10, GROUND - 2, 3.2, BEAR_D, BEAR_M, BEAR_L); // near hind leg
+  capsule(spr, cx + 6, sy + 4, 3.8, fp1X, fp1Y, 3.2, BEAR_D, BEAR_M, BEAR_L);              // near fore leg
+  rect(spr, cx - 12, GROUND - 2, 5, 2, BEAR_D); rect(spr, fp1X - 2, fp1Y - 1, 5, 2, BEAR_D); rect(spr, fp2X - 2, fp2Y - 1, 4, 2, BEAR_D);
+  plot(spr, fp1X + 3, fp1Y, WHITE); plot(spr, fp2X + 2, fp2Y, WHITE); // claws
+  capsule(spr, cx + 10, sy - 1, 5, hcx, hcy, 5.5, BEAR_D, BEAR_M, BEAR_L);                  // neck and head
+  capsule(spr, hcx, hcy, 4, snX, snY, 2.8, BEAR_D, BEAR_M, BEAR_L);                         // muzzle
+  plot(spr, snX - 1, snY - 1, DRESS_D); plot(spr, snX, snY - 1, DRESS_D);
+  disc(hcx - 3, hcy - 5, 1.6, BEAR_M, spr); disc(hcx + 1, hcy - 6, 1.6, BEAR_M, spr);      // ears
+  plot(spr, hcx - 3, hcy - 5, BEAR_D); plot(spr, hcx + 1, hcy - 6, BEAR_D);
+  plot(spr, hcx + 2, hcy - 2, INK);                                                        // eye
+  plot(spr, snX + 1, snY - 1, INK); plot(spr, snX + 2, snY, INK);                          // nose
+  if (qJaw) { // jaw dropped in the roar
+    capsule(spr, hcx + 1, hcy + 3, 2, snX - 1, snY + 5, 1.6, BEAR_D, BEAR_M, BEAR_M);
+    line(spr, hcx + 2, hcy + 2, snX, snY + 2, RED); line(spr, hcx + 2, hcy + 3, snX - 1, snY + 3, RED);
+    plot(spr, snX, snY + 1, WHITE); plot(spr, snX - 1, snY + 4, WHITE);
+  }
+  plot(spr, cx + 1, sy + 1, SPIRIT_M); // spirit swirl on the shoulder: her mark plot(spr, cx + 2, sy, SPIRIT_M); plot(spr, cx + 3, sy + 1, SPIRIT_M);
+  plot(spr, cx + 2, sy + 2, SPIRIT_L); plot(spr, cx, sy + 2, SPIRIT_M);
+}
+
+function drawActor() {
+  if (qBear) drawBear(); else drawDruid();
+}
+
+function drawUnder() {
+  if (state === SWIRL || state === SHIFT || (state === REVERT && stT < BACK_T + 12)) // the old stone answers
+    for (let k = 0; k < 12; k++) plot(buf, RUNE[k * 2], RUNE[k * 2 + 1], (tick >> 2) & 1 ? SPIRIT_L : SPIRIT_M);
+}
+function drawOver() {
+  drawParticles(false);
+  let f = -1; // the leaf ball: tightens over the change, then flings outward and thins
+  if (state === SHIFT && stT < 18) f = stT; else if (state === REVERT && stT >= BACK_T - 6 && stT < BACK_T + 12) f = stT - BACK_T + 6;
+  if (f >= 0) {
+    const s = f < 6 ? 0.7 + f * 0.1 : 1.3 + (f - 6) * 0.1, n = f < 6 ? BALL : Math.max(0, BALL - (f - 6) * 30);
+    for (let k = 0; k < n; k++) {
+      const x = Math.round(AX + 4 + BLX[k] * s), y = Math.round(GROUND - 14 + BLY[k] * s);
+      plot(buf, x, y, k % 5 === 0 ? GOLDLEAF : k % 3 === 0 ? LEAF_Y : LEAF_L); plot(buf, x + 1, y, k & 1 ? LEAF_M : LEAF_L); plot(buf, x, y + 1, LEAF_D);
+    }
+  }
+  if (roarAge < 30) { // three rings of sound roll out of its jaws
+    for (let j = 0; j < 3; j++) {
+      const r = 4 + (roarAge - j * 7) * 1.8;
+      if (r < 4) continue;
+      for (let k = 0; k <= 16; k++) {
+        const a = -0.8 + k * 0.1;
+        if (roarAge > 16 && (k & 1)) continue;
+        plot(buf, Math.round(snX + 2 + Math.cos(a) * r), Math.round(snY + 1 + Math.sin(a) * r), roarAge < 12 ? SKY_L : FAR1);
+      }
+    }
+  }
+  drawParticles(true);
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

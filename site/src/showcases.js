@@ -176,6 +176,19 @@ export const SHOWCASES = [
       "160×90.",
   },
   {
+    slug: "druid-bear-shift",
+    tags: ["humanoid", "creature", "magic", "day"],
+    title: "Druid Bear Shift",
+    still: 240,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "swirl", "shift", "roar", "revert", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art druid: idle with a wooden staff, leaves swirl around her, she transforms into a bear in a burst of " +
+      "leaves, the bear roars, then swirls back into human form. Ancient forest glade, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
