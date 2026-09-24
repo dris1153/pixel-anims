@@ -188,6 +188,27 @@
   font: 500 0.9rem var(--mono);
   color: var(--text);
 }
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tags a {
+  padding: 3px 8px;
+  font: 700 0.64rem var(--display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--silver);
+  text-decoration: none;
+  border: 2px solid var(--line);
+  transition:
+    color var(--duration-quick) var(--ease-smooth-out),
+    border-color var(--duration-quick) var(--ease-smooth-out);
+}
+.tags a:hover {
+  color: var(--gold);
+  border-color: var(--gold);
+}
 .brief {
   margin-top: 40px;
   padding: 16px 20px 20px;

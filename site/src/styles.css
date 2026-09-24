@@ -32,7 +32,7 @@ button:disabled { cursor: not-allowed; }
   position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 16px;
   padding: 14px 20px; background: rgba(11, 9, 19, .94); border-bottom: 2px solid var(--line);
 }
-.logo { font: 700 1rem var(--display); color: var(--gold); text-decoration: none; letter-spacing: .04em; }
+.logo { font: 700 1rem var(--display); color: var(--gold); text-decoration: none; letter-spacing: .04em; white-space: nowrap; }
 .bar nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
 .bar nav a { font: 400 .8rem var(--display); color: var(--muted); text-decoration: none; letter-spacing: .04em; }
 .bar nav a:hover { color: var(--text); }
@@ -100,6 +100,8 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 .screen { margin: 0; }
 .frame { position: relative; background: var(--ink); border: 4px solid var(--line); box-shadow: 8px 8px 0 var(--shadow); overflow: hidden; }
 .frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.frame.is-fit { background: repeating-conic-gradient(var(--deep) 0 25%, var(--ink) 0 50%) 0 0 / 4px 4px; } /* matte */
+.frame.is-fit iframe { margin: auto; } /* fitFrame() sets an exact size; auto margins center it */
 .screen figcaption { margin-top: 16px; font: 400 .72rem var(--display); color: var(--muted); letter-spacing: .06em; }
 .live { color: #e0665a; margin-right: 8px; } /* lighter than --red: small text needs 4.5:1 on ink */
 .live::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; background: var(--red); animation: blink 1.2s steps(1) infinite; }
@@ -175,6 +177,19 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
   .flow { grid-template-columns: 1fr; border-top: 0; border-left: 2px solid var(--line); padding-left: 24px; }
   .flow li { padding: 0 0 28px; }
   .flow li::after { top: 8px; left: -30px; }
+}
+@media (max-width: 560px) {
+  .tab-long { display: none; } /* "Plugin / npx / Manual" fits one row */
+  .cmd { padding-right: 70px; }
+  .cmd .copy { padding: 8px 9px; }
+  .prompt { padding-right: 16px; }
+  .prompt .copy { position: static; margin-top: 12px; } /* phones: under the text instead of a gutter */
+}
+@media (max-width: 480px) {
+  .bar { padding: 12px 16px; }
+  .bar nav { gap: 6px 14px; }
+  .bar nav a { font-size: .7rem; }
+  .logo { font-size: .9rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

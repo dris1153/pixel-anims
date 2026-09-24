@@ -1,6 +1,6 @@
-import { SHOWCASES } from './showcases.js';
+import { SHOWCASES, animUrl, detailUrl, stillOf } from './showcases.js';
 import { setupCopy } from './copy.js';
-import { addPlayToggle, autoplayInView, calm, featureCard, tile } from './cards.js';
+import { addPlayToggle, autoplayInView, calm, featureCard, fitFrame, tile } from './cards.js';
 
 // Repo slug (dris1153/pixel-anims) is written literally in the HTML, README and .claude-plugin/*.json.
 setupTabs();
@@ -10,10 +10,36 @@ renderShowcase();
 setupReveal();
 setupJournal();
 
+// The hero opens on the engine reference; Shuffle swaps in any other showcase.
 function setupHero() {
   const frame = document.querySelector('.screen .frame');
   const iframe = frame.querySelector('iframe');
+  const caption = document.querySelector('.screen figcaption');
   addPlayToggle(frame, iframe, iframe.getAttribute('src'), frame.dataset.still, 'the wizard animation', !calm);
+  fitFrame(frame, [128, 96]);
+  let current = SHOWCASES.findIndex(s => s.slug === 'wizard-spellcaster');
+  const shuffle = document.createElement('button');
+  shuffle.type = 'button';
+  shuffle.className = 'play shuffle';
+  shuffle.textContent = 'Shuffle';
+  shuffle.setAttribute('aria-label', 'Show a random showcase');
+  shuffle.addEventListener('click', () => {
+    let i = current;
+    while (i === current) i = Math.floor(Math.random() * SHOWCASES.length);
+    current = i;
+    const s = SHOWCASES[i];
+    frame.querySelector('.play:not(.shuffle)').remove();
+    frame.style.aspectRatio = `${s.res[0]} / ${s.res[1]}`;
+    iframe.title = `${s.title}: live pixel art animation`;
+    iframe.src = calm ? stillOf(animUrl(s), s.still) : animUrl(s);
+    addPlayToggle(frame, iframe, animUrl(s), s.still, s.title, !calm);
+    fitFrame(frame, s.res);
+    const name = document.createElement('a');
+    name.href = detailUrl(s);
+    name.textContent = s.title;
+    caption.replaceChildren(caption.querySelector('.live'), ` ${s.res[0]}×${s.res[1]} · ${s.loop} s loop · `, name);
+  });
+  frame.append(shuffle);
 }
 
 // Landing keeps it short: the first entry as the hero, the next three as tiles, the rest behind "See all".

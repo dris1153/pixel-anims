@@ -1,4 +1,4 @@
-/* Journal tabs: a bookmark per landing section, pinned to the right edge; the one being read sticks out. */
+/* Landing-only extras: journal tabs pinned to the right edge, the hero Shuffle button, How-it-works icons. */
 .journal { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 9; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .journal a {
   --tab: var(--gold);
@@ -14,6 +14,23 @@
 .journal a:nth-child(5) { --tab: var(--silver); }
 .journal a:nth-child(6) { --tab: var(--gold-l); }
 .journal a:nth-child(7) { --tab: var(--muted); }
-.journal a:hover, .journal a:focus-visible, .journal a[aria-current="location"] { max-width: 120px; padding-right: 10px; color: var(--ink); }
+.journal a[aria-current="location"] { max-width: 18px; } /* the one being read sticks out a little */
+.journal a:hover, .journal a:focus-visible { max-width: 120px; padding-right: 10px; color: var(--ink); }
 .journal a:focus-visible { outline: 2px solid var(--ink); outline-offset: -4px; }
+@media (min-width: 1400px) { /* wide margins: the current tab can show its name without covering content */
+  .journal a[aria-current="location"] { max-width: 120px; padding-right: 10px; color: var(--ink); }
+}
 @media (max-width: 900px) { .journal { display: none; } } /* no spare margin, and no hover to open the tabs */
+
+.shuffle { right: auto; left: 8px; } /* hero only: opposite corner from Pause */
+
+/* How it works: an 8x8 pixel icon before each step name. */
+.flow b::before {
+  content: ''; display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px;
+  background: var(--ico) 0 0 / 16px 16px no-repeat; image-rendering: pixelated;
+}
+.flow li:nth-child(1) b { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect x='1' y='0' width='6' height='8' fill='%23eeeadb'/%3E%3Crect x='1' y='0' width='1' height='8' fill='%23c4473a'/%3E%3Crect x='3' y='2' width='3' height='1' fill='%23463f66'/%3E%3Crect x='3' y='4' width='3' height='1' fill='%23463f66'/%3E%3Crect x='3' y='6' width='2' height='1' fill='%23463f66'/%3E%3C/svg%3E"); }
+.flow li:nth-child(2) b { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect x='0' y='4' width='4' height='4' fill='%23f2b84b'/%3E%3Crect x='4' y='4' width='4' height='4' fill='%233fd0f0'/%3E%3Crect x='2' y='0' width='4' height='4' fill='%23c4473a'/%3E%3C/svg%3E"); }
+.flow li:nth-child(3) b { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect x='6' y='0' width='2' height='2' fill='%23f2b84b'/%3E%3Crect x='5' y='1' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='4' y='2' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='3' y='3' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='2' y='4' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='1' y='5' width='2' height='2' fill='%23eeeadb'/%3E%3Crect x='0' y='7' width='1' height='1' fill='%23c4473a'/%3E%3C/svg%3E"); }
+.flow li:nth-child(4) b { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect x='0' y='2' width='8' height='5' fill='%23eeeadb'/%3E%3Crect x='1' y='1' width='2' height='1' fill='%23eeeadb'/%3E%3Crect x='3' y='3' width='3' height='3' fill='%23463f66'/%3E%3Crect x='4' y='4' width='1' height='1' fill='%233fd0f0'/%3E%3Crect x='6' y='3' width='1' height='1' fill='%23c4473a'/%3E%3C/svg%3E"); }
+.flow li:nth-child(5) b { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect x='1' y='3' width='6' height='5' fill='%23f2b84b'/%3E%3Crect x='0' y='2' width='8' height='2' fill='%23ffd27a'/%3E%3Crect x='3' y='2' width='2' height='6' fill='%23c4473a'/%3E%3Crect x='2' y='0' width='1' height='2' fill='%23c4473a'/%3E%3Crect x='5' y='0' width='1' height='2' fill='%23c4473a'/%3E%3C/svg%3E"); }
