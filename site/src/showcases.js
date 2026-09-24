@@ -1,4 +1,4 @@
-// Gallery data. To add a showcase: drop <slug>.html into public/anims/ and add one entry.
+// Gallery data. To add a showcase: drop <slug>.html into public/anims/, run `pnpm posters <slug>`, and add one entry.
 // Array order is display order: [0] is the landing hero, [1..3] the landing tiles.
 // Required: slug, tags (ids from TAG_GROUPS), title, res [w, h] (logical px), loop (sum(DUR) / 60, seconds), states, kind, prompt.
 // Optional: note, still (tick shown while paused, default 60), ref (true for the engine reference),
@@ -524,6 +524,7 @@ export const TAG_GROUPS = [
 ];
 
 export const animUrl = s => `/anims/${s.slug}.html`;
+export const posterUrl = s => `/posters/${s.slug}.png`;
 // The ?still#t=N seek mode renders tick N once and stops, so a paused frame costs no loop.
 export const stillOf = (file, tick = 60) => `${file}?still#t=${tick}`;
 export const detailUrl = s => `/showcase/detail/?s=${s.slug}`;

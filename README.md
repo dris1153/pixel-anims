@@ -146,7 +146,7 @@ Node 18 or newer and Chrome, Edge or Chromium for the snapshot QA step, and a mo
 
 ## Website
 
-The landing page and showcase live in `site/` as a plain Vite app. Run `pnpm install`, then `pnpm dev` to work on it or `pnpm build` to build `dist/`. To add a showcase, put its `.html` in `site/public/anims/` and add one entry to `site/src/showcases.js`.
+The landing page and showcase live in `site/` as a plain Vite app. Run `pnpm install`, then `pnpm dev` to work on it or `pnpm build` to build `dist/`. To add a showcase, put its `.html` in `site/public/anims/`, run `pnpm posters <slug>` to render its placeholder frame, and add one entry to `site/src/showcases.js`.
 
 ## License
 
