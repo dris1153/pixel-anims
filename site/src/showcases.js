@@ -6,6 +6,40 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "jack-beanstalk",
+    tags: ["humanoid", "creature", "magic", "day"],
+    country: "gb-eng",
+    title: "Jack and the Beanstalk",
+    still: 620,
+    res: [160, 90],
+    loop: 16,
+    states: ["market", "thrown", "sprout", "climb", "giant", "treasure", "chase", "axe", "fall", "return"],
+    kind: "Made with the skill",
+    note: "One spiral carries the whole tale: the beanstalk is a single twisted chain that grows by one parameter, carries Jack up and the giant down at points along its length, then topples about its root while the clouds close over the castle.",
+    prompt:
+      "Pixel art the English fairy tale of Jack and the Beanstalk, 160×90, one fixed shot, 16-second seamless loop. " +
+      "Scene: a tall view from a farm cottage up into the sky: at the bottom left a thatched cottage with a window " +
+      "and a little vegetable garden, a lane winding off to the left, rolling green hills behind; above them open " +
+      "sky with a thick bank of clouds across the top right where a giant's stone castle stands hidden in the mist; " +
+      "the day turns from morning to dusk, night, dawn and back to morning. Keep the frame readable: Jack and one " +
+      "new arrival at a time, each leaving before the next appears. 1. market: in the morning Jack leads the " +
+      "family's thin old cow down the lane, meets a strange old man in a hooded cloak, and trades the cow for five " +
+      "glowing beans. 2. thrown: at dusk his furious mother flings the beans out of the cottage window, and they " +
+      "glint in the dark garden. 3. sprout: at night a green shoot bursts from the soil and the beanstalk spirals " +
+      "up past the moon, leaves unfurling as it climbs, until it pierces the clouds and they part to reveal the " +
+      "giant's castle. 4. climb: at dawn Jack climbs the beanstalk hand over hand, up through the cloud bank to the " +
+      "castle gate. 5. giant: the giant stomps out of the castle, sniffing the air (\"Fee-fi-fo-fum!\"), the clouds " +
+      "shaking under each step, while Jack hides behind a huge boot. 6. treasure: the giant dozes off; Jack " +
+      "snatches the hen that lays golden eggs, a golden egg popping out, and the golden harp, which sings as notes " +
+      "float up. 7. chase: the harp cries out, the giant wakes with a roar, and Jack slides down the beanstalk with " +
+      "the giant climbing down after him, the stalk shaking and leaves falling. 8. axe: Jack reaches the ground, " +
+      "grabs an axe and chops at the stalk while his mother watches from the door; wood chips fly. 9. fall: the " +
+      "beanstalk cracks and topples in a great arc, the giant tumbles off into the clouds with a crash and a cloud " +
+      "of dust, and the castle vanishes as the clouds close. 10. return: golden eggs heap up by the door, the harp " +
+      "plays, and Jack leads his old cow home again, bought back with the gold, as the sun rises on the cottage, " +
+      "the tale ready to begin anew.",
+  },
+  {
     slug: "bach-dang-938",
     tags: ["humanoid", "projectile", "impact", "dusk"],
     country: "vn",
