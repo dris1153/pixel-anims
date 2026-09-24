@@ -80,6 +80,19 @@ export const SHOWCASES = [
       "falling petals, sheathe. Cherry blossom hill in daylight, 160×90.",
   },
   {
+    slug: "cleric-bloom-channel",
+    tags: ["humanoid", "heal", "day"],
+    title: "Meadow Cleric",
+    still: 312,
+    res: [128, 96],
+    loop: 7.2,
+    states: ["idle", "kneel", "channel", "bloom", "close"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art cleric: idle, kneel and channel light into the soil, a sapling sprouts and blooms, the flower " +
+      "closes and she rises. Sunny meadow.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
@@ -149,7 +162,7 @@ export const SHOWCASES = [
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
-  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning'], ['craft', 'Craft']] },
+  { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning'], ['craft', 'Craft'], ['heal', 'Heal']] },
   { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater'], ['interior', 'Interior']] },
   { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
 ];
