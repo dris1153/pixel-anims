@@ -6,10 +6,10 @@
 
 **One sentence in. A looping 16-bit sprite animation out.**
 
-A Claude skill that writes a single self-contained HTML file:<br>vanilla JS and Canvas 2D, no assets, no libraries.
+An <a href="https://agentskills.io/">Agent Skill</a> that writes a single self-contained HTML file:<br>vanilla JS and Canvas 2D, no assets, no libraries.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-f2b84b?style=flat-square&labelColor=17163a)](LICENSE)
-[![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-3fd0f0?style=flat-square&labelColor=17163a&logo=claude&logoColor=white)](#install)
+[![Agent Skills: Claude Code, Codex, OpenCode](https://img.shields.io/badge/Agent_Skills-Claude_Code_%C2%B7_Codex_%C2%B7_OpenCode-3fd0f0?style=flat-square&labelColor=17163a)](#install)
 [![Dependencies: 0](https://img.shields.io/badge/dependencies-0-f2b84b?style=flat-square&labelColor=17163a)](#what-you-get)
 [![Vanilla JS, Canvas 2D](https://img.shields.io/badge/vanilla_JS-Canvas_2D-3fd0f0?style=flat-square&labelColor=17163a&logo=javascript&logoColor=white)](#how-it-works)
 [![Node 18+](https://img.shields.io/badge/node-%E2%89%A518-f2b84b?style=flat-square&labelColor=17163a&logo=nodedotjs&logoColor=white)](#requirements)
@@ -40,25 +40,65 @@ Every piece below is one unedited HTML file written by the skill from a short br
 
 ## Install
 
-**Claude Code plugin marketplace**
+pixel-anims is an [Agent Skill](https://agentskills.io/): one folder with a `SKILL.md`, so any agent that reads the format can use it.
+
+<details open>
+<summary><b>Claude Code</b></summary>
 
 ```
 /plugin marketplace add dris1153/pixel-anims
 /plugin install pixel-anims@pixel-anims
 ```
 
-**npx skills**
+Without the plugin system: `npx skills add dris1153/pixel-anims -a claude-code`.
+</details>
+
+<details>
+<summary><b>Codex</b></summary>
+
+Run in your project. It installs to `.agents/skills/`:
 
 ```
-npx skills add dris1153/pixel-anims
+npx skills add dris1153/pixel-anims -a codex
 ```
 
-**Manual**
+For every project, copy the skill into `~/.agents/skills/` instead (see Manual).
+</details>
+
+<details>
+<summary><b>OpenCode</b></summary>
+
+Run in your project, or add `-g` to install for every project:
+
+```
+npx skills add dris1153/pixel-anims -a opencode
+```
+
+OpenCode also finds skills already in `~/.claude/skills` or `~/.agents/skills`.
+</details>
+
+<details>
+<summary><b>Other agents</b>: Cursor, Gemini CLI, GitHub Copilot, Windsurf, Cline and 70+ more</summary>
+
+Name your agent with `-a`, or leave it out to pick from a list. Add `-g` to install for every project.
+
+```
+npx skills add dris1153/pixel-anims -a cursor
+```
+
+See the [supported agents](https://github.com/vercel-labs/skills#supported-agents) of the `skills` CLI.
+</details>
+
+<details>
+<summary><b>Manual</b></summary>
+
+Copy the skill into your agent's skills folder: `~/.agents/skills` for Codex, OpenCode and most others, `~/.claude/skills` for Claude Code.
 
 ```
 git clone https://github.com/dris1153/pixel-anims
-mkdir -p ~/.claude/skills && cp -r pixel-anims/skills/pixel-anims ~/.claude/skills/
+mkdir -p ~/.agents/skills && cp -r pixel-anims/skills/pixel-anims ~/.agents/skills/
 ```
+</details>
 
 ## Use
 
@@ -68,21 +108,27 @@ Describe the animation you want. The skill triggers on requests like these:
 
 > Pixel art dragon: idle breathing, inhale, fire-breath stream with embers, recover. Rocky cliff, red moon.
 
-You can also invoke it directly: `/pixel-anims:pixel-anims <brief>` after a plugin install, or `/pixel-anims <brief>` after the other two.
+You can also invoke it directly:
+
+| Agent | Invoke |
+|---|---|
+| Claude Code | `/pixel-anims:pixel-anims <brief>` after a plugin install, `/pixel-anims <brief>` otherwise |
+| Codex | `$pixel-anims <brief>`, or pick it from `/skills` |
+| OpenCode and others | Describe the animation; the agent loads the skill when the request matches |
 
 ## How it works
 
-1. **Design note.** Claude plans the palette ramps, the states and their timings, the event tick and its effects, and where the light comes from.
+1. **Design note.** The agent plans the palette ramps, the states and their timings, the event tick and its effects, and where the light comes from.
 2. **Scaffold.** A script copies the engine template. The engine handles the loop, integer scaling, particles, outlines and rim light, and it is never rewritten.
-3. **Scene.** Claude writes only the scene: the backdrop, the character and the effects, drawn into palette-indexed buffers.
-4. **Snapshot QA.** The page is rendered at chosen ticks to PNG in headless Chrome. Claude looks at the frames and fixes what it sees. The engine also checks that the last frame matches the first, so the loop has no seam.
+3. **Scene.** The agent writes only the scene: the backdrop, the character and the effects, drawn into palette-indexed buffers.
+4. **Snapshot QA.** The page is rendered at chosen ticks to PNG in headless Chrome. The agent looks at the frames and fixes what it sees. The engine also checks that the last frame matches the first, so the loop has no seam.
 5. **Deliver.** You get one `.html` file you can open anywhere.
 
 What ships in the skill:
 
 | File | Role |
 |---|---|
-| `SKILL.md` | The workflow, hard rules and engine contract Claude follows |
+| `SKILL.md` | The workflow, hard rules and engine contract the agent follows |
 | `assets/wizard-spellcaster.html` | The engine, in a finished reference scene |
 | `references/pixel-craft-rules.md` | Palette, silhouette, motion and FX rules for a 16-bit look |
 | `scripts/new-scene.mjs` | Scaffolds a new page with the engine intact |
@@ -92,11 +138,11 @@ What ships in the skill:
 
 - One `.html` file that loops a character through its action states.
 - The look follows 16-bit rules: a fixed palette, integer scaling, a 60 Hz fixed timestep and pooled particles.
-- Claude checks the result itself. It renders chosen ticks to PNG with `scripts/snapshot.mjs` and fixes what it sees. The engine also verifies that the loop seam is seamless.
+- The agent checks the result itself. It renders chosen ticks to PNG with `scripts/snapshot.mjs` and fixes what it sees. The engine also verifies that the loop seam is seamless.
 
 ## Requirements
 
-Node 18 or newer and Chrome, Edge or Chromium, for the snapshot QA step.
+Node 18 or newer and Chrome, Edge or Chromium for the snapshot QA step, and a model that can read images so the agent can review the PNGs.
 
 ## Website
 
