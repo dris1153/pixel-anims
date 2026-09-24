@@ -2,6 +2,7 @@
 // Render tick 0 of every site/public/anims page to site/public/posters/<slug>.png at 1x through headless Chrome, so a
 // showcase tile has a picture the moment the page loads while its live iframe boots. Run it after adding or changing
 // a showcase: `pnpm posters` (all) or `pnpm posters <slug>...`. Needs Node 22+ (global WebSocket) and Chrome or Edge.
+// `--art` renders the site's backdrop scenes instead: site/art/<name>.html to site/public/art/<name>.png.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -9,8 +10,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const site = join(dirname(fileURLToPath(import.meta.url)), '..');
-const anims = join(site, 'public/anims'), posters = join(site, 'public/posters');
-const slugs = process.argv.length > 2 ? process.argv.slice(2) : readdirSync(anims).filter(f => f.endsWith('.html')).map(f => f.slice(0, -5));
+const art = process.argv.includes('--art'), args = process.argv.slice(2).filter(a => a !== '--art');
+const anims = join(site, art ? 'art' : 'public/anims'), posters = join(site, art ? 'public/art' : 'public/posters');
+const slugs = args.length ? args : readdirSync(anims).filter(f => f.endsWith('.html')).map(f => f.slice(0, -5));
 const browser = [
   process.env.CHROME_PATH,
   ...[process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA].filter(Boolean)

@@ -4,10 +4,7 @@
   gap: 16px;
   margin: 0 0 36px;
   padding: 20px 22px;
-  background: var(--deep);
-  border: 2px solid var(--line);
-  box-shadow: 6px 6px 0 var(--shadow);
-}
+} /* the HUD frame in theme.css paints it */
 .filter-top {
   display: flex;
   flex-wrap: wrap;
@@ -32,7 +29,7 @@
   color: var(--muted);
 }
 .filter-search:focus-visible {
-  border-color: var(--stone);
+  border-color: var(--line-l);
 }
 .filter-count {
   margin: 0 0 0 auto;
