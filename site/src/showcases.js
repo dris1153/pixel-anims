@@ -67,6 +67,19 @@ export const SHOWCASES = [
       "with steam, recover. Forge interior.",
   },
   {
+    slug: "samurai-quick-draw",
+    tags: ["humanoid", "melee", "day"],
+    title: "Sakura Iaido",
+    still: 234,
+    res: [160, 90],
+    loop: 7.2,
+    states: ["idle", "stance", "slash", "sheathe", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art samurai: still idle, crouch into a quick-draw stance, one-frame slash across the screen that cuts " +
+      "falling petals, sheathe. Cherry blossom hill in daylight, 160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
