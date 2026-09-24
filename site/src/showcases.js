@@ -298,6 +298,20 @@ export const SHOWCASES = [
       "128×96.",
   },
   {
+    slug: "vampire-bat-cloak",
+    tags: ["humanoid", "magic", "night"],
+    title: "Vampire Bat Cloak",
+    still: 260,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "spread", "burst", "swarm", "return", "collar"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art vampire lord: stand on a castle balcony, spread the cape wide, it bursts into a swarm of bats that " +
+      "circles the full moon, the bats stream back and knit into the cape, adjust the collar. Gothic castle at night, " +
+      "128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
