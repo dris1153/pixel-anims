@@ -354,6 +354,20 @@ export const SHOWCASES = [
       "surface with the Earth low on the horizon and star lanterns drifting past, Mid-Autumn night, 128×96.",
   },
   {
+    slug: "sun-priest-ankh",
+    tags: ["humanoid", "magic", "dusk"],
+    title: "Sun Priest of Ra",
+    still: 246,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "raise", "dawn", "beam", "fade", "bow"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art Egyptian sun priest: kneel before an obelisk, raise a golden ankh, the sun disc rises behind the " +
+      "pyramids and the hieroglyphs on the obelisk light up one by one, a beam strikes the ankh, then the glow fades as " +
+      "the priest bows. Desert temple at dusk, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
