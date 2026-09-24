@@ -340,6 +340,20 @@ export const SHOWCASES = [
       "Shrine festival at night, 160×90.",
   },
   {
+    slug: "cuoi-banyan-moon",
+    tags: ["humanoid", "magic", "space"],
+    title: "Chu Cuoi on the Moon",
+    still: 240,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "slip", "rise", "jump", "pull", "pat", "sit"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art Chu Cuoi on the moon: sit under the magic banyan tree, its roots slip free and the tree starts " +
+      "drifting upward, jump and grab a hanging root, pull the tree back down and pat the soil, sit again. Moon " +
+      "surface with the Earth low on the horizon and star lanterns drifting past, Mid-Autumn night, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
