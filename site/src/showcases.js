@@ -189,6 +189,19 @@ export const SHOWCASES = [
       "leaves, the bear roars, then swirls back into human form. Ancient forest glade, 128×96.",
   },
   {
+    slug: "necromancer-grave-hand",
+    tags: ["humanoid", "magic", "night"],
+    title: "Graveyard Necromancer",
+    still: 264,
+    res: [128, 96],
+    loop: 8,
+    states: ["idle", "chant", "rise", "grasp", "crumble", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art necromancer: idle with a lantern staff, green runes circle a grave, a skeleton hand claws out of the " +
+      "soil and grasps at the air, then crumbles back down. Graveyard under a full moon, 128×96.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
