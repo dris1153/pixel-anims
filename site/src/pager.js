@@ -25,14 +25,14 @@ export function renderPager(nav, page, pages, onPage) {
     return b;
   };
   const numbers = pageList(page, pages).map(p => {
-    if (p === '…') return el('span', 'pager-gap', '…');
-    const b = button(String(p), p, 'pager-page', `Page ${p}`);
+    if (p === '…') return el('span', 'pagination-gap', '…');
+    const b = button(String(p), p, 'pagination-page', `Page ${p}`);
     if (p === page) b.setAttribute('aria-current', 'page');
     return b;
   });
   nav.replaceChildren(
-    button('Prev', page - 1, 'pager-step', 'Previous page'),
+    button('Prev', page - 1, 'pagination-step', 'Previous page'),
     ...numbers,
-    button('Next', page + 1, 'pager-step', 'Next page'),
+    button('Next', page + 1, 'pagination-step', 'Next page'),
   );
 }

@@ -128,15 +128,17 @@
   margin: 0 0 16px;
 }
 
-.pager:not([hidden]) { /* a bare display would beat the hidden attribute */
+.pagination:not([hidden]) { /* a bare display would beat the hidden attribute */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   gap: 8px;
   margin: 36px 0 0;
+  padding-top: 24px;
+  border-top: 2px solid var(--line);
 }
-.pager button {
+.pagination button {
   min-width: 40px;
   padding: 8px 12px;
   font: 700 0.72rem var(--display);
@@ -146,21 +148,21 @@
   background: var(--night);
   border: 2px solid var(--line);
 }
-.pager button:hover:not(:disabled) {
+.pagination button:hover:not(:disabled) {
   color: var(--text);
   border-color: var(--gold);
 }
-.pager button:disabled {
+.pagination button:disabled {
   opacity: 0.4;
 }
-.pager [aria-current="page"]:disabled {
+.pagination [aria-current="page"]:disabled {
   opacity: 1;
   color: var(--ink);
   background: var(--gold);
   border-color: var(--gold);
   cursor: default;
 }
-.pager-gap {
+.pagination-gap {
   padding: 0 4px;
   color: var(--muted);
 }
