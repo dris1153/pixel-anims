@@ -411,6 +411,40 @@ export const SHOWCASES = [
       "the smoke begins to gather on the horizon, and a small boy lies silent on the mat, the legend ready to begin again.",
   },
   {
+    slug: "lac-long-quan-sea-demon",
+    tags: ["humanoid", "creature", "projectile", "magic", "dusk"],
+    country: "vn",
+    title: "Lac Long Quan Slays Ngu Tinh",
+    still: 312,
+    res: [160, 90],
+    loop: 12,
+    states: ["watch", "rise", "forge", "hurl", "dragon", "cleave", "islands", "return"],
+    kind: "Made with the skill",
+    note: "A hero who changes shape mid-loop: the dragon's body trails its own head along one path, and a bank of sea mist hides the islets and the mended boat before the loop closes.",
+    prompt:
+      "Pixel art Lạc Long Quân, the Dragon Lord of Vietnamese legend, slaying the sea demon Ngư Tinh, 160×90, one " +
+      "fixed shot, 12-second seamless loop. Scene: a rocky shore of the East Sea at stormy dusk: a jagged cliff on the " +
+      "left with a driftwood fire in a ring of stones, a small fishing boat moored in the shallows below, dark green " +
+      "waves across the middle and right, low hills on the far horizon, and heavy clouds churning overhead. " +
+      "1. watch: Lạc Long Quân, a tall young lord in a scale-patterned tunic with a dragon crest on his headband, " +
+      "stands on the cliff beside the fire gazing out to sea; the waves roll, the fire flickers, the empty boat bobs. " +
+      "2. rise: the sea bulges and boils on the right and Ngư Tinh surfaces, a monstrous fish-demon with ragged fins, " +
+      "a spined back and a cave-like jaw full of teeth; it snaps the fishing boat in half and a wall of spray slaps the cliff. " +
+      "3. forge: he thrusts a block of iron into the fire and breathes on the flames; the iron glows red, orange, then " +
+      "white-hot while sparks and embers swirl up into the wind. " +
+      "4. hurl: the demon lunges at the cliff with its jaws wide; he hurls the white-hot iron straight into its mouth, " +
+      "steam and fire blast out of its gills and it thrashes, lighting the waves from inside. " +
+      "5. dragon: he leaps from the cliff and in a flash becomes a long golden-green dragon, sinuous and wingless with " +
+      "a wavy crest and streaming whiskers, and the storm clouds split in a ring of light around him. " +
+      "6. cleave: the dragon coils once around the demon and with one lash of his tail cuts it into three pieces that " +
+      "fly apart in a spray of dark water. " +
+      "7. islands: the three pieces crash into the sea and harden into three rocky islets; the storm breaks, the clouds " +
+      "part to show the first stars, and the waves settle into gentle swells. " +
+      "8. return: sea mist rolls in and swallows the islets, the dragon spirals down onto the cliff and becomes a man " +
+      "again beside the rekindled fire, a whole fishing boat bobs at its mooring, and the clouds gather again, the " +
+      "legend ready to begin anew.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
