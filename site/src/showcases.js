@@ -162,6 +162,20 @@ export const SHOWCASES = [
       "northern Vietnam hills in a storm, 160×90.",
   },
   {
+    slug: "frost-witch-ice-spikes",
+    tags: ["humanoid", "magic", "day"],
+    title: "Frost Witch",
+    still: 240,
+    res: [160, 90],
+    loop: 8,
+    states: ["idle", "trace", "cast", "crack", "shatter", "settle"],
+    kind: "Made with the skill",
+    prompt:
+      "Pixel art frost witch: idle in falling snow, trace a rune in the air, a line of ice spikes erupts along the " +
+      "ground to the right, they crack and shatter into shards, the snow settles. Frozen pine forest in daylight, " +
+      "160×90.",
+  },
+  {
     slug: "fox-mage-orb-cast",
     tags: ["humanoid", "magic", "projectile", "dusk"],
     title: "Fox Mage Orb Cast",
