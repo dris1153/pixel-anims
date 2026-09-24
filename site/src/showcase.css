@@ -189,8 +189,6 @@
   color: var(--text);
 }
 .brief {
-  display: block;
-  position: relative;
   margin-top: 40px;
   padding: 16px 20px 20px;
 }
@@ -205,25 +203,6 @@
   max-width: 90ch;
   font-size: 1.02rem;
 }
-.brief .copy {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  opacity: 0;
-  transition:
-    opacity var(--duration-quick) var(--ease-out),
-    transform var(--duration-quick) var(--ease-smooth-out),
-    background var(--duration-quick) var(--ease-smooth-out);
-}
-.brief:hover .copy,
-.brief .copy:focus-visible {
-  opacity: 1;
-} /* opacity, not display: keyboard Tab still reaches it */
-@media (hover: none) {
-  .brief .copy {
-    opacity: 1;
-  }
-} /* no hover on touch screens */
 .pager {
   display: grid;
   grid-template-columns: 1fr 1fr;
