@@ -6,6 +6,39 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "ra-night-barque",
+    tags: ["humanoid", "creature", "magic", "night"],
+    country: "eg",
+    title: "Ra's Night Voyage",
+    still: 560,
+    res: [160, 90],
+    loop: 20,
+    states: ["sunset", "gate", "souls", "reeds", "apep", "spear", "bound", "osiris", "tunnel", "khepri", "sunrise", "day"],
+    kind: "Made with the skill",
+    note: "The whole night is one river under Nut's arch: the caverns of the Duat keep their own darkness while the west and east change light, and the barque is one prop that sinks, runs aground, vanishes inside a serpent and sails back across the sky.",
+    prompt:
+      "Pixel art the Egyptian sun god Ra's night journey through the underworld, 160×90, one fixed shot, 20-second " +
+      "seamless loop, 12 states. Scene: the sky goddess Nut arches over everything as a band of stars; beneath her " +
+      "a river flows left to right past the desert cliffs of the west, through the dark caverns of the Duat with " +
+      "their rough cave mouths and a great pylon gate, to the green Nile valley of the east with palms and a " +
+      "pyramid; Ra's solar barque, a golden papyrus boat with a sun disc on its shrine, Set at the prow, Isis " +
+      "amidships and Horus at the steering oar, travels the river through the night; the west and east skies run " +
+      "from day through a red sunset and night to dawn and day again. Keep the frame readable: the barque is always " +
+      "the center of attention and one danger or wonder at a time meets it. 1. sunset: the barque sinks out of the " +
+      "western sky to the river as the sky turns red and violet. 2. gate: it passes the pylon gate, where a rearing " +
+      "cobra spits an arc of fire across the water. 3. souls: in the dark river, golden ba birds with human heads " +
+      "flutter up to greet the sun's light. 4. reeds: the Field of Reeds glows gold in the dark and the blessed " +
+      "dead harvest it. 5. apep: the colossal chaos serpent Apep heaves its coils out of the river and drinks it " +
+      "dry, and the barque runs aground on a sandbank. 6. spear: Set drives his spear into Apep's rearing head " +
+      "again and again while Isis raises her arms and bands of light bind the coils. 7. bound: knives stand in the " +
+      "coils, Apep sinks away, the river flows back, and the barque floats free. 8. osiris: in the deepest hour " +
+      "green-faced Osiris lies on his bier by the river, and his light and Ra's merge in a burst of gold. 9. " +
+      "tunnel: the barque slides into the tail of a great golden serpent and its glow travels through the body. 10. " +
+      "khepri: it bursts out of the serpent's mouth, and the scarab Khepri rolls a new red sun up out of the east. " +
+      "11. sunrise: baboons on the pyramid raise their arms to greet the dawn as the valley floods with light. 12. " +
+      "day: the barque rises into the blue day sky and sails back west beneath Nut's arch, ready to sink again.",
+  },
+  {
     slug: "nautilus-twenty-thousand-leagues",
     tags: ["humanoid", "creature", "lightning", "underwater"],
     country: "fr",
