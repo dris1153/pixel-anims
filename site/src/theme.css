@@ -50,6 +50,15 @@ body { position: relative; }
 .cliffs::after { right: 0; transform: scaleX(-1); background-position-y: calc(120px * var(--ss)); } /* mirrored, half a tile out of step */
 @media (min-width: 1440px) { .cliffs { display: block; } } /* only where the margins can hold them */
 
+/* Text laid straight on the backdrop gets a dark edge, so drifting clouds and moonlit hills never wash it out (panels
+   need none). Pixel type takes a hard one-pixel outline like game text; body copy a soft halo close to the glyphs. */
+:is(.hero h1, .screen figcaption, .page-head > :is(.back, h1), .detail > .back, .detail-body > :is(.kind, h1, .open), .specs dt) {
+  text-shadow: 1px 0 var(--ink), -1px 0 var(--ink), 0 1px var(--ink), 0 -1px var(--ink), 0 2px var(--shadow), 0 0 10px rgba(7, 10, 28, .7);
+}
+:is(.hero .lede, .hero-then, .hero-links, .page-head > .section-lede, .detail-body > .note, .specs dd) {
+  text-shadow: 0 0 2px var(--ink), 0 0 6px var(--ink), 0 0 12px rgba(7, 10, 28, .8);
+}
+
 /* HUD frame: a double border with a soft blue glow, and pixel brackets on the corners. */
 .hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame, .brief {
   background-color: var(--panel); border: 2px solid var(--line);

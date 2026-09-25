@@ -2,7 +2,7 @@
 :root {
   color-scheme: dark;
   --ink: #070a1c; --night: #0b1130; --deep: #111942; --line: #2a3888; --stone: #3f4d9c;
-  --muted: #8e98c8; --silver: #c3cae8; --text: #eef1ff; --shadow: #02040c;
+  --muted: #a6aede; --silver: #c3cae8; --text: #eef1ff; --shadow: #02040c;
   --red: #d8574a; --gold: #f2b84b; --gold-l: #ffd27a; --cyan: #4fd8ff; --cyan-l: #a8f0ff; --violet: #5b4bd6;
   --line-l: #6f7dff; --line-d: #1a2464; --glow: rgba(111, 125, 255, 0.45); --panel: rgba(11, 17, 48, 0.84);
   --display: 'Silkscreen', 'Courier New', monospace;
