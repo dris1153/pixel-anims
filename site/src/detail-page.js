@@ -1,3 +1,4 @@
+import './sky/backdrop.js';
 import { COUNTRIES, SHOWCASES, TAG_GROUPS, animUrl, countryOf, detailUrl } from './showcases.js';
 import { flag } from './flags.js';
 import { addPlayToggle, calm, fitFrame } from './cards.js';

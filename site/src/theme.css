@@ -34,6 +34,10 @@ body { position: relative; }
   box-shadow: 0 0 0 calc(var(--s) * 2px) rgba(242, 184, 75, 0.18), 0 0 0 calc(var(--s) * 4px) rgba(242, 184, 75, 0.08);
   animation: flicker 2.8s steps(1) calc(var(--d) * -1s) infinite;
 }
+.sky canvas { /* the live backdrop (src/sky), laid exactly over the still */
+  position: absolute; left: 50%; top: 0; width: calc(400px * var(--s)); height: calc(180px * var(--s)); translate: -50% 0;
+}
+.sky:is([data-mode="probe"], [data-mode="live"]) :is(i, b) { display: none; } /* the live scene twinkles and flickers on its own */
 @keyframes twinkle { 0%, 55% { opacity: 1; } 62% { opacity: 0.2; } 70% { opacity: 0.7; } 78%, 100% { opacity: 1; } }
 @keyframes flicker { 0%, 100% { opacity: 1; } 22% { opacity: 0.55; } 26% { opacity: 1; } 64% { opacity: 0.75; } 68% { opacity: 1; } }
 .cliffs { top: calc(165px * var(--s)); bottom: 0; display: none; mask-image: linear-gradient(transparent, #000 200px); }

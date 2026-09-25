@@ -1,3 +1,4 @@
+import './sky/backdrop.js';
 import { SHOWCASES, TAG_GROUPS, countryOf, resTag } from './showcases.js';
 import { autoplayInView, tile } from './cards.js';
 import { setupFacets } from './filter-popovers.js';
