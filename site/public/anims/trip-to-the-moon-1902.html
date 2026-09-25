@@ -1,0 +1,743 @@
+<title>A Trip to the Moon, 1902</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #120e0c; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #120e0c; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art animation after Georges Melies' 1902 film A Trip to the Moon, as a hand-tinted print: astronomers argue on a rooftop, chorus girls load the shell into a giant cannon, it fires into the right eye of the Man in the Moon, the explorers sleep under stars with faces, bop leaping Selenites with an umbrella, fall back into the sea, and return to a parade"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // smoke, confetti and spray are culled at their own ground in step()
+const POSE_STEP = 6;               // 10 fps pose frames
+const ROOF = 74;                   // the rooftop the astronomers stand on
+const MOONX = 132, MOONY = 22;     // the Moon's place in the painted sky
+
+// Index 0 must be the darkest ink. A sepia film print, hand-tinted with a few stencil colors.
+const PAL = [
+  '#120e0c',
+  '#2a2018', '#4a3a2a', '#7a6448', '#a88c68', '#d4bc96',
+  '#f0e2c4', '#fff8e8',
+  '#2a3a6a', '#4a6aa8', '#8aa8d8',
+  '#b83a2a', '#e8a0a0',
+  '#e8c85a', '#f8e8a0',
+  '#5a8a4a', '#9ac87a',
+  '#e08a3a',
+  '#8a8a88', '#c0c0b8',
+  '#7a5a9a',
+  '#e8c0a0',
+];
+const INK = 0, SEP_0 = 1, SEP_1 = 2, SEP_2 = 3, SEP_3 = 4, SEP_4 = 5, CREAM = 6, WHITE = 7, BLUE_D = 8, BLUE = 9, BLUE_L = 10,
+  RED = 11, PINK = 12, YEL = 13, YEL_L = 14, GRN = 15, GRN_L = 16, ORANGE = 17, GREY_M = 18, GREY_L = 19, PURP = 20, SKIN = 21;
+
+// One step brighter per ramp; the print climbs toward cream.
+const LIGHTEN = Uint8Array.of(
+  SEP_0,
+  SEP_1, SEP_2, SEP_3, SEP_4, CREAM,
+  WHITE, WHITE,
+  BLUE, BLUE_L, WHITE,
+  ORANGE, CREAM,
+  YEL_L, WHITE,
+  GRN_L, YEL_L,
+  YEL,
+  GREY_L, WHITE,
+  PINK,
+  CREAM);
+const RAMP_SMOKE = Uint8Array.of(WHITE, CREAM, SEP_4, SEP_3);
+const RAMP_FIRE = Uint8Array.of(WHITE, YEL_L, ORANGE, RED);
+const RAMP_CONF = Uint8Array.of(PINK, YEL, BLUE_L, GRN_L);
+const RAMP_SPRAY = Uint8Array.of(WHITE, BLUE_L, BLUE, BLUE_D);
+const RAMP_STAR = Uint8Array.of(WHITE, YEL_L, YEL, SEP_3);
+const RAMPS = [RAMP_SMOKE, RAMP_FIRE, RAMP_CONF, RAMP_SPRAY, RAMP_STAR];
+const RIM = Uint8Array.of(CREAM, WHITE, WHITE);
+const RIM_BANDS = Uint16Array.of(10, 20, 30);
+const LIGHT = Float32Array.of(-0.6, -0.8);        // the studio lamps, up on the left
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[INK] = RIM_OK[WHITE] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SEP_0] = AIR[SEP_1] = 1;
+
+const CONGRESS = 0, CANNON = 1, FIRE = 2, EYE = 3, DREAM = 4, SELENITES = 5, FALL = 6, PARADE = 7;
+const DUR = Uint16Array.of(90, 90, 90, 90, 90, 90, 90, 90); // L = 720: grain per pose frame, fish 240
+const EASE = Uint16Array.of(6, 6, 6, 6, 6, 6, 6, 6);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 0);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = [REST, REST, REST, REST, REST, REST, REST, REST];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables: the sky is the only fixed flat; the rooftop, the lunar ground and the sea slide in and out like stage sets.
+const TWO_PI = Math.PI * 2;
+const DARK = new Uint8Array(PAL.length);
+const lay = new Uint8Array(N), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let grp = 0, pid = 0, lx0 = 0, ly0 = 0, lx1 = -1, ly1 = -1, bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+const pWL = new Float32Array(MAXP);
+const STX = new Uint8Array(40), STY = new Uint8Array(40);
+const FSX = Uint8Array.of(30, 64, 100, 146), FSY = Uint8Array.of(14, 8, 16, 26);         // stars with faces
+const EX = new Float32Array(4), EY = new Float32Array(4), EP = new Uint8Array(4), EA = new Float32Array(4), GX = new Float32Array(3), GP = new Uint8Array(3), SLX = new Float32Array(2), SLY = new Float32Array(2), SLON = new Uint8Array(2);
+const EHAT = Uint8Array.of(RED, BLUE, PURP, GRN);
+const E_STAND = 0, E_SIT = 1, E_LIE = 2, E_BOP = 3, E_RUN = 4, E_BOW = 5;
+let pfr = 0, flick = 0, roofY = 0, lunarY = 90, seaY = 90, moonX = MOONX, moonY = MOONY, moonR = 12, grim = 0, ooze = 0,
+  capOn = 0, capX = 0, capY = 0, capA = 0, capS = 1, capF = 1, capStuck = 0, garland = 0, eOn = 1, eF = 1, scope = 0, laurel = 0,
+  gOn = 0, gF = 1, starsA = 0, saturnX = -12, snow = 0, zzz = 0, smoke = 0;
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return a + (b - a) * e;
+}
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+}
+
+function buildBackground() {
+  let seed = 61;
+  const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) bg[y * W + x] = y > 50 && (y - 50) * 16 > BAYER[(y & 3) * 4 + (x & 3)] * 3 ? SEP_1 : SEP_0;
+  for (let k = 0; k < 40; k++) { STX[k] = r() * W; STY[k] = r() * 60; plot(bg, STX[k], STY[k], k % 3 ? SEP_3 : YEL); }
+  for (let x = 0; x < W; x++) { const y = 40 + Math.round(Math.sin(x * 0.06) * 3); plot(bg, x, y, SEP_1); if (x % 3) plot(bg, x, y + 1, SEP_1); } // a painted cloud band
+  for (let c = 0; c < PAL.length; c++) DARK[c] = c;
+  const map = a => { for (let k = 0; k < a.length; k += 2) DARK[a[k]] = a[k + 1]; };
+  map([SEP_1, SEP_0, SEP_2, SEP_1, SEP_3, SEP_2, SEP_4, SEP_3, CREAM, SEP_4, WHITE, CREAM, BLUE, BLUE_D, BLUE_L, BLUE, GREY_L, GREY_M, GREY_M, SEP_2, YEL_L, YEL, YEL, SEP_3, SKIN, SEP_4, PINK, SEP_4]);
+  lay.fill(EMPTY);
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
+function sample() {
+  snap.set(pose);
+  const T = state, t = stT;
+  pfr = tick / POSE_STEP | 0; flick = pfr & 1;
+  // the stage sets
+  roofY = T <= FIRE ? 0 : T === EYE ? 90 * ease(t / 40) : T === PARADE ? 90 * (1 - ease(t / 24)) : 90;
+  lunarY = T === DREAM ? 90 * (1 - ease(t / 30)) : T === SELENITES ? 0 : T === FALL ? -90 * ease((t - 30) / 30) : 90;
+  seaY = T === FALL ? 90 * (1 - ease((t - 44) / 24)) : T === PARADE ? 90 * ease(t / 24) : 90;
+  // the Moon: its place, the long zoom, the grimace; up and away while we are on it, back at the end
+  moonX = MOONX; moonY = MOONY; moonR = 12; grim = 0; ooze = 0;
+  if (T === EYE) { const z = ease(t / 60); moonX = mix(MOONX, 96, z); moonY = mix(MOONY, 42, z); moonR = mix(12, 30, z); grim = t >= 60 ? 1 : 0; ooze = ease((t - 62) / 28); }
+  else if (T === DREAM) { moonX = 96; moonR = 30; moonY = mix(42, -40, ease(t / 30)); grim = 1; ooze = 1; }
+  else if (T === SELENITES || T === FALL) moonY = -60;
+  else if (T === PARADE) moonY = mix(-20, MOONY, ease(t / 30));
+  // the capsule
+  capOn = 0; capS = 1; capF = 1; capStuck = 0; garland = 0; capA = 0;
+  if (T === CANNON && t < 80) { capOn = 1; if (t < 36) { capX = mix(-16, 58, t / 36); capY = ROOF - 3; capA = 0; } else if (t < 56) { capX = 58; capY = ROOF - 3; } else { const e = ease((t - 56) / 24); capX = mix(58, 82, e); capY = mix(ROOF - 3, 76, e); capA = mix(0, -0.6, e); capF = 1 - e; } }
+  else if (T === FIRE && t >= 24) { const u = ease((t - 24) / 66); capOn = 1; capX = mix(126, 117, u); capY = mix(46, 27, u); capA = -1.35; capS = mix(1, 0.3, u); }
+  else if (T === EYE) {
+    const z = moonR / 12, ex = moonX - 0.35 * moonR, ey = moonY - 0.15 * moonR, u = ease(t / 60);
+    capOn = 1; capS = mix(0.3, 1.1, u); capA = -0.6; capX = ex - Math.cos(capA) * 7 * capS - (1 - u) * 30 * z * 0.3; capY = ey - Math.sin(capA) * 7 * capS + (1 - u) * 20 * z * 0.3; capStuck = t >= 60 ? 1 : 0;
+  } else if (T === DREAM) { capOn = 1; capS = 1; capA = -0.25; capX = 128; capY = 62 + lunarY; }
+  else if (T === SELENITES) { capOn = 1; capA = -0.25; capX = 128; capY = 62; }
+  else if (T === FALL) {
+    capOn = 1;
+    if (t < 16) { capA = -0.25; capX = 128; capY = 62; }
+    else if (t < 30) { const e = ease((t - 16) / 14); capA = mix(-0.25, 1.4, e); capX = mix(128, 146, e); capY = mix(62, 66, e); }
+    else if (t < 64) { capA = 1.4 + (t - 30) * 0.12; capX = mix(146, 112, (t - 30) / 34); capY = mix(66, 50, ease((t - 30) / 34)); }
+    else { const e = ease((t - 64) / 26); capA = mix(1.4 + 34 * 0.12, 1.57 + 6.28, e); capX = 112; capY = mix(50 + seaY, 78, e); }
+  } else if (T === PARADE && t < 88) { capOn = 1; garland = t < 64 ? 1 : 0; capA = 0; capY = ROOF - 3 + roofY; capX = t < 64 ? 58 : mix(58, -18, (t - 64) / 24); }
+  // the astronomers
+  eOn = 1; eF = 1; scope = T === CONGRESS && t >= 12 && t < 44 ? 1 : T === CONGRESS && t >= 44 ? 2 : 0; laurel = T === PARADE && t < 84 ? 1 : 0;
+  for (let k = 0; k < 4; k++) {
+    EX[k] = 12 + k * 12; EY[k] = ROOF + roofY; EP[k] = E_STAND; EA[k] = 1;
+    if (T === CONGRESS && t >= 44 && (k === 1 || k === 2)) EP[k] = E_SIT;
+    else if (T === CANNON && t >= 36) { const e = ease((t - 36 - k * 3) / 18); EX[k] = mix(12 + k * 12, 58, e); EA[k] = 1 - ease((t - 44 - k * 3) / 10); }
+    else if (T === FIRE || T === EYE) EA[k] = 0;
+    else if (T === DREAM) { EX[k] = 50 + k * 14; EY[k] = 66 + lunarY; EP[k] = E_LIE; EA[k] = ease((t - 30 - k * 4) / 12); }
+    else if (T === SELENITES) {
+      EX[k] = 50 + k * 14; EY[k] = 66;
+      if (t < 16) EP[k] = t < 8 ? E_LIE : E_STAND;
+      else if (t < 70) EP[k] = (k === 0 && t >= 30 && t < 42) || (k === 1 && t >= 58 && t < 70) ? E_BOP : E_STAND;
+      else { EP[k] = E_RUN; EX[k] = mix(50 + k * 14, 124 + k, ease((t - 70 - k * 2) / 20)); }
+    } else if (T === FALL) { EX[k] = 124 + k; EY[k] = 66; EP[k] = E_RUN; EA[k] = t < 16 ? 1 - ease((t - k * 2) / 8) : 0; }
+    else if (T === PARADE) EP[k] = t >= 24 && t < 70 && ((pfr + k) & 3) === 0 ? E_BOW : E_STAND;
+  }
+  // the chorus girls in sailor suits
+  gOn = T === CANNON || (T === FIRE && t < 70) ? 1 : 0; gF = T === FIRE ? 1 - ease((t - 50) / 20) : 1;
+  for (let k = 0; k < 3; k++) {
+    GP[k] = 0; GX[k] = 0;
+    if (T === CANNON) { if (t < 36) { GX[k] = mix(-26, 48, t / 36) - k * 7; GP[k] = 1; } else if (t < 56) { GX[k] = 48 - k * 7; } else { GX[k] = mix(48, 70, ease((t - 56) / 24)) - k * 7; GP[k] = 1; if (t >= 80) GP[k] = 2; } }
+    else if (T === FIRE) { GX[k] = 70 - k * 7; GP[k] = t < 24 && k === 0 ? 3 : t >= 24 && t < 50 ? 4 : 2; if (t >= 50) GX[k] = mix(70, 40, ease((t - 50) / 20)) - k * 7; }
+  }
+  // Selenites
+  for (let k = 0; k < 2; k++) {
+    SLON[k] = 0;
+    if (T === SELENITES) {
+      const s0 = k ? 44 : 16, s1 = k ? 64 : 36, tx = k ? 64 : 50;
+      if (t >= s0 && t < s1 + 6) { SLON[k] = 1; const u = Math.min(1, (t - s0) / (s1 - s0)); SLX[k] = mix(26, tx + 5, u); SLY[k] = mix(60, 66, u) - 14 * Math.sin(Math.PI * u); }
+    }
+  }
+  starsA = T === DREAM ? ease((t - 40) / 20) : T === SELENITES ? 1 : T === FALL ? 1 - ease(t / 30) : 0;
+  saturnX = T === DREAM ? mix(-14, 20, ease((t - 50) / 30)) : T === SELENITES ? 20 : T === FALL ? mix(20, -14, ease(t / 30)) : -14;
+  snow = T === DREAM && t >= 56 ? 1 : 0; zzz = T === DREAM && t >= 48 ? 1 : 0;
+  srcX = 30; srcY = 0; rim = 1;
+}
+
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function step() {
+  if (tick % POSE_STEP === 0) sample();
+  const T = state, t = stT;
+  if (T === CONGRESS && t === 44) for (let k = 1; k < 3; k++) for (let j = 0; j < 8; j++) sp(MOTE, 10 + rand() * 8, EX[k] + 3 + (rand() - 0.5) * 6, ROOF - 10, (rand() - 0.5) * 0.4, -0.3, 0, 99);
+  if (T === FIRE && t === 24) { shakeT = 14; flashT = 3; for (let k = 0; k < 40; k++) sp(BURST, 30 + rand() * 30, 124 + (rand() - 0.5) * 8, 48 + (rand() - 0.5) * 8, (rand() - 0.3) * 2, -rand() * 1.6, 0, 88); }
+  if (T === FIRE && t >= 24 && t < 60 && tick % 2 === 0) sp(MOTE, 30 + rand() * 20, 122 + (rand() - 0.5) * 10, 50 + (rand() - 0.5) * 6, (rand() - 0.5) * 0.6, -0.4, 0, 99);
+  if (T === FIRE && t >= 24 && t < 80 && tick % 2 === 0) sp(TRAIL, 10, capX, capY + 3 * capS, 0, 0.2, 1, 99);
+  if (T === EYE && t === 60) { shakeT = 12; flashT = 2; for (let k = 0; k < 24; k++) sp(BURST, 14 + rand() * 14, moonX - 0.35 * moonR, moonY - 0.15 * moonR, (rand() - 0.5) * 2, (rand() - 0.7) * 1.6, 4, 90); }
+  if (zzz && tick % 20 === 0) { const k = (rand() * 4) | 0; sp(MOTE, 30, EX[k] + 6, EY[k] - 5, 0.1, -0.25, 4, 99); }
+  if (T === SELENITES && (t === 36 || t === 64)) { const k = t === 36 ? 0 : 1; shakeT = 4; for (let j = 0; j < 20; j++) sp(BURST, 16 + rand() * 12, SLX[k], SLY[k] - 5, (rand() - 0.5) * 1.6, -0.3 - rand() * 0.8, 0, 99); }
+  if (T === FALL && t >= 30 && t < 64 && tick % 2 === 0) sp(TRAIL, 10, rand() * W, 90, 0, -3.5, 4, 99);          // stars streaming past the fall
+  if (T === FALL && t === 64) { shakeT = 10; for (let k = 0; k < 30; k++) sp(BURST, 16 + rand() * 16, 112 + (rand() - 0.5) * 10, 52, (rand() - 0.5) * 2, -0.8 - rand() * 1.4, 3, 54); }
+  if (T === FALL && t > 64 && tick % 3 === 0) sp(MOTE, 20 + rand() * 10, capX + (rand() - 0.5) * 6, capY - 3, 0, -0.4, 3, 99);
+  if (T === PARADE && t >= 24 && t < 56 && tick % 2 === 0) sp(BURST, 16 + rand() * 14, rand() * 70, 10 + rand() * 10, (rand() - 0.5) * 0.4, 0.2, 2, ROOF);  // confetti
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === BURST && pvy[i] > 0 && py[i] > pWL[i]) pKind[i] = 0;
+}
+
+function hint(x0, y0, x1, y1) {
+  bx0 = Math.max(0, x0 | 0); by0 = Math.max(0, y0 | 0); bx1 = Math.min(W - 1, x1 | 0); by1 = Math.min(H - 1, y1 | 0);
+}
+function layBox() {
+  lx0 = W; ly0 = H; lx1 = -1; ly1 = -1;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (lay[y * W + x] === EMPTY) continue;
+    if (x < lx0) lx0 = x;
+    if (x > lx1) lx1 = x;
+    if (y < ly0) ly0 = y;
+    ly1 = y;
+  }
+}
+function layFade(amt) { // dissolve the current part in or out
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (amt * 16 <= BAYER[(y & 3) * 4 + (x & 3)]) lay[y * W + x] = EMPTY;
+}
+function layEnd() { // copy the part into spr, then ink the other actors' parts it borders
+  layBox();
+  GRP[++pid] = grp;
+  for (let y = ly0; y <= ly1; y++) for (let x = lx0; x <= lx1; x++) {
+    const i = y * W + x;
+    if (lay[i] !== EMPTY) { spr[i] = lay[i]; own[i] = pid; }
+  }
+  for (let y = Math.max(1, ly0 - 1); y <= Math.min(H - 2, ly1 + 1); y++) for (let x = Math.max(1, lx0 - 1); x <= Math.min(W - 2, lx1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
+  }
+  for (let y = by0; y <= by1; y++) lay.fill(EMPTY, y * W + bx0, y * W + bx1 + 1);
+  hint(0, 0, W - 1, H - 1);
+}
+
+function drawExplorer(k) { // an astronomer: starry robe, pointed hat, white beard, a telescope or an umbrella
+  grp = 1 + k;
+  const x = Math.round(EX[k]), y = Math.round(EY[k]), p = EP[k], w = (pfr + k) & 1, hat = EHAT[k];
+  if (p === E_LIE) {
+    capsule(lay, x - 6, y - 2, 2, x + 3, y - 2, 2.2, BLUE_D, BLUE, BLUE);
+    for (let dx = -6; dx <= 2; dx++) plot(lay, x + dx, y - 3, dx & 1 ? RED : PINK);                   // the blanket
+    disc(x + 5, y - 3, 1.6, SKIN, lay); plot(lay, x + 6, y - 2, WHITE); plot(lay, x + 5, y - 1, WHITE);
+    line(lay, x + 6, y - 4, x + 11, y - 5, hat); plot(lay, x + 7, y - 5, hat);
+  } else {
+    const sit = p === E_SIT ? 3 : 0, bow = p === E_BOW ? 2 : 0, run = p === E_RUN;
+    if (sit) { line(lay, x - 2, y, x - 2, y - 3, SEP_2); line(lay, x + 2, y, x + 2, y - 3, SEP_2); hline(lay, x - 3, x + 3, y - 3, SEP_3); }
+    capsule(lay, x, y - 2 - sit, 2.6, x + bow, y - 8 - sit + bow, 2, BLUE_D, BLUE_D, BLUE);            // robe
+    plot(lay, x - 1, y - 4 - sit, YEL); plot(lay, x + 1, y - 7 - sit + bow, YEL);
+    if (run) { plot(lay, x - 2 + w * 2, y, INK); plot(lay, x + 1 + w, y, INK); } else { plot(lay, x - 1, y, INK); plot(lay, x + 1, y, INK); }
+    const hx = x + 1 + bow, hy = y - 11 - sit + bow;
+    disc(hx, hy, 1.6, SKIN, lay); plot(lay, hx + 1, hy, INK);
+    plot(lay, hx, hy + 2, WHITE); plot(lay, hx + 1, hy + 2, WHITE); plot(lay, hx + 1, hy + 3, WHITE);   // beard
+    if (laurel) { hline(lay, hx - 2, hx + 2, hy - 2, GRN_L); plot(lay, hx - 2, hy - 1, GRN); plot(lay, hx + 2, hy - 1, GRN); }
+    else { for (let j = 0; j < 6; j++) hline(lay, hx - 2 + (j >> 1), hx + 2 - (j >> 1), hy - 2 - j, hat); plot(lay, hx, hy - 5, YEL); } // pointed hat with a star
+    const sx = x + bow, sy = y - 8 - sit + bow;
+    if (p === E_BOP) { line(lay, sx, sy, sx + 4, sy - 3 - w * 2, BLUE); line(lay, sx + 4, sy - 3 - w * 2, sx + 9, sy - 1 + w * 4, INK); for (let j = -3; j <= 3; j++) plot(lay, sx + 9 + j, sy - 3 + w * 4 - (3 - Math.abs(j)), INK); }
+    else if (scope && (k === 1 || k === 2)) {
+      if (scope === 1) { line(lay, sx, sy, sx + 3, sy - 4 - w, BLUE); line2(lay, sx + 2, sy - 3 - w, sx + 7, sy - 9 - w, GREY_L, GREY_M); }
+      else line(lay, sx, sy, sx + 3, sy + 3, BLUE);
+    } else if (p === E_STAND && !laurel && (state === CONGRESS || state === PARADE)) line(lay, sx, sy, sx + 3 - w * 5, sy - 3 - w, BLUE); // arguing, arms up
+    else line(lay, sx, sy, sx + 3, sy + 3 - (run ? w * 3 : 0), BLUE);
+  }
+  hint(x - 14, y - 22, x + 14, y + 1);
+  if (EA[k] < 1) layFade(EA[k]);
+  layEnd();
+}
+function drawGirl(k) { // a chorus girl in a sailor suit
+  grp = 6 + k;
+  const x = Math.round(GX[k]), y = ROOF, p = GP[k], w = (pfr + k) & 1;
+  line(lay, x, y - 3, x - (p === 1 ? w : 0), y, SKIN); line(lay, x + 1, y - 3, x + 1 + (p === 1 ? 1 - w : 0), y, SKIN);
+  for (let j = 0; j < 3; j++) hline(lay, x - 1 - (j >> 1), x + 2 + (j >> 1), y - 5 + j, BLUE);            // skirt
+  capsule(lay, x, y - 6, 1.4, x, y - 8, 1.5, CREAM, WHITE, WHITE); hline(lay, x - 1, x + 1, y - 8, BLUE); // blouse, collar
+  disc(x, y - 10, 1.3, SKIN, lay); plot(lay, x - 1, y - 11, SEP_2); plot(lay, x - 1, y - 10, SEP_2); hline(lay, x - 1, x + 1, y - 12, WHITE); plot(lay, x + 1, y - 10, INK);
+  if (p === 1) line(lay, x + 1, y - 7, x + 4, y - 5, SKIN);                 // pushing
+  else if (p === 2) line(lay, x + 1, y - 7, x + 3, y - 10 - w, SKIN);        // waving
+  else if (p === 3) { line(lay, x + 1, y - 7, x + 2, y - 11, SKIN); line(lay, x + 2, y - 11, x + 2, y - 17, GREY_L); plot(lay, x + 3, y - 16, RED); plot(lay, x + 3, y - 17, RED); } // the signal flag
+  else if (p === 4) { plot(lay, x - 1, y - 10, SKIN); plot(lay, x + 1, y - 9, SKIN); }                     // hands over ears
+  hint(x - 8, y - 20, x + 8, y + 1);
+  if (gF < 1) layFade(gF);
+  layEnd();
+}
+function drawCapsule() { // the bullet: riveted shell, a porthole, a pointed nose
+  grp = 10;
+  const c = Math.cos(capA), s = Math.sin(capA), L = 6 * capS, R = 3 * capS + 0.3;
+  const tx = capX - c * L, ty = capY - s * L, mx = capX + c * L * 0.6, my = capY + s * L * 0.6, nx = capX + c * (L + 4 * capS), ny = capY + s * (L + 4 * capS);
+  capsule(lay, tx, ty, R, mx, my, R, SEP_2, GREY_M, GREY_L);
+  capsule(lay, mx, my, R, nx, ny, 0.6, SEP_2, GREY_M, GREY_L);
+  if (capS > 0.5) {
+    plot(lay, Math.round(capX - s), Math.round(capY + c * 0), BLUE_L); plot(lay, Math.round(capX - s + 1), Math.round(capY), BLUE_L);
+    for (let k = -2; k <= 2; k++) plot(lay, Math.round(mx + k * s * 0.8), Math.round(my - k * c * 0.8), SEP_3);
+  }
+  if (garland) for (let k = -3; k <= 3; k++) plot(lay, Math.round(capX + k), Math.round(capY - R - 0.5 + Math.abs(k) * 0.3), k & 1 ? PINK : GRN_L);
+  hint(capX - 20, capY - 20, capX + 20, capY + 20);
+  if (capF < 1) layFade(capF);
+  layEnd();
+}
+function drawSelenite(k) { // an insect-like moon dweller: spined shell, horned head, red eyes, leaping
+  grp = 12 + k;
+  const x = Math.round(SLX[k]), y = Math.round(SLY[k]), w = pfr & 1;
+  capsule(lay, x - 2, y - 4, 2.4, x + 2, y - 6, 2.2, GRN, GRN, GRN_L);
+  for (let j = -2; j <= 2; j++) line(lay, x + j, y - 7, x + j - 1, y - 9, INK);                           // spines
+  disc(x + 4, y - 8, 1.6, GRN_L, lay); plot(lay, x + 5, y - 8, RED); line(lay, x + 4, y - 10, x + 3, y - 13, GRN); line(lay, x + 5, y - 10, x + 7, y - 12, GRN);
+  line(lay, x - 2, y - 3, x - 4 - w, y, GRN); line(lay, x + 1, y - 3, x + 3 + w, y, GRN);
+  line(lay, x + 2, y - 6, x + 7, y - 4 - w * 3, GRN_L); line(lay, x - 1, y - 6, x - 5, y - 9 + w * 2, GRN);
+  hint(x - 12, y - 18, x + 12, y + 2);
+  layEnd();
+}
+function drawActor() {
+  own.fill(0); pid = 0;
+  if (capOn) drawCapsule();
+  if (gOn) for (let k = 2; k >= 0; k--) drawGirl(k);
+  if (eOn) for (let k = 0; k < 4; k++) if (EA[k] > 0 && EY[k] < H + 20) drawExplorer(k);
+  for (let k = 0; k < 2; k++) if (SLON[k]) drawSelenite(k);
+}
+
+function drawMoon() { // the Man in the Moon: a round cream face with a crooked smile; a grimace and dripping cream once struck
+  const cx = Math.round(moonX), cy = Math.round(moonY), r = moonR;
+  if (cy + r < 0) return;
+  for (let dy = -Math.ceil(r); dy <= r; dy++) for (let dx = -Math.ceil(r); dx <= r; dx++) {
+    const d2 = dx * dx + dy * dy;
+    if (d2 > r * r) continue;
+    plot(buf, cx + dx, cy + dy, d2 > (r - 1) * (r - 1) ? SEP_3 : dx + dy < -r * 0.6 ? YEL_L : dx - dy > r * 0.9 ? SEP_4 : (dx * 7 + dy * 13) % 23 === 0 ? SEP_4 : CREAM);
+  }
+  const s = r / 12, ey = Math.round(cy - 0.15 * r);
+  for (let k = 0; k < 2; k++) {
+    const ex = Math.round(cx + (k ? 0.35 : -0.35) * r);
+    if (grim && k === 0) { hline(buf, ex - Math.round(1.5 * s), ex + Math.round(1.5 * s), ey, INK); }
+    else { for (let dy = -Math.round(s); dy <= Math.round(s); dy++) for (let dx = -Math.round(1.5 * s); dx <= Math.round(1.5 * s); dx++) plot(buf, ex + dx, ey + dy, WHITE); plot(buf, ex + (grim ? 0 : 1), ey, INK); if (s > 1.6) plot(buf, ex + 1, ey + 1, INK); }
+    line(buf, ex - Math.round(2 * s), ey - Math.round(2 * s) + (grim ? k * 2 - 1 : 0), ex + Math.round(2 * s), ey - Math.round(2 * s) - (grim ? k * 2 - 1 : 0), SEP_2);  // brows
+  }
+  line(buf, cx, ey + Math.round(s), cx + Math.round(s), cy + Math.round(0.2 * r), SEP_3);                          // nose
+  for (let k = -5; k <= 5; k++) { // the mouth: a crooked smile, or a pained frown
+    const mx = Math.round(cx + k * 0.07 * r), bend = (k * k) / 25, my = Math.round(cy + 0.38 * r + (grim ? bend * 0.12 * r : -bend * 0.12 * r) + (k > 0 ? -k * 0.02 * r : 0));
+    plot(buf, mx, my, RED);
+  }
+  plot(buf, Math.round(cx - 0.55 * r), Math.round(cy + 0.2 * r), PINK); plot(buf, Math.round(cx + 0.55 * r), Math.round(cy + 0.2 * r), PINK);
+  if (ooze > 0) { // cream oozing from the struck eye
+    const ex = Math.round(cx - 0.35 * r);
+    for (let k = 0; k < 3; k++) { const len = Math.round(ooze * (4 + k * 3) * s); for (let j = 0; j < len; j++) plot(buf, ex - 1 + k, ey + 2 + j, j === len - 1 ? WHITE : YEL_L); }
+  }
+}
+function drawRoofSet(o) { // Paris rooftops, the observatory roof, the great cannon on its scaffold
+  for (let x = 0; x < W; x++) { const top = 60 + ((x * 13) % 7) + (x % 23 < 4 ? -4 : 0); for (let y = top; y < 72; y++) plot(buf, x, y + o, (x * 3 + y) % 9 === 0 ? SEP_3 : SEP_1); } // skyline
+  for (let y = 70; y < H; y++) for (let x = 0; x < 74; x++) plot(buf, x, y + o, y === 70 ? SEP_4 : y === 71 ? SEP_3 : (x + (y >> 1)) % 6 === 0 ? GREY_L : GREY_M);
+  for (let j = 0; j < CHIM.length; j++) { const cx = CHIM[j]; rect(buf, cx, 60 + o, 5, 10, SEP_2); for (let y = 61; y < 70; y += 2) hline(buf, cx, cx + 4, y + o, SEP_1); rect(buf, cx + 1, 58 + o, 1, 2, RED); rect(buf, cx + 3, 58 + o, 1, 2, RED); }
+  for (let y = 84; y < H; y++) for (let x = 72; x < 136; x++) plot(buf, x, y + o, y === 84 ? SEP_4 : SEP_2);
+  for (let j = 0; j < TRUSS.length; j++) { const bx = TRUSS[j]; line(buf, bx, 84 + o, bx + 4, Math.round(82 - (bx - 76) * 0.68) + o, SEP_3); line(buf, bx + 8, 84 + o, bx + 4, Math.round(82 - (bx - 72) * 0.68) + o, SEP_3); }
+  capsule(buf, 76, 82 + o, 4.5, 124, 48 + o, 4.5, SEP_1, GREY_M, GREY_L);                           // the barrel
+  for (let k = 6; k <= 54; k += 12) { const x = 76 + k * 0.82, y = 82 - k * 0.58 + o; line(buf, Math.round(x - 2.6), Math.round(y - 3.7), Math.round(x + 2.6), Math.round(y + 3.7), SEP_3); }
+  capsule(buf, 123, 49 + o, 5.6, 126, 47 + o, 5.6, SEP_1, SEP_3, SEP_4); disc(127, 46 + o, 2.4, INK);
+}
+const CHIM = Uint8Array.of(4, 62), TRUSS = Uint8Array.of(84, 100, 116);
+function drawLunarSet(o) { // grey lunar ground, jagged crags, a mushroom grotto, the ledge on the right
+  for (let x = 0; x < W; x++) {
+    const top = x < 22 ? 46 + Math.abs(x - 11) : x > 142 ? 52 + Math.round(Math.abs(x - 151) * 0.7) : 62 + Math.round(Math.sin(x * 0.2) * 1.5);
+    for (let y = top; y < H + 1; y++) { const py = y + o; if (py < 0 || py >= H) continue; plot(buf, x, py, y === top ? GREY_L : (x * 7 + y * 3) % 17 === 0 ? SEP_2 : y < top + 3 ? GREY_L : GREY_M); }
+  }
+  for (let j = 0; j < CRATERS.length; j += 3) for (let dx = -CRATERS[j + 2], cx = CRATERS[j], cy = CRATERS[j + 1], rx = CRATERS[j + 2]; dx <= rx; dx++) { plot(buf, cx + dx, cy + o, SEP_2); if (Math.abs(dx) < rx) plot(buf, cx + dx, cy + 1 + o, GREY_L); }
+  for (let k = 0; k < 3; k++) { // giant mushrooms at the grotto
+    const mx = 18 + k * 9, my = 56 - (k & 1) * 5, cr = 4 + (k & 1);
+    rect(buf, mx - 1, my + o, 2, 64 - my, CREAM);
+    for (let dy = -cr; dy <= 0; dy++) for (let dx = -cr - 1; dx <= cr + 1; dx++) if (dx * dx / ((cr + 1) * (cr + 1)) + dy * dy / (cr * cr) <= 1) plot(buf, mx + dx, my + dy + o, (dx * 3 + dy) % 4 === 0 ? PINK : dy < -cr * 0.5 ? SEP_4 : SEP_3);
+  }
+  for (let y = 58; y < 64; y++) for (let x = 24; x < 30; x++) if ((x - 27) * (x - 27) + (y - 64) * (y - 64) * 0.6 < 12) plot(buf, x, y + o, INK); // the grotto mouth
+}
+const CRATERS = Uint8Array.of(60, 72, 5, 90, 78, 7, 118, 70, 4, 40, 82, 6, 136, 84, 5);
+function drawSeaSet(o) { // the sea: a painted wave line, and below it fish, weed and bubbles
+  for (let y = 52; y < H + 40; y++) {
+    const py = y + o;
+    if (py < 0 || py >= H) continue;
+    for (let x = 0; x < W; x++) plot(buf, x, py, y === 52 ? ((x + (tick >> 3)) % 6 < 3 ? WHITE : BLUE_L) : y < 56 ? BLUE : y > 84 && (x * 5) % 7 < 2 ? GRN : BLUE_D);
+  }
+  for (let k = 0; k < 5; k++) { // fish crossing below the waves, a 240-tick swim
+    const fx = Math.round((k * 47 + tick * (k & 1 ? 2 : 1) * W / 240) % (W + 20)) - 10, fy = 62 + k * 5 + o;
+    if (fy < 0 || fy >= H) continue;
+    hline(buf, fx, fx + 3, fy, k & 1 ? ORANGE : YEL); plot(buf, fx - 1, fy - 1, k & 1 ? ORANGE : YEL); plot(buf, fx - 1, fy + 1, k & 1 ? ORANGE : YEL); plot(buf, fx + 3, fy, INK);
+  }
+}
+function drawUnder() {
+  if (seaY < 90) drawSeaSet(Math.round(seaY));
+  if (starsA > 0) for (let k = 0; k < 4; k++) { // stars with women's faces look down
+    const cx = FSX[k], cy = FSY[k];
+    for (let a = 0; a < 5; a++) { const ang = -Math.PI / 2 + a * TWO_PI / 5; for (let j = 0; j <= 5; j++) { const x = Math.round(cx + Math.cos(ang) * j), y = Math.round(cy + Math.sin(ang) * j); if (dith(x, y, starsA)) plot(buf, x, y, j > 3 ? YEL : YEL_L); } }
+    if (dith(cx, cy, starsA)) { disc(cx, cy, 2, CREAM); plot(buf, cx - 1, cy - 1, INK); plot(buf, cx + 1, cy - 1, INK); plot(buf, cx, cy + 1, PINK); }
+  }
+  if (saturnX > -13) { // Saturn peers out of his ring
+    const cx = Math.round(saturnX), cy = 34;
+    disc(cx, cy, 5, PURP); for (let dx = -5; dx <= 5; dx++) plot(buf, cx + dx, cy - 1 + (dx & 1), PINK);
+    plot(buf, cx + 1, cy - 2, WHITE); plot(buf, cx + 3, cy - 2, WHITE); plot(buf, cx + 2, cy - 2, INK); plot(buf, cx + 2, cy + 2, RED);
+    for (let dx = -10; dx <= 10; dx++) { const y = Math.round(cy + 1 + dx * 0.15); if (Math.abs(dx) > 4 || dx < 0) plot(buf, cx + dx, y, YEL); }
+  }
+  if (moonY > -40) drawMoon();
+  if (lunarY < 90 && lunarY > -90) drawLunarSet(Math.round(lunarY));
+  if (roofY < 90) drawRoofSet(Math.round(roofY));
+}
+function drawOver() {
+  drawParticles(false);
+  if (snow) for (let k = 0; k < 30; k++) { const x = (k * 53 + (tick >> 1) * (k & 1 ? 1 : 2)) % W, y = (k * 29 + tick) % 90; plot(buf, x, y, WHITE); }
+  drawParticles(true);
+  for (let k = 0; k < 16; k++) { const x = (k * 37 + pfr * 53) % W, y = (k * 23 + pfr * 29) % H; plot(buf, x, y, k & 1 ? CREAM : SEP_0); } // film grain, new every pose frame
+  if (pfr % 5 === 2) { const x = (pfr * 67) % W; for (let y = 0; y < H; y += 2) plot(buf, x, y, SEP_4); } // a scratch on the print
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { // vignette
+    const dx = (x - 80) / 84, dy = (y - 45) / 50, v = dx * dx + dy * dy;
+    if (v > 0.9 && dith(x, y, Math.min(1, (v - 0.9) * 3))) buf[y * W + x] = DARK[buf[y * W + x]];
+  }
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

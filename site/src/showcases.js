@@ -6,6 +6,37 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "trip-to-the-moon-1902",
+    tags: ["humanoid", "projectile", "space"],
+    country: "fr",
+    title: "A Trip to the Moon, 1902",
+    still: 340,
+    res: [160, 90],
+    loop: 12,
+    states: ["congress", "cannon", "fire", "eye", "dream", "selenites", "fall", "parade"],
+    kind: "Made with the skill",
+    note: "The rooftop, the lunar ground and the sea are stage flats that slide in and out like Méliès' own scene changes, and the whole frame is printed through a sepia palette with a stencil tint, grain, scratches and a vignette.",
+    prompt:
+      "Pixel art Georges Méliès' film A Trip to the Moon (1902), in the style of its hand-colored prints, 160×90, " +
+      "one fixed shot, 12-second seamless loop, 8 states. Scene: a theatrical painted set: a Paris rooftop with " +
+      "chimneys at the left, a giant cannon on a wooden scaffold aimed up to the right, a painted starry sky with " +
+      "the Moon as a round face with a crooked smile; the palette is sepia and cream with soft stencil colors, film " +
+      "grain, scratches and a dark vignette, and the scenery changes like stage flats sliding in and out. Keep the " +
+      "frame readable: one gag at a time, like a stage. 1. congress: four astronomers in starry robes and pointed " +
+      "hats argue on the rooftop and wave telescopes, which turn into stools in a puff so two of them sit down. 2. " +
+      "cannon: chorus girls in sailor suits roll the bullet-shaped capsule across the roof, the astronomers climb " +
+      "in, and the girls push it into the cannon. 3. fire: a girl waves the signal flag, the cannon fires in a " +
+      "flash and a huge cloud of smoke, and the capsule streaks up toward the Moon. 4. eye: the Moon's face swells " +
+      "closer until the capsule plunges into its right eye; the Moon grimaces and cream oozes from the wound. 5. " +
+      "dream: the Moon slides away as the lunar ground rises like a stage flat; the explorers sleep under blankets " +
+      "while stars with women's faces look down, Saturn peers out of his ring, and snow falls. 6. selenites: " +
+      "insect-like Selenites leap out of a mushroom grotto; the explorers bop them with umbrellas and each bursts " +
+      "into a puff of smoke, and the explorers run for the capsule. 7. fall: the capsule tips over the Moon's edge " +
+      "and falls past streaming stars into the sea, splashing down and sinking among fish and bubbles. 8. parade: " +
+      "the rooftop returns with the capsule garlanded, the explorers bow in laurel crowns under falling confetti, " +
+      "the Moon slides back to its place smiling, and the capsule is towed away.",
+  },
+  {
     slug: "cappadocia-balloons",
     tags: ["humanoid", "craft", "dawn"],
     country: "tr",
@@ -1070,7 +1101,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['fr', 'France'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
