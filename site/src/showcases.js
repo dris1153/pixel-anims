@@ -6,6 +6,38 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "nautilus-twenty-thousand-leagues",
+    tags: ["humanoid", "creature", "lightning", "underwater"],
+    country: "fr",
+    title: "Twenty Thousand Leagues Under the Sea",
+    still: 730,
+    res: [160, 90],
+    loop: 16,
+    states: ["hunt", "salon", "forest", "pearl", "atlantis", "ice", "squid", "maelstrom", "calm", "dive"],
+    kind: "Made with the skill",
+    note: "The Nautilus is one rotating, scaling hull, so the same code swells it to show the salon window, surfaces it for the squid and spins it down into a Maelstrom drawn as a spiral warp of the sea itself.",
+    prompt:
+      "Pixel art Jules Verne's Twenty Thousand Leagues Under the Sea, 160×90, one fixed shot, 16-second seamless " +
+      "loop, 10 states. Scene: a cut view of the ocean with the waterline a quarter from the top: sky above, and " +
+      "below it the sea stepping down into darker blues to a seabed with a swaying kelp forest on the left, coral " +
+      "in the middle, and on the right the columns and stairs of a sunken city beside an undersea volcano; the " +
+      "Nautilus, a long iron cigar with a spur on its bow, a raised pilothouse and a bright lantern eye, cruises " +
+      "through the whole loop, and the light runs from night through day, the deep, polar white and a grey storm to " +
+      "dawn and night again. Keep the frame readable: the Nautilus and one wonder at a time, divers and creatures " +
+      "small against the big sea. 1. hunt: at night a sailing frigate hunts a 'sea monster' on the surface; below " +
+      "it the Nautilus's lantern glows, and it dives away. 2. salon: the Nautilus swells close, and through its " +
+      "oval salon window Captain Nemo plays his organ while bright fish swirl outside. 3. forest: divers in round " +
+      "brass helmets, with air tanks and electric guns, walk the kelp forest as bubbles rise. 4. pearl: a giant " +
+      "oyster opens on a glowing pearl; a shark lunges at the divers and a harpoon drives it off. 5. atlantis: the " +
+      "sea darkens and the columns of Atlantis glow as the volcano beside them streams lava. 6. ice: polar ice " +
+      "closes over the sea and traps the ship; boiling jets rise until the ice cracks open. 7. squid: the Nautilus " +
+      "surfaces in a grey storm, a giant squid wraps its arms round the hull, electric charge crackles through the " +
+      "plates, the crew fight with axes on deck, and the squid flees in a cloud of ink. 8. maelstrom: the whole sea " +
+      "spins into the Maelstrom and the Nautilus is sucked down, spinning. 9. calm: at dawn the whirlpool is gone " +
+      "and the ship rests on the seabed as bubbles rise to a glassy surface. 10. dive: its lantern glows again and " +
+      "it glides up as night falls on the surface and the frigate returns.",
+  },
+  {
     slug: "snow-queen-ice-palace",
     tags: ["humanoid", "creature", "magic", "day"],
     country: "dk",

@@ -1,0 +1,699 @@
+<title>Twenty Thousand Leagues Under the Sea</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #060a14; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #060a14; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art animation of Jules Verne's Twenty Thousand Leagues Under the Sea: the Nautilus slips away from a hunting frigate, Captain Nemo plays his organ behind the salon window, divers walk the kelp forest, a shark lunges at a giant pearl, the ruins of Atlantis glow by an undersea volcano, the ship is trapped under polar ice, fights a giant squid with electric charge, is sucked into the Maelstrom, and glides out again at night"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // bubbles, sparks and sand are culled at their own ground in step()
+const POSE_STEP = 6;               // 10 fps pose frames
+const SURF = 22;                   // the waterline: sky above, the sea below
+const BED = 82;                    // the seabed
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#060a14',
+  '#4a7ac8', '#a8d0f0', '#0a1028', '#1a2448', '#f0a888',
+  '#2a8ab8', '#1a5a90', '#123a68', '#0a2244', '#06142c',
+  '#6ac0e0', '#6a6a5a',
+  '#1a4a3a', '#2a8a5a', '#6ac87a',
+  '#e05a6a', '#f8a0a0',
+  '#1e2a2e', '#3e5a5a', '#7a9a90',
+  '#fff0b0', '#e8b040',
+  '#e8501e', '#ffb040',
+  '#8a8a9a', '#c8c8d0',
+  '#f4f8ff', '#c8ecf8',
+  '#a83a4a', '#e0707a', '#5a3a24',
+];
+const INK = 0, SKY_A = 1, SKY_B = 2, NIT_A = 3, NIT_B = 4, DWN = 5, SEA_0 = 6, SEA_1 = 7, SEA_2 = 8, SEA_3 = 9, SEA_4 = 10,
+  RAY = 11, SAND = 12, KELP_D = 13, KELP = 14, KELP_L = 15, CORAL = 16, CORAL_L = 17, NAU_D = 18, NAU_M = 19, NAU_L = 20,
+  GLOW = 21, GOLD = 22, LAVA = 23, LAVA_L = 24, STONE = 25, STONE_L = 26, WHITE = 27, ICE = 28, SQD = 29, SQD_L = 30, WOOD = 31;
+
+// One step brighter per ramp; the deep climbs toward the lantern's light.
+const LIGHTEN = Uint8Array.of(
+  SEA_4,
+  SKY_B, WHITE, NIT_B, SEA_2, GLOW,
+  RAY, SEA_0, SEA_1, SEA_2, SEA_3,
+  WHITE, STONE,
+  KELP, KELP_L, GLOW,
+  CORAL_L, WHITE,
+  NAU_M, NAU_L, STONE_L,
+  WHITE, GLOW,
+  LAVA_L, GLOW,
+  STONE_L, WHITE,
+  WHITE, WHITE,
+  SQD_L, CORAL_L, GOLD);
+const RAMP_BUBBLE = Uint8Array.of(WHITE, ICE, RAY, SEA_0);
+const RAMP_LAVA = Uint8Array.of(GLOW, LAVA_L, LAVA, SEA_3);
+const RAMP_SPARK = Uint8Array.of(WHITE, GLOW, ICE, RAY);
+const RAMP_SAND = Uint8Array.of(STONE_L, SAND, SEA_3, SEA_4);
+const RAMP_INK = Uint8Array.of(SQD_L, SQD, SEA_3, SEA_4);
+const RAMPS = [RAMP_BUBBLE, RAMP_LAVA, RAMP_SPARK, RAMP_SAND, RAMP_INK];
+const RIM = Uint8Array.of(RAY, GLOW, WHITE);
+const RIM_BANDS = Uint16Array.of(12, 24, 38);
+const LIGHT = Float32Array.of(-0.4, -0.9);        // light from the surface above
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[INK] = RIM_OK[GLOW] = RIM_OK[WHITE] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY_A] = AIR[SKY_B] = AIR[NIT_A] = AIR[NIT_B] = AIR[SEA_0] = AIR[SEA_1] = AIR[SEA_2] = AIR[SEA_3] = AIR[SEA_4] = 1;
+
+const HUNT = 0, SALON = 1, FOREST = 2, PEARL = 3, ATLANTIS = 4, ICESTATE = 5, SQUID = 6, MAELSTROM = 7, CALM = 8, DIVE = 9;
+const DUR = Uint16Array.of(96, 96, 96, 96, 96, 96, 96, 96, 96, 96); // L = 960: kelp sway 96, fish 240, rays 480
+const EASE = Uint16Array.of(6, 6, 6, 6, 6, 6, 6, 6, 6, 6);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = [REST, REST, REST, REST, REST, REST, REST, REST, REST, REST];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables
+const TWO_PI = Math.PI * 2;
+const SKYM = new Uint8Array(N), SEAM = new Uint8Array(N), VOLC = new Uint8Array(N);
+const DAYM = 0, NIGHTM = 1, POLARM = 2, STORMM = 3, DAWNM = 4;
+const MAPS = [0, 1, 2, 3, 4].map(() => new Uint8Array(PAL.length));
+const lay = new Uint8Array(N), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let grp = 0, pid = 0, lx0 = 0, ly0 = 0, lx1 = -1, ly1 = -1, bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+const pWL = new Float32Array(MAXP);
+const KLX = Uint8Array.of(6, 12, 19, 25, 31, 38, 44), KLH = Uint8Array.of(30, 24, 34, 22, 28, 20, 26);  // kelp strands
+let TPX = 0, TPY = 0, pfr = 0, flick = 0, modeA = NIGHTM, modeB = NIGHTM, modeE = 0,
+  nX = 80, nY = 34, nA = 0, nS = 1, nF = 1, lantern = 1, salon = 0, deck = 0, sparkOn = 0,
+  frOn = 1, frX = 80, divers = 0, dvX = 30, oyster = 0, pearlUp = 0, shOn = 0, shX = -20, shY = 70, harp = -1,
+  lavaA = 0, iceY = 0, cracks = 0, sqOn = 0, sqA = 0, whirl = 0, fishA = 0, raysA = 0;
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return a + (b - a) * e;
+}
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+}
+function bedY(x) {
+  return BED + Math.round(Math.sin(x * 0.07) * 2 + Math.sin(x * 0.19 + 1) * 1);
+}
+
+function buildBackground() {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    if (y < SURF) { bg[i] = y < 10 ? SKY_A : SKY_B; SKYM[i] = 1; continue; }
+    let c = y < 34 ? SEA_0 : y < 48 ? SEA_1 : y < 62 ? SEA_2 : y < 76 ? SEA_3 : SEA_4;
+    if ((y === 33 || y === 47 || y === 61 || y === 75) && dith(x, y, 0.5)) c++;
+    bg[i] = y === SURF ? WHITE : c; SEAM[i] = 1;
+  }
+  for (let x = 0; x < W; x++) { const top = bedY(x); for (let y = top; y < H; y++) { const i = y * W + x; SEAM[i] = 0; bg[i] = y === top ? SAND : (x * 5 + y * 3) % 7 === 0 ? SAND : SEA_3; } }
+  for (let x = 128; x < W; x++) { // the undersea volcano
+    const top = 56 + Math.round(Math.abs(x - 146) * 1.1);
+    for (let y = top; y < BED + 2; y++) { const i = y * W + x; SEAM[i] = 0; const lava = (Math.abs(x - 146) < 3 && y < top + 2) || (Math.abs(x - 146 - Math.round((y - 56) * 0.35)) < 1 && y > 60 && y % 3) || (Math.abs(x - 146 + Math.round((y - 56) * 0.5)) < 1 && y > 64 && y % 4);
+    bg[i] = lava ? LAVA : y === top ? NAU_L : (x + y) % 5 === 0 ? NAU_D : x > 146 ? NAU_D : NAU_M; if (lava) VOLC[i] = 1; }
+  }
+  for (let k = 0; k < 5; k++) { // the columns and stairs of Atlantis
+    const cx = 104 + k * 7, h = 12 + ((k * 7) % 9);
+    for (let y = BED - h; y < BED; y++) for (let x = cx - 1; x <= cx + 1; x++) { const i = y * W + x; bg[i] = x === cx + 1 ? STONE : STONE_L; SEAM[i] = 0; }
+    for (let x = cx - 2; x <= cx + 2; x++) { bg[(BED - h - 1) * W + x] = STONE_L; SEAM[(BED - h - 1) * W + x] = 0; }
+    if (k === 2) for (let x = cx - 10; x <= cx + 10; x++) { bg[(BED - h - 2) * W + x] = STONE; SEAM[(BED - h - 2) * W + x] = 0; }
+  }
+  for (let s = 0; s < 4; s++) for (let x = 98 + s * 2; x < 138 - s * 2; x++) { const y = BED - 1 - s; bg[y * W + x] = s & 1 ? STONE : STONE_L; SEAM[y * W + x] = 0; }
+  for (const [cx, cy] of [[64, 80], [72, 81], [96, 80], [58, 81]]) for (let k = 0; k < 5; k++) { line(bg, cx, cy, cx + (k - 2) * 2, cy - 4 - (k & 1) * 2, k & 1 ? CORAL : CORAL_L); } // coral
+  for (let m = 0; m < 5; m++) for (let c = 0; c < PAL.length; c++) MAPS[m][c] = c;
+  const map = (m, a) => { for (let k = 0; k < a.length; k += 2) MAPS[m][a[k]] = a[k + 1]; };
+  map(NIGHTM, [SKY_A, NIT_A, SKY_B, NIT_B, SEA_0, SEA_2, SEA_1, SEA_3, SEA_2, SEA_3, SEA_3, SEA_4, SAND, SEA_3, STONE_L, STONE, CORAL, SQD, CORAL_L, CORAL, KELP_L, KELP, KELP, KELP_D, WHITE, RAY]);
+  map(POLARM, [SKY_A, ICE, SKY_B, WHITE, SEA_0, RAY, SEA_1, SEA_0, CORAL, STONE, KELP_L, STONE_L]);
+  map(STORMM, [SKY_A, NAU_M, SKY_B, NAU_L, SEA_0, SEA_1, WHITE, ICE]);
+  map(DAWNM, [SKY_A, NIT_B, SKY_B, DWN, WHITE, GLOW]);
+  lay.fill(EMPTY);
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
+function sample() {
+  snap.set(pose);
+  const T = state, t = stT;
+  pfr = tick / POSE_STEP | 0; flick = (tick >> 3) & 1;
+  modeA = modeB = DAYM; modeE = 0;
+  if (T === HUNT) { modeA = NIGHTM; modeE = ease((t - 50) / 46); }
+  else if (T === ATLANTIS) { modeB = NIGHTM; modeE = ease(t / 30); }
+  else if (T === ICESTATE) { modeA = NIGHTM; modeB = POLARM; modeE = ease(t / 24); }
+  else if (T === SQUID) { modeA = POLARM; modeB = STORMM; modeE = ease(t / 24); }
+  else if (T === MAELSTROM) modeA = modeB = STORMM;
+  else if (T === CALM) { modeA = STORMM; modeB = DAWNM; modeE = ease(t / 40); }
+  else if (T === DIVE) { modeA = DAWNM; modeB = NIGHTM; modeE = ease(t / 60); }
+  raysA = modeA === DAYM || modeB === DAYM ? (modeA === DAYM ? 1 - modeE : modeE) : 0;
+  lavaA = T === ATLANTIS ? ease(t / 30) : 0;
+  // the Nautilus
+  nA = 0; nS = 1; nF = 1; lantern = 1; salon = 0; deck = 0; sparkOn = 0;
+  if (T === HUNT) { if (t < 40) { nX = 80; nY = 34; } else { const e = ease((t - 40) / 56); nX = mix(80, 30, e); nY = mix(34, 60, e); nF = -1; nA = -0.3 * Math.sin(Math.PI * e); } }
+  else if (T === SALON) { const e = ease(t / 24), o = ease((t - 76) / 20); nX = mix(30, 80, e) + o * 20; nY = mix(60, 46, e) - o * 10; nS = mix(1, 1.4, e) - o * 0.4; salon = e > 0.8 && o < 0.5 ? 1 : 0; }
+  else if (T === FOREST || T === PEARL) { nX = 100; nY = 36; }
+  else if (T === ATLANTIS) { const e = ease(t / 60); nX = mix(100, 118, e); nY = mix(36, 58, e); nA = 0.25 * Math.sin(Math.PI * e); }
+  else if (T === ICESTATE) { const e = ease(t / 40); nX = mix(118, 80, e); nY = mix(58, 38, e); nF = -1; }
+  else if (T === SQUID) { nX = 80; nY = mix(38, SURF + 1, ease(t / 20)); deck = t >= 20 ? 1 : 0; sparkOn = t >= 44 && t < 70 ? 1 : 0; }
+  else if (T === MAELSTROM) { const e = ease(t / 80); nX = 80 + Math.cos(t * 0.25) * 10 * (1 - e); nY = mix(SURF + 1, 72, e); nA = t * 0.2; nS = mix(1, 0.5, e); }
+  else if (T === CALM) { nX = 80; nY = 74; nS = 0.5; nA = 0; lantern = 0; }
+  else { const e = ease((t - 10) / 80); nX = 80; nY = mix(74, 34, e); nS = mix(0.5, 1, e); lantern = 1; }
+  // the frigate, divers, the pearl, the shark, the ice, the squid, the whirlpool
+  frOn = T === HUNT || (T === DIVE && t >= 40) ? 1 : 0; frX = T === HUNT ? mix(80, 120, ease((t - 50) / 46)) : mix(-20, 80, ease((t - 40) / 50));
+  divers = T === FOREST || T === PEARL ? 1 : 0; dvX = T === FOREST ? mix(20, 34, t / 96) : 34;
+  oyster = T === PEARL ? ease((t - 6) / 20) * (1 - ease((t - 80) / 14)) : 0; pearlUp = oyster;
+  shOn = T === PEARL && t >= 30 && t < 90 ? 1 : 0;
+  if (shOn) { if (t < 54) { shX = mix(-24, 30, ease((t - 30) / 24)); shY = 66; } else { shX = mix(30, -30, ease((t - 58) / 28)); shY = mix(66, 58, ease((t - 58) / 28)); } }
+  harp = T === PEARL && t >= 50 && t < 60 ? (t - 50) / 10 : -1;
+  iceY = T === ICESTATE ? ease(t / 30) * 16 * (1 - ease((t - 70) / 20)) : 0; cracks = T === ICESTATE ? ease((t - 50) / 20) : 0;
+  sqOn = T === SQUID ? 1 : 0; sqA = T === SQUID ? ease((t - 12) / 20) * (1 - ease((t - 76) / 18)) : 0;
+  whirl = T === MAELSTROM ? ease(t / 20) * (1 - ease((t - 76) / 20)) : T === CALM ? 0 : 0;
+  fishA = T === SALON || T === FOREST || T === PEARL || T === CALM ? 1 : 0;
+  nPt(19 / 18, 0); srcX = Math.round(TPX); srcY = Math.round(TPY); rim = lantern ? 2 : 1;
+  if (T === ATLANTIS) { srcX = 146; srcY = 60; rim = 3; }
+}
+
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function step() {
+  if (tick % POSE_STEP === 0) sample();
+  const T = state, t = stT;
+  if (tick % 5 === 0 && T !== HUNT) sp(MOTE, 30 + rand() * 20, nX - nF * Math.cos(nA) * 18 * nS, nY, -0.2 * nF, -0.3, 0, 99);   // bubbles off the propeller
+  if (divers && tick % 7 === 0) sp(MOTE, 40 + rand() * 20, dvX + (rand() < 0.5 ? 0 : 12), BED - 12, 0, -0.35, 0, 99);
+  if (T === PEARL && t === 30) for (let k = 0; k < 10; k++) sp(MOTE, 20 + rand() * 12, 84 + (rand() - 0.5) * 6, BED - 6, 0, -0.3, 2, 99);
+  if (T === PEARL && t === 58) { shakeT = 4; for (let k = 0; k < 12; k++) sp(BURST, 12 + rand() * 8, 30, 66, (rand() - 0.5) * 1.4, (rand() - 0.5) * 1.4, 4, 99); }
+  if (lavaA > 0 && tick % 2 === 0) sp(MOTE, 24 + rand() * 20, 146 + (rand() - 0.5) * 4, 56, (rand() - 0.5) * 0.4, -0.45, 1, 99);
+  if (T === ICESTATE && t >= 40 && t < 70 && tick % 2 === 0) sp(MOTE, 16 + rand() * 10, 70 + rand() * 20, nY - 6, (rand() - 0.5) * 0.3, -0.6, 0, 99);  // boiling jets
+  if (T === ICESTATE && t === 70) { shakeT = 10; for (let k = 0; k < 24; k++) sp(BURST, 14 + rand() * 12, 60 + rand() * 40, SURF + iceY, (rand() - 0.5) * 2, -0.6 - rand(), 2, 60); }
+  if (sparkOn && tick % 3 === 0) { shakeT = 2; flashT = t === 44 ? 2 : 0; for (let k = 0; k < 4; k++) sp(BURST, 8 + rand() * 6, nX + (rand() - 0.5) * 34, nY + (rand() - 0.5) * 8, (rand() - 0.5) * 2, (rand() - 0.5) * 2, 2, 99); }
+  if (T === SQUID && t >= 70 && t < 80 && tick % 2 === 0) sp(MOTE, 30 + rand() * 20, 104 + rand() * 20, 40 + rand() * 20, 0.3, 0.1, 4, 99);  // the squid's ink as it flees
+  if (whirl > 0.3 && tick % 2 === 0) { const a = rand() * TWO_PI, r = 10 + rand() * 30; sp(TRAIL, 12, 80 + Math.cos(a) * r, 50 + Math.sin(a) * r * 0.5, -Math.sin(a) * 1.5, Math.cos(a) * 0.75, 0, 99); }
+  if (T === CALM && tick % 4 === 0) sp(MOTE, 40 + rand() * 20, 60 + rand() * 40, 70, 0, -0.5, 0, 99);
+  for (let i = 0; i < MAXP; i++) {
+    if (pKind[i] === BURST && pvy[i] > 0 && py[i] > pWL[i]) pKind[i] = 0;
+    if (pKind[i] === MOTE && pRamp[i] === 0 && py[i] < SURF + iceY + 1) pKind[i] = 0;   // bubbles pop at the surface or the ice
+  }
+}
+
+function hint(x0, y0, x1, y1) {
+  bx0 = Math.max(0, x0 | 0); by0 = Math.max(0, y0 | 0); bx1 = Math.min(W - 1, x1 | 0); by1 = Math.min(H - 1, y1 | 0);
+}
+function layBox() {
+  lx0 = W; ly0 = H; lx1 = -1; ly1 = -1;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (lay[y * W + x] === EMPTY) continue;
+    if (x < lx0) lx0 = x;
+    if (x > lx1) lx1 = x;
+    if (y < ly0) ly0 = y;
+    ly1 = y;
+  }
+}
+function layFade(amt) { // dissolve the current part in or out
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (amt * 16 <= BAYER[(y & 3) * 4 + (x & 3)]) lay[y * W + x] = EMPTY;
+}
+function layEnd() { // copy the part into spr, then ink the other actors' parts it borders
+  layBox();
+  GRP[++pid] = grp;
+  for (let y = ly0; y <= ly1; y++) for (let x = lx0; x <= lx1; x++) {
+    const i = y * W + x;
+    if (lay[i] !== EMPTY) { spr[i] = lay[i]; own[i] = pid; }
+  }
+  for (let y = Math.max(1, ly0 - 1); y <= Math.min(H - 2, ly1 + 1); y++) for (let x = Math.max(1, lx0 - 1); x <= Math.min(W - 2, lx1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
+  }
+  for (let y = by0; y <= by1; y++) lay.fill(EMPTY, y * W + bx0, y * W + bx1 + 1);
+  hint(0, 0, W - 1, H - 1);
+}
+
+function nPt(u, v) { // a point on the Nautilus: u along its length (-1 stern .. 1 bow), v across in pixels
+  const c = Math.cos(nA), s = Math.sin(nA), L = 18 * nS;
+  TPX = nX + c * u * nF * L - s * v * nS; TPY = nY + s * u * nF * L + c * v * nS;                 // nF mirrors the hull so the bow leads
+}
+function drawNautilus() { // a long iron cigar with a spur, a raised pilothouse, a lantern eye, a great salon window
+  grp = 1;
+  nPt(-0.9, 0); const sx = TPX, sy = TPY; nPt(0.75, 0); const bx = TPX, by = TPY;
+  capsule(lay, sx, sy, 3.6 * nS, bx, by, 4.4 * nS, NAU_D, NAU_M, NAU_L);
+  nPt(0.75, 0); const tx = TPX, ty = TPY; nPt(1.15, 0.5); capsule(lay, tx, ty, 3 * nS, TPX, TPY, 0.6, NAU_D, NAU_M, NAU_L);  // the spur
+  nPt(0.05, -4.2); const px = TPX, py = TPY; nPt(0.3, -4.2); capsule(lay, px, py, 1.6 * nS, TPX, TPY, 1.6 * nS, NAU_D, NAU_M, NAU_L); // pilothouse
+  for (let k = -3; k <= 3; k++) { nPt(k * 0.2, 0.5); plot(lay, Math.round(TPX), Math.round(TPY), NAU_D); }                    // rivets
+  nPt(-1.05, 0); plot(lay, Math.round(TPX), Math.round(TPY - 2 * nS), NAU_L); plot(lay, Math.round(TPX), Math.round(TPY + 2 * nS), NAU_L); plot(lay, Math.round(TPX), Math.round(TPY), NAU_D); // propeller
+  if (salon) { // the salon window: Nemo at his organ, fish outside
+    nPt(-0.2, 0.6); const wx = Math.round(TPX), wy = Math.round(TPY);
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -6; dx <= 6; dx++) if (dx * dx / 36 + dy * dy / 9 <= 1) plot(lay, wx + dx, wy + dy, dx * dx / 36 + dy * dy / 9 > 0.7 ? GOLD : GLOW);
+    for (let k = -4; k <= -1; k++) line(lay, wx + k, wy + 2, wx + k, wy - 1 - (k & 1), NAU_M);             // organ pipes
+    disc(wx + 2, wy - 1, 1, STONE_L, lay); plot(lay, wx + 2, wy + 1, INK); plot(lay, wx + 3, wy + 1, INK); line(lay, wx + 1, wy, wx - 1, wy + 1 - (pfr & 1), STONE);
+  }
+  if (deck) for (let k = 0; k < 3; k++) { nPt(-0.4 + k * 0.25, -5.2); const cx = Math.round(TPX), cy = Math.round(TPY), w = (pfr + k) & 1; line(lay, cx, cy, cx, cy - 3, NAU_D); plot(lay, cx, cy - 4, STONE_L); line(lay, cx, cy - 3, cx + (w ? 3 : 2), cy - (w ? 6 : 2), STONE); plot(lay, cx + (w ? 3 : 2), cy - (w ? 6 : 2), WHITE); }
+  hint(nX - 40, nY - 30, nX + 40, nY + 30);
+  layEnd();
+}
+function drawFrigate() { // a steam frigate on the surface, hunting the 'sea monster'
+  grp = 2;
+  const x = Math.round(frX), y = SURF;
+  for (let dx = -14; dx <= 14; dx++) { plot(lay, x + dx, y - 1, WOOD); if (Math.abs(dx) < 13) plot(lay, x + dx, y, WOOD); if (Math.abs(dx) < 11) plot(lay, x + dx, y + 1, INK); }
+  hline(lay, x - 14, x + 14, y - 2, STONE_L);
+  for (let m = 0; m < 2; m++) { const mx = m ? 4 : -8; line(lay, x + mx, y - 2, x + mx, y - 16, WOOD); for (let j = 0; j < 4; j++) hline(lay, x + mx - 4 + (j >> 1), x + mx + 4 - (j >> 1), y - 14 + j * 3, WHITE); }
+  rect(lay, x - 2, y - 7, 3, 5, INK);
+  hint(x - 20, y - 20, x + 20, y + 3);
+  layEnd();
+}
+function drawDivers() { // divers in round brass helmets, walking the kelp forest
+  grp = 3;
+  for (let k = 0; k < 2; k++) {
+    const x = Math.round(dvX + k * 12), y = bedY(x), w = (pfr + k) & 1;
+    line(lay, x, y - 3, x - w, y, STONE); line(lay, x + 1, y - 3, x + 1 + w, y, STONE);
+    capsule(lay, x, y - 4, 1.8, x, y - 7, 1.9, STONE, STONE, STONE_L);
+    rect(lay, x - 3, y - 8, 2, 4, NAU_M);                                                                      // air tank
+    disc(x, y - 10, 2.2, GOLD, lay); plot(lay, x + 1, y - 10, SEA_0); plot(lay, x + 1, y - 11, RAY);
+    line(lay, x + 1, y - 6, x + 5, y - 7, STONE); line2(lay, x + 3, y - 7, x + 8, y - 7, NAU_L, NAU_D);         // electric gun
+  }
+  hint(dvX - 10, BED - 24, dvX + 30, H - 1);
+  layEnd();
+}
+function drawShark() {
+  grp = 4;
+  const x = Math.round(shX), y = Math.round(shY), f = state === PEARL && stT >= 58 ? -1 : 1;
+  capsule(lay, x - 6 * f, y, 1.6, x + 5 * f, y, 2.4, STONE, STONE, STONE_L);
+  line(lay, x, y - 2, x - f, y - 5, STONE); line(lay, x - 7 * f, y, x - 10 * f, y - 3, STONE); line(lay, x - 7 * f, y, x - 10 * f, y + 2, STONE);
+  plot(lay, x + 5 * f, y - 1, INK); hline(lay, Math.min(x + 3 * f, x + 6 * f), Math.max(x + 3 * f, x + 6 * f), y + 1, WHITE);
+  hint(x - 14, y - 8, x + 14, y + 6);
+  layEnd();
+}
+function drawSquid() { // a giant squid wrapping its arms round the hull
+  grp = 5;
+  const bx = 118, by = 38;
+  capsule(lay, bx, by, 6, bx + 18, by - 6, 3, SQD, SQD, SQD_L);                                           // the mantle
+  disc(bx - 2, by + 1, 2.2, SQD_L, lay); plot(lay, bx - 2, by + 1, GLOW); plot(lay, bx - 3, by + 1, INK);
+  for (let k = 0; k < 5; k++) { // arms: from the head, curling over the hull
+    let qx = bx - 4, qy = by + 2;
+    for (let j = 1; j <= 10; j++) {
+      const u = j / 10, a = Math.PI + k * 0.25 - 0.5 + Math.sin(u * 6 + pfr * 0.8 + k) * 0.5 * u;
+      const x = mix(bx - 4, nX + (k - 2) * 7, u) + Math.cos(a) * 3 * u, y = mix(by + 2, nY + (k & 1 ? -3 : 4), u) + Math.sin(a) * 4 * u;
+      capsule(lay, qx, qy, 1.8 - u * 0.8, x, y, 1.6 - u * 0.8, SQD, SQD, SQD_L);
+      qx = x; qy = y;
+    }
+  }
+  hint(0, 0, W - 1, H - 1);
+  if (sqA < 1) layFade(sqA);
+  layEnd();
+}
+function drawActor() {
+  own.fill(0); pid = 0;
+  if (frOn) drawFrigate();
+  if (shOn) drawShark();
+  if (divers) drawDivers();
+  drawNautilus();
+  if (sqOn && sqA > 0) drawSquid();
+}
+
+function drawUnder() {
+  const MA = MAPS[modeA], MB = MAPS[modeB];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    let c = buf[i];
+    if (y === SURF && (x + (tick >> 3)) % 7 < 2) c = ICE;                                                 // wavelets, a 56-tick ripple
+    if (whirl > 0 && SEAM[i]) { // the Maelstrom: the whole sea spins into a funnel
+      const dx = x - 80, dy = (y - 46) * 2, r = Math.sqrt(dx * dx + dy * dy), a = Math.atan2(dy, dx) + r * 0.08 - stT * 0.12;
+      const band = (a * 3 / Math.PI + 12) % 2;
+      if (r < 70 && dith(x, y, whirl * (1 - r / 90))) c = band < 0.3 ? WHITE : band < 1 ? SEA_0 : SEA_2;
+    }
+    buf[i] = modeE > 0 && dith(x, y, modeE) ? MB[c] : MA[c];
+  }
+  if (raysA > 0) for (let k = 0; k < 5; k++) { // light shafts from the surface
+    const x0 = 20 + k * 32 + Math.round(Math.sin(tick * TWO_PI / 480 + k) * 6);
+    for (let y = SURF + 1; y < 70; y++) { const x = x0 + ((y - SURF) >> 1), i = y * W + x; if (x >= 0 && x < W && SEAM[i] && (y + k) % 3 && dith(x, y, raysA * 0.5)) buf[i] = LIGHTEN[buf[i]]; }
+  }
+  for (let k = 0; k < 7; k++) { // kelp strands swaying
+    const x0 = KLX[k], base = bedY(x0), h = KLH[k];
+    for (let j = 0; j < h; j++) { const x = Math.round(x0 + Math.sin(j * 0.25 + tick * TWO_PI / 96 + k) * (j / h) * 3), y = base - j; plot(buf, x, y, j % 4 === 0 ? KELP_L : (k & 1) ? KELP : KELP_D); if (j % 5 === 2) plot(buf, x + 1, y, KELP); }
+  }
+  if (oyster > 0 || state === PEARL) { // the giant oyster and its pearl
+    const cx = 84, cy = BED - 2, o = oyster;
+    for (let dx = -7; dx <= 7; dx++) { plot(buf, cx + dx, cy, STONE); plot(buf, cx + dx, cy - 1, STONE_L); }
+    for (let dx = -7; dx <= 7; dx++) { const y = Math.round(cy - 2 - o * 5 + Math.abs(dx) * o * 0.3 - (7 - Math.abs(dx)) * 0.3); plot(buf, cx + dx, y, dx & 1 ? STONE : STONE_L); }
+    if (o > 0.3) { disc(cx, cy - 3, 1.6, WHITE); plot(buf, cx - 1, cy - 4, GLOW); halo(cx, cy - 3, 7, RAY, SEA_2); }
+  }
+  if (lavaA > 0) { for (let i = 0; i < N; i++) if (VOLC[i]) buf[i] = flick ? LAVA_L : LAVA; halo(146, 54, Math.round(3 + 3 * lavaA), LAVA_L, LAVA); for (let k = 0; k < 6; k++) { const y = 54 - k * 3 - ((tick >> 2) + k) % 3; plot(buf, 146 + ((k * 5) % 3) - 1, y, k & 1 ? LAVA : LAVA_L); } for (let k = 0; k < 5; k++) { const x = 104 + k * 7; plot(buf, x + 1, BED - 5, LAVA_L); } }
+  if (iceY > 0) { // the polar ice closes over the sea
+    const bottom = Math.round(SURF + iceY);
+    for (let y = 0; y <= bottom; y++) for (let x = 0; x < W; x++) { const edge = bottom - Math.round(Math.abs(Math.sin(x * 0.3)) * 2); if (y <= edge) buf[y * W + x] = y > edge - 2 ? ICE : (x * 3 + y * 5) % 7 === 0 ? ICE : WHITE; }
+    if (cracks > 0) for (let k = 0; k < 4; k++) { const x0 = 64 + k * 9; for (let j = 0; j < Math.round(cracks * 10); j++) plot(buf, x0 + ((j * 3 + k) % 4) - 1, bottom - j, SEA_1); }
+  }
+  if (fishA > 0) for (let k = 0; k < 8; k++) { // schools of bright fish
+    const x = Math.round((((k * 23 + tick * (k & 1 ? 1 : -1) * (W + 10) / 480) % (W + 10)) + W + 10) % (W + 10)) - 5, y = 30 + (k * 11) % 40 + Math.round(Math.sin(tick * 0.05 + k) * 2), f = k & 1 ? 1 : -1;
+    if (!SEAM[Math.max(0, Math.min(N - 1, y * W + x))]) continue;
+    plot(buf, x, y, k % 3 ? GOLD : CORAL_L); plot(buf, x - f, y, k % 3 ? GOLD : CORAL); plot(buf, x - 2 * f, y - 1, CORAL); plot(buf, x - 2 * f, y + 1, CORAL);
+  }
+  if (harp >= 0) { const x = Math.round(mix(46, 30, harp)); line(buf, x, 66, x + 8, 67, STONE_L); plot(buf, x, 66, WHITE); }
+}
+function drawOver() {
+  drawParticles(false);
+  if (lantern) { const x = Math.round(nX + nF * Math.cos(nA) * 17 * nS), y = Math.round(nY + nF * Math.sin(nA) * 17 * nS - 1); halo(x, y, Math.round(8 * nS + 2), GLOW, RAY); plot(buf, x, y, GLOW); plot(buf, x + nF, y, WHITE); }
+  if (sparkOn) for (let k = 0; k < 6; k++) { const x0 = Math.round(nX - 16 + k * 6), y0 = Math.round(nY - 1); for (let j = 0; j < 4; j++) plot(buf, x0 + ((j + k + pfr) % 3) - 1, y0 - 3 + ((j * 2 + k) % 7), j & 1 ? WHITE : GLOW); } // electric charge crackling over the hull
+  drawParticles(true);
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>
