@@ -18,7 +18,7 @@
   --blur-small: 2px; --blur-medium: 3px;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
 body { margin: 0; background: var(--ink); color: var(--text); font: 400 1.0625rem/1.65 var(--body); }
 a { color: var(--cyan); text-underline-offset: 3px; transition: color var(--duration-quick) var(--ease-smooth-out); }
 a:hover { color: var(--cyan-l); }
@@ -29,16 +29,36 @@ button:disabled { cursor: not-allowed; }
 .skip { position: absolute; left: -999px; }
 .skip:focus { left: 16px; top: 16px; z-index: 20; background: var(--gold); color: var(--ink); padding: 8px 12px; }
 
+/* The header is a 16-bit HUD bar: a bright edge over a dithered seam, a title-screen logo, RPG menu buttons. */
 .bar {
   position: sticky; top: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 16px;
-  padding: 10px 20px; background: rgba(7, 10, 28, .9); border-bottom: 2px solid var(--line);
-  box-shadow: 0 2px 0 var(--line-d), 0 8px 20px -10px var(--glow);
+  padding: 12px 24px; background: rgba(7, 10, 28, .94); border-bottom: 2px solid var(--line-l);
+  box-shadow: inset 0 2px 0 var(--line-d), 0 10px 24px -10px var(--glow);
 }
-.logo { font: 700 1rem var(--display); color: var(--gold); text-decoration: none; letter-spacing: .04em; white-space: nowrap; }
-.bar nav { display: flex; flex-wrap: wrap; gap: 6px 8px; }
-.bar nav a { padding: 6px 12px; font: 400 .8rem var(--display); color: var(--muted); text-decoration: none; letter-spacing: .04em; border: 2px solid transparent; }
-.bar nav a:hover { color: var(--text); }
-.bar nav a[aria-current="page"] { color: var(--gold); border-color: var(--gold); box-shadow: 0 0 12px -3px rgba(242, 184, 75, .55); }
+.bar::after { /* the same checker seam the sections use, hanging under the bar */
+  content: ''; position: absolute; left: 0; right: 0; top: calc(100% + 2px); height: 4px; pointer-events: none;
+  background: repeating-conic-gradient(var(--line) 0 25%, var(--shadow) 0 50%) 0 0 / 4px 4px;
+}
+.logo {
+  font: 700 1.05rem var(--display); color: var(--gold); text-decoration: none; letter-spacing: .06em; white-space: nowrap;
+  text-shadow: 2px 2px 0 #7a3e12, 0 0 14px rgba(242, 184, 75, .35); /* a hard pixel drop shadow, like a title screen */
+}
+.bar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.bar nav a {
+  position: relative; padding: 6px 12px; font: 400 .8rem var(--display); color: var(--muted); text-decoration: none; letter-spacing: .04em;
+  background: var(--night); border: 2px solid var(--line);
+  box-shadow: inset 2px 2px 0 rgba(111, 125, 255, .22), inset -2px -2px 0 var(--shadow); /* a bevel: lit top-left, shaded bottom-right */
+}
+.bar nav a:hover { color: var(--text); border-color: var(--line-l); translate: 0 1px; }
+.bar nav a[aria-current="page"] {
+  padding-left: 24px; color: var(--gold); border-color: var(--gold);
+  box-shadow: inset 2px 2px 0 rgba(242, 184, 75, .25), inset -2px -2px 0 var(--shadow), 0 0 12px -3px rgba(242, 184, 75, .55);
+}
+.bar nav a[aria-current="page"]::before { /* the menu cursor on the current page */
+  content: ''; position: absolute; left: 9px; top: 50%; width: 6px; height: 10px; translate: 0 -50%;
+  background: var(--i-cursor) center / contain no-repeat; image-rendering: pixelated; animation: cursor 1s steps(1) infinite;
+}
+@keyframes cursor { 50% { opacity: 0; } }
 
 main > section { position: relative; max-width: 1180px; margin: 0 auto; padding: clamp(56px, 9vw, 112px) 20px; }
 main > section + section::before { /* 2px checker seam, the same dither the sprites use */
@@ -202,8 +222,10 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 }
 @media (max-width: 480px) {
   .bar { padding: 12px 16px; }
-  .bar nav { gap: 6px 14px; }
-  .bar nav a { font-size: .7rem; }
+  .bar nav { gap: 6px 8px; }
+  .bar nav a { padding: 5px 9px; font-size: .7rem; }
+  .bar nav a[aria-current="page"] { padding-left: 20px; }
+  .bar nav a[aria-current="page"]::before { left: 7px; }
   .logo { font-size: .9rem; }
 }
 @media (prefers-reduced-motion: reduce) {
