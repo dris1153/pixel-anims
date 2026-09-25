@@ -6,6 +6,38 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "tenochtitlan-eagle-lake",
+    tags: ["humanoid", "creature", "craft", "dawn"],
+    country: "mx",
+    title: "Founding of Tenochtitlan",
+    still: 186,
+    res: [160, 90],
+    loop: 16,
+    states: ["wander", "omen", "island", "chinampas", "causeway", "temple", "market", "newfire", "city", "return"],
+    kind: "Made with the skill",
+    note: "The city is four reveal layers baked at boot, chinampas, causeways, houses and the temple, each shown by its own growth threshold, so the morning mist takes the whole island back with one dither.",
+    prompt:
+      "Pixel art the founding of Tenochtitlan, the Aztec city on the lake, 160×90, one fixed shot, 16-second " +
+      "seamless loop, 10 states. Scene: a wide view across Lake Texcoco from the reedy western shore: a small rocky " +
+      "island in the middle of the blue lake, the snow volcanoes Popocatépetl (smoking) and Iztaccíhuatl on the far " +
+      "horizon, reeds and white herons in the foreground; the day turns from dawn to noon, dusk, a black night and " +
+      "back to dawn. Keep the frame readable: the island is the stage and grows from bare rock to a city while the " +
+      "shore stays the same. 1. wander: at dawn a line of Mexica travelers in white cotton and feather mantles " +
+      "walks the shore, a priest carrying the sacred bundle of their god Huitzilopochtli. 2. omen: on the island a " +
+      "nopal cactus heavy with red fruit catches the light; a golden eagle swoops down, lands on it and grips a " +
+      "writhing serpent in its beak, wings spread wide against the sun. 3. island: the travelers pole reed canoes " +
+      "across and plant a banner beside the cactus. 4. chinampas: they weave floating gardens of reeds and mud " +
+      "around the island; rows of maize, beans and orange marigolds sprout in grids of green. 5. causeway: stone " +
+      "causeways and canals reach out to the shores, and canoes loaded with goods glide along them. 6. temple: the " +
+      "Templo Mayor rises step by step in white stone with twin shrines on top, one red and one blue, smoke curling " +
+      "from both. 7. market: at noon the Tlatelolco market fills with colored cloth, cacao, feathers and pottery, " +
+      "drummers and dancers in green quetzal headdresses whirling. 8. newfire: at night every fire in the city goes " +
+      "out and the lake goes black, then priests kindle the New Fire on a far hill and torches race across the " +
+      "causeways until every house glows. 9. city: at dawn the whole island city gleams white and red on the blue " +
+      "lake below the volcanoes. 10. return: morning mist rolls over the lake, the city melts back into bare rock " +
+      "and reeds, and the eagle lifts off from the cactus as the travelers appear on the shore again.",
+  },
+  {
     slug: "rostam-white-div",
     tags: ["humanoid", "creature", "melee", "heal", "night"],
     country: "ir",
@@ -1438,7 +1470,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
