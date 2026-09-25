@@ -6,6 +6,32 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "suho-white-horse",
+    tags: ["humanoid", "creature", "projectile", "dusk"],
+    country: "mn",
+    title: "Suho's White Horse",
+    still: 660,
+    res: [160, 90],
+    loop: 12,
+    states: ["foal", "grow", "wolf", "naadam", "taken", "escape", "dream", "fiddle"],
+    kind: "Made with the skill",
+    note: "One horse drawing serves the foal, the racers, the white horse and the spirit herd, scaled and recoloured, so the music of the first horse-head fiddle can turn into horses galloping across the stars.",
+    prompt:
+      "Pixel art the Mongolian legend of Suho's white horse and the first horse-head fiddle, 160×90, one fixed " +
+      "shot, 12-second seamless loop, 8 states. Scene: the open steppe: a white felt ger with smoke curling at the " +
+      "left, rolling green grassland to far blue mountains, a wooden hitching post, and a huge sky that runs from a " +
+      "pink dawn to a gold noon, a violet dusk and a starry night. Keep the frame readable: Suho and the horse, and " +
+      "one other at a time. 1. foal: at dusk the shepherd boy Suho finds a tiny white foal alone in the grass and " +
+      "carries it home. 2. grow: the foal grows into a shining white horse; they gallop together across the steppe, " +
+      "sheep scattering. 3. wolf: at night a wolf creeps toward the flock; the horse rears and drives it off. 4. " +
+      "naadam: at the Naadam race, with flags and cheering crowds, the white horse wins far ahead of the rest. 5. " +
+      "taken: a rich lord in a fur hat seizes the horse and pushes Suho away. 6. escape: the horse throws the lord " +
+      "and gallops away through a rain of arrows to Suho's ger, then lies down and fades into light. 7. dream: the " +
+      "horse appears to Suho in a dream, glowing, and tells him to make an instrument from its hair and bones. 8. " +
+      "fiddle: Suho sits by the fire playing a fiddle with a carved horse head; the music turns into a herd of " +
+      "spirit horses galloping across the stars, and dawn breaks over the steppe.",
+  },
+  {
     slug: "nebula-run",
     tags: ["projectile", "impact", "space"],
     title: "Nebula Run",
@@ -1669,7 +1695,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['mn', 'Mongolia'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
