@@ -6,6 +6,38 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "yamata-no-orochi",
+    tags: ["humanoid", "creature", "melee", "night"],
+    country: "jp",
+    title: "Susanoo and Yamata no Orochi",
+    still: 470,
+    res: [160, 90],
+    loop: 16,
+    states: ["river", "elders", "comb", "sake", "orochi", "drink", "strike", "tail", "clouds", "palace"],
+    kind: "Made with the skill",
+    note: "The eight necks are one curve routine called eight times: they rise over four lava-bellied coils, dip into eight vats, and are cut one by one on the rhythm of the sword.",
+    prompt:
+      "Pixel art the Japanese myth of Susanoo and Yamata no Orochi, the eight-headed serpent, 160×90, one fixed " +
+      "shot, 16-second seamless loop, 10 states. Scene: the river Hi in the land of Izumo: a grassy bank in front " +
+      "with a thatched hut at the left, pines, the river running down to the right, and eight green hills and " +
+      "valleys stacked into the mist; the sky runs from dusk to a deep night lit by red serpent eyes, then to a " +
+      "dawn of eightfold clouds, and back to dusk. Keep the frame readable: Susanoo and one new arrival at a time. " +
+      "1. river: at dusk the storm god Susanoo, wild-haired in a white robe with a long sword, strides down to the " +
+      "river and points at chopsticks floating downstream. 2. elders: an old man and woman weep at the hut door " +
+      "beside their last daughter, Kushinada, as seven ghostly outlines of her lost sisters rise and fade. 3. comb: " +
+      "Susanoo touches Kushinada and she turns into a lacquered comb in a flash of light; he slides it into his " +
+      "hair, and the elders go inside. 4. sake: he builds a fence with eight red gates and sets a vat of strong " +
+      "sake in each; night falls and the vats steam. 5. orochi: the serpent comes over the hills: four great coils " +
+      "mossed with pines, a belly glowing like lava, and eight heads rising high on long necks, eyes red as winter " +
+      "cherries. 6. drink: each head plunges into a vat and gulps; the heads sway, droop and fall asleep one by " +
+      "one, snoring. 7. strike: Susanoo draws his sword and runs along the fence, cutting through the necks one " +
+      "after another, each in a burst of sparks. 8. tail: his blade chips on something hard in the middle tail; he " +
+      "splits it open and pulls out the shining sword Kusanagi, raising it high. 9. clouds: the serpent dissolves " +
+      "into mist, eightfold clouds boil up over Izumo at dawn, and Kushinada steps free from the comb beside him. " +
+      "10. palace: a new palace rises at Suga, with crossed roof beams and red pillars; the two walk inside as the " +
+      "light fades back to dusk and the palace becomes the old hut again.",
+  },
+  {
     slug: "hoan-kiem-returned-sword",
     tags: ["humanoid", "creature", "magic", "melee", "dawn"],
     country: "vn",
