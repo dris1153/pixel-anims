@@ -9,13 +9,13 @@ const files = import.meta.glob('../stories/*/*.md', { query: '?raw', import: 'de
 const NO_DROPCAP = new Set(['ko', 'ja', 'zh', 'th', 'hi', 'ar']); // scripts without letter case or an initial to raise
 const nameOf = code => LANGS.find(l => l.code === code)?.name ?? code;
 
-// { use, meta, sections, beats: Map(state -> text) } or null when the showcase has no story.
+// { use, meta, sections, beats: [{ key, text }] in state order } or null when the showcase has no story.
 export async function loadStory(s) {
   const have = LANGS.map(l => l.code).filter(c => files[`../stories/${s.slug}/${c}.md`]);
   if (!have.length) return null;
   const use = have.includes(lang) ? lang : have.includes('en') ? 'en' : have[0];
   const { meta, sections } = parseStory(await files[`../stories/${s.slug}/${use}.md`]());
-  const beats = new Map((sections.find(sec => sec.id === 'beats')?.items ?? []).map(i => [i.key, i.text]));
+  const beats = sections.find(sec => sec.id === 'beats')?.items ?? [];
   return { use, meta, sections, beats };
 }
 

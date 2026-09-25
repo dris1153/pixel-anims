@@ -17,7 +17,7 @@ export function animTiming(s) {
   return timings.get(s.slug);
 }
 
-// beats: Map(state -> text) from the story, or null; lang: the story's language (the tip reads in it);
+// beats: the story's [{ key, text }] in state order, or null (a state repeated in the loop gets its own line); lang: the story's language (the tip reads in it);
 // seek({ start, settled }): the state's first tick and its first settled pose.
 export function mountTimeline(s, box, { beats, lang, seek }) {
   const node = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
@@ -42,7 +42,7 @@ export function mountTimeline(s, box, { beats, lang, seek }) {
     label.append(node('span', 'tl-name', state), node('span', 'tl-time'));
     button.append(label);
     li.append(button);
-    const text = beats?.get(state);
+    const text = beats?.[k]?.key === state ? beats[k].text : beats?.find(b => b.key === state)?.text;
     if (text) { const p = node('p', 'tl-desc', text); if (lang) { p.lang = lang; if (lang === 'ar') p.dir = 'rtl'; } li.append(p); }
     button.addEventListener('click', async () => {
       const ticks = await stateTicks(s, k).catch(() => null);
