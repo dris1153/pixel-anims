@@ -1,0 +1,887 @@
+<title>Don Quixote and the Windmills</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #140c10; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #140c10; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art animation of Don Quixote charging the windmills of La Mancha: the knight and Sancho Panza ride in at dawn, the windmills turn into glaring giants in his eyes, he charges, the lance jams in a turning sail that swings him round and flings him into the dust, and he dusts himself off and rides on"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // dust and splinters are culled at the road in step()
+const POSE_STEP = 6;               // 10 fps pose frames
+const GY = 80;                     // the road the riders travel
+const HUBX = 120, HUBY = 41;       // the nearest windmill's sail hub
+const SAILR = 21;                  // its sail length
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#140c10',
+  '#3c78c8', '#78aee0', '#c4e0ee',
+  '#5a4a8c', '#c2708e', '#f4b890', '#fff4d6',
+  '#8a5a26', '#c8943c', '#ecc868', '#e8d8b0', '#a87c50',
+  '#3c4a2c', '#6a7a48', '#9aa66c',
+  '#a8a09a', '#f6f0e4', '#3e2a28',
+  '#5a3a22', '#8c6038',
+  '#6a5a4a', '#a08c74', '#d0bea0',
+  '#464a5c', '#8a8e9e', '#ccd0dc',
+  '#c8962e', '#f6d274',
+  '#b07650', '#ecb48c',
+  '#c23a30',
+];
+const INK = 0, SKY_A = 1, SKY_B = 2, SKY_C = 3, DWN_A = 4, DWN_B = 5, DWN_C = 6, SUN = 7,
+  FLD_D = 8, FLD_M = 9, FLD_L = 10, DUST = 11, EARTH = 12, OLV_D = 13, OLV_M = 14, OLV_L = 15,
+  WALL_D = 16, WALL = 17, ROOF = 18, WOOD_D = 19, WOOD_M = 20, HOR_D = 21, HOR_M = 22, HOR_L = 23,
+  STL_D = 24, STL_M = 25, STL_L = 26, GOLD_M = 27, GOLD_L = 28, SKIN_D = 29, SKIN_L = 30, RED = 31;
+
+// One step brighter per ramp; sky and whitewash climb toward the pale sun.
+const LIGHTEN = Uint8Array.of(
+  STL_D,
+  SKY_B, SKY_C, SUN,
+  DWN_B, DWN_C, SUN, SUN,
+  FLD_M, FLD_L, SUN, SUN, DUST,
+  OLV_M, OLV_L, OLV_L,
+  WALL, SUN, WOOD_D,
+  WOOD_M, GOLD_M,
+  HOR_M, HOR_L, HOR_L,
+  STL_M, STL_L, STL_L,
+  GOLD_L, GOLD_L,
+  SKIN_L, SKIN_L,
+  RED);
+const RAMP_DUST = Uint8Array.of(DUST, DUST, EARTH, FLD_D);
+const RAMP_CHIP = Uint8Array.of(GOLD_L, WOOD_M, WOOD_D, INK);
+const RAMP_STAR = Uint8Array.of(SUN, GOLD_L, GOLD_M, WOOD_M);
+const RAMPS = [RAMP_DUST, RAMP_CHIP, RAMP_STAR];
+const RIM = Uint8Array.of(GOLD_L, SUN, SUN);
+const RIM_BANDS = Uint16Array.of(200, 220, 240); // the sun lights every edge that faces it, near or far
+const LIGHT = Float32Array.of(-0.6, -0.8);        // the sun, up on the left
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[INK] = RIM_OK[SUN] = RIM_OK[RED] = RIM_OK[WOOD_D] = RIM_OK[WOOD_M] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY_A] = AIR[SKY_B] = AIR[SKY_C] = 1;
+
+const PLAIN = 0, GIANTS = 1, CHARGE = 2, SAIL = 3, FALL = 4, RIDE = 5;
+const DUR = Uint16Array.of(108, 96, 72, 120, 96, 108); // L = 600: near sails pi/160 per tick, far pi/200
+const EASE = Uint16Array.of(6, 6, 6, 6, 6, 6);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 0, 0, 0);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = [REST, REST, REST, REST, REST, REST];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables
+const TWO_PI = Math.PI * 2;
+const OMEGA = Math.PI / 160, T_SAIL = 276;       // near sails turn pi/160 per tick; 480 ticks of it plus the boosted turn close the loop
+const LA_UP = -1.42, LA_POINT = -0.6, LA_COUCH = -0.35;
+const SKYM = new Uint8Array(N);
+const DAWN = new Uint8Array(PAL.length);
+const lay = new Uint8Array(N), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let grp = 0, pid = 0, lx0 = 0, ly0 = 0, lx1 = -1, ly1 = -1, bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+const pWL = new Float32Array(MAXP);
+// Horse legs: near hind, far hind, near front, far front; walk phases; gallop hoof offsets per frame.
+const LEG_AX = Int8Array.of(-6, -4, 4, 6), LEG_PH = Uint8Array.of(0, 2, 1, 3);
+const WALK_DX = Int8Array.of(-2, 0, 2, 0), WALK_UP = Int8Array.of(0, 0, 0, -2);
+const GAL_HX = Int8Array.of(-4, 2, -1, -3), GAL_HY = Int8Array.of(0, -2, 0, -1), GAL_FX = Int8Array.of(4, -2, 1, 3), GAL_FY = Int8Array.of(-1, -2, 0, -2), GAL_BOB = Int8Array.of(0, -1, 0, 0);
+const AC = new Float32Array(4), AS = new Float32Array(4);
+const MOUNT = 0, STAND = 1, HANG = 2, LIE = 3;
+// Local-to-world transform for rotated figures, and its last result.
+let XO = 0, XY = 0, XC = 1, XS = 0, TX = 0, TY = 0, HFX = 0, HFY = 0;
+let A0 = 0, PHI = 0, FX0 = 0, FY0 = 0, FR0 = 0, MILLN = 59;
+// Sampled beat
+let pfr = 0, swOn = 1, swDir = 0, swE = 0, sunX = 22, sunY = 50, gB = 0, aN = 0, aF1 = 0, aF2 = 0,
+  hX = -24, hXr = -24, hGait = 0, hRear = 0,
+  kMode = MOUNT, kX = 0, kY = 0, kR = 0, nhX = 4, nhY = -5, fhX = 3, fhY = -4, kLA = LA_UP, lance = 1, kWalk = 0, kFlail = 0, dizzy = 0, kShout = 0,
+  sX = -44, sWalk = 0, sArm = 0, sShout = 0;
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return a + (b - a) * e;
+}
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+}
+function moundY(x) { // the low hill the near windmill stands on
+  return 64 - 5 * Math.max(0, 1 - ((x - 122) / 34) ** 2);
+}
+function olive(cx, cy, r, t) { // an olive crown: grey-green, lit up-left, holes of shadow
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r - 2; dx <= r + 2; dx++) {
+    const ex = dx / (r + 2), ey = dy / r;
+    if (ex * ex + ey * ey > 1) continue;
+    const x = cx + dx, y = cy + dy, lit = dx + dy < -r * 0.6, sh = dx + dy > r * 0.5;
+    plot(t, x, y, (x * 7 + y * 3) % 11 === 0 ? OLV_D : lit ? OLV_L : sh ? OLV_D : OLV_M);
+  }
+}
+function mill(hx, hy, sc, base) { // whitewashed tower, dark conical cap, door and window
+  const top = Math.round(hy + 3 * sc);
+  for (let y = top; y <= base; y++) {
+    const hw = Math.round(mix(5 * sc, 7 * sc, (y - top) / Math.max(1, base - top)));
+    for (let x = hx - hw; x <= hx + hw; x++) plot(bg, x, y, x > hx + hw * 0.4 ? WALL_D : WALL);
+  }
+  for (let y = Math.round(hy - 7 * sc); y < top; y++) {
+    const hw = Math.round((y - (hy - 7 * sc)) / (10 * sc) * 7 * sc);
+    for (let x = hx - hw; x <= hx + hw; x++) plot(bg, x, y, x < hx - hw * 0.5 ? WOOD_D : ROOF);
+  }
+  if (sc > 0.5) {
+    rect(bg, hx - 1, base - Math.round(5 * sc), 3, Math.round(5 * sc), ROOF);
+    plot(bg, hx - 3, top + 4, ROOF); plot(bg, hx - 3, top + 5, ROOF);
+  }
+}
+
+function buildBackground() {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let c = y < 20 ? SKY_A : y < 40 ? SKY_B : SKY_C;
+    if ((y === 19 || y === 39) && dith(x, y, 0.5)) c++;
+    bg[y * W + x] = c; SKYM[y * W + x] = 1;
+  }
+  for (let x = 0; x < W; x++) { // far plain, then the golden fields
+    const hz = 54 + Math.round(Math.sin(x * 0.09) * 0.8 + Math.sin(x * 0.031 + 1) * 1.2);
+    for (let y = hz; y < H; y++) {
+      const i = y * W + x;
+      SKYM[i] = 0;
+      bg[i] = y < hz + 2 ? ((x * 5 + y) % 4 === 0 ? OLV_D : EARTH) : y === 57 || y === 60 || y === 64 || y === 69 ? ((x + y) % 4 ? FLD_D : FLD_M)
+        : (y === 58 || y === 62 || y === 66) && (x * 3 + y) % 5 ? FLD_L : FLD_M;
+    }
+    const mt = Math.round(moundY(x));
+    if (mt < 64) for (let y = mt; y < 70; y++) plot(bg, x, y, y === mt ? FLD_L : y > 66 ? FLD_M : (x * 3 + y * 5) % 7 === 0 ? EARTH : FLD_D);
+  }
+  for (let x = 0; x < W; x++) { // the dusty road across the front
+    const top = 77 + Math.round(Math.sin(x * 0.07) * 1.5);
+    for (let y = top; y < H; y++) plot(bg, x, y, y === top ? EARTH : (y === 82 || y === 86) && (x + (y >> 1)) % 6 < 4 ? EARTH : DUST);
+  }
+  for (const [x, y, r] of [[30, 55, 2], [86, 56, 2], [98, 55, 1], [138, 57, 2]]) olive(x, y, r, bg);
+  MILLN = Math.round(moundY(HUBX));
+  mill(58, 45, 0.4, 55);
+  mill(150, 44, 0.62, 58);
+  mill(HUBX, HUBY, 1, MILLN);
+  line(bg, 10, 77, 11, 65, WOOD_D); line(bg, 11, 77, 12, 64, WOOD_M); line(bg, 11, 68, 6, 62, WOOD_D); line(bg, 12, 67, 17, 61, WOOD_D); // a twisted olive by the road
+  olive(12, 59, 6, bg);
+  for (let c = 0; c < PAL.length; c++) DAWN[c] = c;
+  const map = a => { for (let k = 0; k < a.length; k += 2) DAWN[a[k]] = a[k + 1]; };
+  map([SKY_A, DWN_A, SKY_B, DWN_B, SKY_C, DWN_C, WALL_D, DWN_B, FLD_L, DWN_C, DUST, DWN_C, OLV_L, OLV_M]);
+  // The charge ends with the couched lance tip on the near sail: turn that arm to meet it there.
+  const hipX = 82 - 1, hipY = GY - 15, tipX = hipX + 5 + 24 * Math.cos(LA_COUCH), tipY = hipY - 5 + 24 * Math.sin(LA_COUCH);
+  A0 = Math.atan2(tipY - HUBY, tipX - HUBX); PHI = A0 - OMEGA * T_SAIL;
+  hangAt(A0); FX0 = kX; FY0 = kY; FR0 = kR;
+  lay.fill(EMPTY);
+}
+
+// The knight clinging to the sail, hands 12px out on the arm, swung feet-outward.
+function hangAt(a) {
+  const hx = HUBX + 12 * Math.cos(a), hy = HUBY + 12 * Math.sin(a), r = a - Math.PI / 2, c = Math.cos(r), s = Math.sin(r);
+  kR = r; kX = hx - c - 17 * s; kY = hy - s + 17 * c;
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
+function sample() {
+  snap.set(pose);
+  const T = state, t = stT;
+  pfr = tick / POSE_STEP | 0;
+  // Sky: dawn gives way to noon, and noon to dawn as they ride off
+  swOn = T === PLAIN || T === RIDE ? 1 : 0; swDir = T === RIDE ? 1 : 0;
+  swE = T === PLAIN ? ease((t - 12) / 84) : ease((t - 48) / 60);
+  const day = T === PLAIN ? swE : T === RIDE ? 1 - swE : 1;
+  sunX = Math.round(mix(22, 32, day)); sunY = Math.round(mix(50, 12, day));
+  gB = T === GIANTS ? ease((t - 24) / 42) : T === CHARGE || T === SAIL ? 1 : T === FALL ? 1 - ease((t - 30) / 42) : 0;
+  aN = T < SAIL ? PHI + OMEGA * tick : T === SAIL ? A0 + TWO_PI * ease((t - 6) / 96) : A0 + TWO_PI + OMEGA * (tick - T_SAIL - 120);
+  aF1 = tick * Math.PI / 150; aF2 = 0.4 + tick * Math.PI / 200;
+  // Rocinante
+  hGait = 0; hRear = 0;
+  if (T === PLAIN) { if (t < 84) { hX = mix(-24, 40, t / 84); hGait = 1; } else hX = 40; }
+  else if (T === GIANTS) hX = 40;
+  else if (T === CHARGE) { const u = Math.max(0, (t - 6) / 66); hX = mix(40, 82, u * (0.5 + 0.5 * u)); if (t >= 6) hGait = 2; }
+  else if (T === SAIL) { hX = 82; hRear = ease((t - 6) / 10) * (1 - ease((t - 26) / 12)); hGait = hRear > 0.3 ? 4 : t >= 40 ? 3 : 0; }
+  else if (T === FALL) { hX = 82; hGait = t < 60 ? 3 : 0; }
+  else { if (t < 54) hX = 82; else { hX = mix(82, 206, (t - 54) / 54); hGait = 2; } }
+  hXr = hX + (hGait === 3 ? pfr & 1 : 0);
+  const bob = hGait === 2 ? GAL_BOB[pfr & 3] : 0;
+  // Don Quixote
+  kMode = MOUNT; kX = hXr - 1; kY = GY - 15 + bob; kR = 0; nhX = 4; nhY = -5; fhX = 3; fhY = -4; kLA = LA_UP; kWalk = 0; kFlail = 0; dizzy = 0; kShout = 0;
+  lance = T === PLAIN || T === GIANTS || T === CHARGE || (T === SAIL && t < 108) ? 1 : 2;
+  if (T === GIANTS && t >= 6) { const e = ease((t - 6) / 12); nhX = mix(4, 6, e); nhY = mix(-5, -8, e) + (t >= 36 ? pfr & 1 : 0); kLA = mix(LA_UP, LA_POINT, e); }
+  else if (T === CHARGE) { nhX = 5; nhY = -5; kLA = LA_COUCH; }
+  else if (T === SAIL) {
+    if (t < 6) { nhX = 5; nhY = -5; kLA = LA_COUCH; }
+    else if (t < 108) {
+      const b = ease((t - 6) / 12), sx = kX, sy = kY;
+      hangAt(aN); kMode = HANG; kX = mix(sx, kX, b); kY = mix(sy, kY, b); kR *= b;
+      nhX = mix(5, 1, b); nhY = mix(-5, -17, b); fhX = mix(3, 0, b); fhY = mix(-4, -17, b); kFlail = b > 0.5 ? 1 : 0;
+    } else flight(t - 108);
+  } else if (T === FALL) {
+    if (t < 18) flight(t + 12);
+    else {
+      const b = ease((t - 54) / 30);
+      kMode = b > 0.5 ? STAND : LIE; kX = 62; kY = mix(GY - 2, GY - 10, b); kR = mix(-Math.PI / 2, 0, b);
+      nhX = mix(6, 3, b); nhY = mix(-4, -4, b); fhX = -2; fhY = -3; kLA = mix(0.2, LA_UP, b); dizzy = t < 60 ? 1 : 0;
+    }
+  } else if (T === RIDE) {
+    kLA = LA_UP;
+    if (t < 36) {
+      kMode = STAND; kX = 62; kY = GY - 10;
+      if (t < 18) { nhX = pfr & 1 ? 3 : 1; nhY = pfr & 1 ? -3 : -6; fhX = 2; fhY = -2; kLA = 0.3; }
+      else { nhX = 3; nhY = -19; kLA = -Math.PI / 2; kShout = 1; }
+    } else if (t < 48) { kMode = STAND; kX = mix(62, 78, (t - 36) / 12); kY = GY - 10; kWalk = 1; }
+    else if (t < 54) { const b = ease((t - 48) / 6); kMode = b >= 0.5 ? MOUNT : STAND; kX = mix(78, hXr - 1, b); kY = mix(GY - 10, GY - 15, b) - 4 * Math.sin(Math.PI * b); }
+  }
+  // Sancho Panza on his donkey
+  sWalk = 0; sArm = 0; sShout = 0;
+  if (T === PLAIN) { sX = mix(-44, 18, Math.min(1, t / 90)); sWalk = t < 90 ? 1 : 0; }
+  else if (T === GIANTS) { sX = 18; sArm = t >= 30 ? 1 : 0; }
+  else if (T === CHARGE) { sX = 18; sArm = 2; sShout = 1; }
+  else if (T === SAIL) { sX = 18; sArm = 3; sShout = t < 72 ? 1 : 0; }
+  else if (T === FALL) { sX = mix(18, 36, ease((t - 12) / 36)); sWalk = t >= 12 && t < 48 ? 1 : 0; sArm = t >= 54 ? 1 : 0; }
+  else { sX = t < 54 ? 36 : mix(36, 186, (t - 54) / 54); sWalk = t >= 54 ? 2 : 0; }
+  srcX = sunX; srcY = sunY; rim = 1;
+}
+// Flung off the sail: one tumbling arc to the road, landing flat on his back.
+function flight(ft) {
+  const u = Math.min(1, ft / 30);
+  kMode = u < 1 ? HANG : LIE; kFlail = 1;
+  kX = mix(FX0, 62, u); kY = mix(FY0, GY - 2, u) - 22 * Math.sin(Math.PI * u); kR = mix(FR0, -Math.PI / 2 - TWO_PI, u);
+  nhX = pfr & 1 ? 5 : -3; nhY = pfr & 1 ? -12 : -14; fhX = pfr & 1 ? -3 : 4; fhY = -13; kLA = kR - 1.2;
+}
+
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function step() {
+  if (tick % POSE_STEP === 0) sample();
+  const T = state, t = stT;
+  if (T === PLAIN && t < 84 && tick % 9 === 0) sp(MOTE, 14 + rand() * 8, hX - 6 + rand() * 12, GY - 1, -0.2, -0.12, 0, 99);
+  if (T === CHARGE && t >= 6 && tick % 2 === 0) sp(MOTE, 16 + rand() * 12, hX - 8 + rand() * 6, GY - 1 - rand() * 2, -0.5 - rand() * 0.4, -0.15, 0, 99);
+  if (T === GIANTS && t >= 24 && t < 66 && tick % 3 === 0) {
+    const n = rand() < 0.6, x = n ? HUBX + (rand() - 0.5) * 30 : 150 + (rand() - 0.5) * 18, y = n ? HUBY + (rand() - 0.5) * 30 : 44 + (rand() - 0.5) * 16;
+    sp(MOTE, 12 + rand() * 10, x, y, 0, -0.2, 2, 99);
+  }
+  if (T === SAIL && t === 0) {
+    shakeT = 6;
+    for (let k = 0; k < 10; k++) sp(BURST, 10 + rand() * 10, 108, 52, (rand() - 0.2) * 1.4, -0.4 - rand() * 0.8, 1, GY);
+  }
+  if (T === SAIL && t >= 6 && t < 30 && tick % 3 === 0) sp(BURST, 16 + rand() * 10, hX + 8 + rand() * 6, GY - 1, (rand() - 0.5) * 1.2, -0.5 - rand() * 0.6, 0, GY);
+  if (T === SAIL && t === 108) {
+    shakeT = 12; flashT = 2;
+    for (let k = 0; k < 22; k++) sp(BURST, 14 + rand() * 16, FX0 + 1, FY0 - 12, (rand() - 0.6) * 2.2, -0.6 - rand() * 1.4, 1, GY);
+  }
+  if (T === FALL && t === 18) {
+    shakeT = 10;
+    for (let k = 0; k < 18; k++) sp(BURST, 16 + rand() * 14, 62 + (rand() - 0.5) * 20, GY - 1, (rand() - 0.5) * 2, -0.5 - rand() * 1.2, 0, GY);
+  }
+  if (T === RIDE && t < 18 && tick % 4 === 0) sp(MOTE, 12 + rand() * 8, 60 + rand() * 6, GY - 8 - rand() * 8, (rand() - 0.5) * 0.4, -0.1, 0, 99);
+  if (T === RIDE && t >= 54 && t < 84 && tick % 2 === 0) {
+    sp(MOTE, 14 + rand() * 10, hX - 8 + rand() * 6, GY - 1, -0.5 - rand() * 0.4, -0.15, 0, 99);
+    sp(MOTE, 12 + rand() * 8, sX - 6 + rand() * 4, GY - 1, -0.4 - rand() * 0.3, -0.12, 0, 99);
+  }
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === BURST && pvy[i] > 0 && py[i] > pWL[i]) pKind[i] = 0;
+}
+
+function hint(x0, y0, x1, y1) {
+  bx0 = Math.max(0, x0 | 0); by0 = Math.max(0, y0 | 0); bx1 = Math.min(W - 1, x1 | 0); by1 = Math.min(H - 1, y1 | 0);
+}
+function layBox() {
+  lx0 = W; ly0 = H; lx1 = -1; ly1 = -1;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (lay[y * W + x] === EMPTY) continue;
+    if (x < lx0) lx0 = x;
+    if (x > lx1) lx1 = x;
+    if (y < ly0) ly0 = y;
+    ly1 = y;
+  }
+}
+function layEnd() { // copy the part into spr, then ink the other actors' parts it borders
+  layBox();
+  GRP[++pid] = grp;
+  for (let y = ly0; y <= ly1; y++) for (let x = lx0; x <= lx1; x++) {
+    const i = y * W + x;
+    if (lay[i] !== EMPTY) { spr[i] = lay[i]; own[i] = pid; }
+  }
+  for (let y = Math.max(1, ly0 - 1); y <= Math.min(H - 2, ly1 + 1); y++) for (let x = Math.max(1, lx0 - 1); x <= Math.min(W - 2, lx1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
+  }
+  for (let y = by0; y <= by1; y++) lay.fill(EMPTY, y * W + bx0, y * W + bx1 + 1);
+  hint(0, 0, W - 1, H - 1);
+}
+
+function xf(ox, oy, r) {
+  XO = ox; XY = oy; XC = Math.cos(r); XS = Math.sin(r);
+}
+function tf(lx, ly) {
+  TX = XO + lx * XC - ly * XS; TY = XY + lx * XS + ly * XC;
+}
+function cap(ax, ay, ra, bx, by, rb, d, m, l) {
+  tf(ax, ay);
+  const x0 = TX, y0 = TY;
+  tf(bx, by);
+  capsule(lay, x0, y0, ra, TX, TY, rb, d, m, l);
+}
+function dotL(lx, ly, c) {
+  tf(lx, ly);
+  plot(lay, Math.round(TX), Math.round(TY), c);
+}
+function limbL(ax, ay, bx, by, d, m, l) { // two-bone arm in local space, elbow solved in world space
+  tf(ax, ay);
+  const sx = TX, sy = TY;
+  tf(bx, by);
+  joint(sx, sy, TX, TY, 4.5, 4.5, 1);
+  capsule(lay, sx, sy, 1.2, jx, jy, 1, d, m, l);
+  capsule(lay, jx, jy, 1, TX, TY, 0.9, d, m, l);
+  plot(lay, Math.round(TX), Math.round(TY), SKIN_L);
+}
+
+function hoof(k) {
+  const front = k >= 2, ax = LEG_AX[k];
+  HFX = ax + (front ? 0 : -1); HFY = 0;
+  if (hGait === 1) { const p = (pfr + LEG_PH[k]) & 3; HFX += WALK_DX[p]; HFY = WALK_UP[p]; }
+  else if (hGait === 2) { const p = (pfr + (k & 1)) & 3; HFX = ax + (front ? GAL_FX[p] : GAL_HX[p]); HFY = front ? GAL_FY[p] : GAL_HY[p]; }
+  else if (hGait === 4 && front) { HFX = ax + 3; HFY = -6 - (k & 1); }
+}
+function horseLeg(k, bob) {
+  const near = !(k & 1), front = k >= 2, ax = LEG_AX[k], ay = -10 + bob;
+  hoof(k);
+  let kx = (ax + HFX) / 2 + (front ? 1 : -1), ky = (ay + HFY) / 2;
+  if (hGait === 4 && front) { kx = ax + 4; ky = -10; }
+  const m = near ? HOR_M : HOR_D, l = near ? HOR_L : HOR_M;
+  cap(ax, ay, 1.1, kx, ky, 0.8, HOR_D, m, l);
+  cap(kx, ky, 0.8, HFX, HFY - 1, 0.7, HOR_D, m, l);
+  dotL(HFX, HFY, WOOD_D);
+}
+function drawHorse() { // Rocinante: tall, bony, drooping head; rears by pivoting on the hind hooves
+  grp = 1;
+  const r = -0.45 * hRear, c = Math.cos(r), s = Math.sin(r), bob = hGait === 2 ? GAL_BOB[pfr & 3] : 0, run = hGait === 2;
+  xf(hXr - 6 + 6 * c, GY + 6 * s, r);
+  horseLeg(1, bob); horseLeg(3, bob);
+  cap(-8, -13 + bob, 1.1, -11, -7 + (pfr & 1), 0.6, HOR_D, HOR_D, HOR_M);                       // tail
+  cap(-8, -12 + bob, 3, 5, -12 + bob, 3.2, HOR_D, HOR_M, HOR_L);                                  // barrel
+  for (let x = -3; x <= 1; x += 2) { dotL(x, -12 + bob, HOR_D); dotL(x, -11 + bob, HOR_D); }         // ribs
+  for (let x = -3; x <= 1; x++) dotL(x, -15 + bob, x === -3 || x === 1 ? WOOD_D : RED);            // saddle cloth
+  const nx = run ? 10 : 8, ny = run ? -18 : -18;
+  cap(4, -13 + bob, 2.2, nx, ny + bob, 1.5, HOR_D, HOR_M, HOR_L);                                 // neck
+  cap(nx, ny - 1 + bob, 1.7, nx + 4, ny + 3 + bob, 1.1, HOR_D, HOR_M, HOR_L);                     // long face
+  dotL(nx - 1, ny - 3 + bob, HOR_D); dotL(nx - 1, ny - 4 + bob, HOR_M);                           // ear
+  dotL(nx + 1, ny - 1 + bob, INK);
+  for (let k = 0; k < 3; k++) dotL(5 + k, -15 - k * 1.5 + bob, HOR_D);                              // mane
+  horseLeg(0, bob); horseLeg(2, bob);
+  hint(hXr - 26, GY - 36, hXr + 26, H - 1);
+  layEnd();
+}
+
+function drawKnight(part) { // Don Quixote: lanky, dented armor, a barber's basin for a helmet
+  grp = 2;
+  xf(kX, kY, kR);
+  const st = kMode !== MOUNT, w = kFlail ? (pfr & 1 ? 1 : -1) : kWalk ? (pfr & 1 ? 2 : -2) : 0;
+  if (part === 0) {
+    if (kMode === MOUNT) { cap(0, 0, 1.4, 2, 4, 1.2, STL_D, STL_D, STL_M); cap(2, 4, 1.2, 1, 7, 1, STL_D, STL_D, STL_M); dotL(1, 8, WOOD_D); }
+    else { cap(0, 0, 1.4, -1 - w, 5, 1.2, STL_D, STL_D, STL_M); cap(-1 - w, 5, 1.2, -1 - w * 2, 9, 1, STL_D, STL_D, STL_M); dotL(-1 - w * 2, 10, WOOD_D); }
+    limbL(0, -8, fhX, fhY, STL_D, STL_D, STL_M);
+    tf(fhX, fhY);
+    const bx = Math.round(TX) - 1, by = Math.round(TY);
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (dx * dx + dy * dy <= 5) plot(lay, bx + dx, by + dy, dx * dx + dy * dy >= 4 ? GOLD_M : STL_M); // buckler
+    hint(kX - 40, kY - 40, kX + 40, kY + 40);
+    layEnd();
+    return;
+  }
+  cap(0, 0, 2, 1, -9, 2.4, STL_D, STL_M, STL_L);                                                  // cuirass
+  dotL(-1, -1, WOOD_D); dotL(0, -1, WOOD_D); dotL(1, -1, WOOD_D);                                  // belt
+  cap(1, -10, 0.9, 2, -11, 0.9, SKIN_D, SKIN_L, SKIN_L);
+  cap(2, -13, 1.8, 2, -15, 1.9, SKIN_D, SKIN_L, SKIN_L);                                          // long face
+  dotL(3, -11, STL_L); dotL(2, -11, STL_L); dotL(3, -12, STL_L); dotL(4, -13, STL_L);                 // grey beard, moustache
+  dotL(3, -15, INK); dotL(4, -14, SKIN_D);
+  for (let x = -1; x <= 4; x++) dotL(x, -17, x === 4 ? GOLD_L : GOLD_M);                            // the basin
+  for (let x = 0; x <= 3; x++) dotL(x, -18, GOLD_L);
+  dotL(-2, -16, GOLD_M); dotL(5, -16, GOLD_M);
+  if (kMode === MOUNT) { cap(0, 0, 1.5, 3, 4, 1.3, STL_D, STL_M, STL_L); cap(3, 4, 1.3, 2, 8, 1.1, STL_D, STL_M, STL_L); dotL(3, 9, WOOD_D); dotL(2, 9, WOOD_D); }
+  else { cap(0, 0, 1.5, 1 + w, 5, 1.3, STL_D, STL_M, STL_L); cap(1 + w, 5, 1.3, 1 + w * 2, 9, 1.1, STL_D, STL_M, STL_L); dotL(1 + w * 2, 10, WOOD_D); dotL(2 + w * 2, 10, WOOD_D); }
+  limbL(1, -8, nhX, nhY, STL_D, STL_M, STL_L);
+  if (lance) {
+    tf(nhX, nhY);
+    const hx = TX, hy = TY;
+    let ux = Math.cos(kLA), uy = Math.sin(kLA);
+    let tx = hx + ux * 24, ty = hy + uy * 24, bxx = hx - ux * 7, byy = hy - uy * 7;
+    if (kMode === HANG && lance === 1) { // jammed in the sail: run from his hands to the lattice
+      tx = HUBX + 18 * Math.cos(aN); ty = HUBY + 18 * Math.sin(aN);
+      const l = Math.hypot(tx - hx, ty - hy) || 1; ux = (tx - hx) / l; uy = (ty - hy) / l; bxx = hx - ux * 5; byy = hy - uy * 5;
+    }
+    if (lance === 2) { tx = hx + ux * 7; ty = hy + uy * 7; bxx = hx - ux * 4; byy = hy - uy * 4; }
+    line2(lay, Math.round(bxx), Math.round(byy), Math.round(tx), Math.round(ty), WOOD_M, WOOD_D);
+    if (lance === 1) { plot(lay, Math.round(tx), Math.round(ty), STL_L); plot(lay, Math.round(tx - ux), Math.round(ty - uy), STL_M); }
+    else { plot(lay, Math.round(tx + ux - uy), Math.round(ty + uy + ux), WOOD_M); plot(lay, Math.round(tx + ux + uy), Math.round(ty + uy - ux), GOLD_L); }
+    plot(lay, Math.round(hx), Math.round(hy), SKIN_L);
+  }
+  hint(kX - 40, kY - 40, kX + 40, kY + 40);
+  layEnd();
+}
+
+function drawSancho() { // Sancho Panza: round, straw hat, on a small grey donkey
+  const f = sWalk ? pfr & 3 : 0, sb = sWalk === 2 ? (pfr & 1 ? -1 : 0) : 0;
+  xf(Math.round(sX), GY, 0);
+  grp = 3;
+  for (let k = 1; k < 4; k += 2) { const ax = k < 2 ? -3 : 4, p = (f + LEG_PH[k]) & 3, dx = sWalk ? WALK_DX[p] : 0, up = sWalk ? WALK_UP[p] : 0; cap(ax, -5 + sb, 0.9, ax + dx, up - 1, 0.6, STL_D, STL_D, STL_M); dotL(ax + dx, up, INK); }
+  cap(-6, -8 + sb, 0.8, -8, -4 + sb, 0.5, STL_D, STL_D, STL_M);                                  // tail
+  cap(-5, -7 + sb, 2.4, 4, -7 + sb, 2.6, STL_D, STL_M, STL_L);                                    // body
+  cap(4, -8 + sb, 1.6, 6, -10 + sb, 1.4, STL_D, STL_M, STL_L);
+  cap(6, -11 + sb, 1.7, 9, -9 + sb, 1.3, STL_D, STL_M, STL_L);                                    // head
+  for (let k = 0; k < 3; k++) { dotL(5 - (k >> 1), -13 - k + sb, STL_D); dotL(6, -13 - k + sb, STL_M); } // long ears
+  dotL(7, -11 + sb, INK); dotL(9, -9 + sb, STL_L);
+  for (let k = 0; k < 4; k += 2) { const ax = k < 2 ? -4 : 3, p = (f + LEG_PH[k]) & 3, dx = sWalk ? WALK_DX[p] : 0, up = sWalk ? WALK_UP[p] : 0; cap(ax, -5 + sb, 0.9, ax + dx, up - 1, 0.6, STL_D, STL_M, STL_L); dotL(ax + dx, up, INK); }
+  hint(sX - 16, GY - 32, sX + 16, H - 1);
+  layEnd();
+  grp = 4;
+  const y0 = -9 + sb, wv = pfr & 1;
+  let nx = 2, ny = -11, fx = 1, fy = -11;
+  if (sArm === 1) { nx = 7; ny = -18 + wv; }
+  else if (sArm === 2) { nx = wv ? 3 : 5; ny = wv ? -23 : -20; fx = wv ? -5 : -4; fy = wv ? -21 : -24; }
+  else if (sArm === 3) { nx = 1; ny = -21; fx = -3; fy = -21; }
+  limbS(-2, -14 + sb, fx, fy + sb, OLV_D, OLV_D, OLV_M);
+  cap(-1, y0, 3, -1, y0 - 5, 2.8, OLV_D, OLV_M, OLV_L);                                            // round belly
+  for (let x = -3; x <= 1; x++) dotL(x, y0 - 1, WOOD_D);
+  cap(-1, y0 - 8, 2, -1, y0 - 9, 2.1, SKIN_D, SKIN_L, SKIN_L);
+  const hs = sArm === 1 && wv ? 1 : 0;
+  dotL(0 + hs, y0 - 9, INK); dotL(1 + hs, y0 - 8, SKIN_D); dotL(0, y0 - 7, WOOD_D); dotL(-1, y0 - 7, WOOD_D);
+  for (let x = -4; x <= 2; x++) dotL(x, y0 - 11, FLD_L);                                          // straw hat
+  for (let x = -3; x <= 1; x++) { dotL(x, y0 - 12, FLD_M); if (x > -3 && x < 1) dotL(x, y0 - 13, FLD_M); }
+  cap(-1, y0, 1.6, 2, y0 + 2, 1.3, OLV_D, OLV_M, OLV_L); cap(2, y0 + 2, 1.2, 2, y0 + 5, 1, SKIN_D, SKIN_L, SKIN_L); dotL(3, y0 + 6, WOOD_D);
+  limbS(0, -14 + sb, nx, ny + sb, OLV_D, OLV_M, OLV_L);
+  hint(sX - 16, GY - 32, sX + 16, H - 1);
+  layEnd();
+}
+function limbS(ax, ay, bx, by, d, m, l) { // Sancho's short arms
+  tf(ax, ay);
+  const sx = TX, sy = TY;
+  tf(bx, by);
+  joint(sx, sy, TX, TY, 3.5, 3.5, 1);
+  capsule(lay, sx, sy, 1.1, jx, jy, 1, d, m, l);
+  capsule(lay, jx, jy, 1, TX, TY, 0.9, d, m, l);
+  plot(lay, Math.round(TX), Math.round(TY), SKIN_L);
+}
+
+function drawActor() {
+  own.fill(0); pid = 0;
+  drawSancho();
+  if (kMode === MOUNT) { drawKnight(0); drawHorse(); drawKnight(1); }
+  else { drawHorse(); drawKnight(0); drawKnight(1); }
+}
+
+// Sails: a spar and a canvas-covered lattice per arm; dithered into long giant arms with grasping hands.
+function sails(hx, hy, R, a, sc, gb) {
+  const wv = Math.max(2, Math.round(4 * sc)), ar = 2.2 * sc + 0.4, hr = 2.6 * sc + 0.6, ext = Math.ceil(R + hr + 4);
+  for (let k = 0; k < 4; k++) { AC[k] = Math.cos(a + k * Math.PI / 2); AS[k] = Math.sin(a + k * Math.PI / 2); }
+  for (let y = Math.max(0, hy - ext); y <= Math.min(H - 1, hy + ext); y++) for (let x = Math.max(0, hx - ext); x <= Math.min(W - 1, hx + ext); x++) {
+    const dx = x - hx, dy = y - hy, giant = gb > 0 && dith(x, y, gb);
+    let c = EMPTY;
+    for (let k = 0; k < 4 && c === EMPTY; k++) {
+      const u = dx * AC[k] + dy * AS[k], v = dx * AS[k] - dy * AC[k];
+      if (giant) {
+        const vv = v - wv * 0.4, tipU = R + 1, du = u - tipU;
+        if (u >= 2 && u <= tipU && Math.abs(vv) <= mix(ar, ar * 0.7, u / R)) c = vv > ar * 0.3 ? SKIN_D : SKIN_L;
+        else if (du * du + vv * vv <= hr * hr) c = du > hr * 0.3 || vv > hr * 0.4 ? SKIN_D : SKIN_L;
+        else if (du > 0 && du <= hr + 2 + (pfr + k & 1) && (Math.abs(vv - hr * 0.7) < 0.6 || Math.abs(vv) < 0.6 || Math.abs(vv + hr * 0.7) < 0.6)) c = SKIN_D;
+        continue;
+      }
+      if (u < 0 || u > R) continue;
+      if (Math.abs(v) <= 0.7) c = WOOD_D;
+      else if (u >= R * 0.3 && v > 0.7 && v <= wv) c = v > wv - 1 || u > R - 1 || u < R * 0.3 + 1 ? WOOD_D : (u | 0) % 3 === 0 ? WOOD_M : DUST;
+    }
+    if (c !== EMPTY) buf[y * W + x] = c;
+  }
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) plot(buf, hx + dx, hy + dy, dx === 0 && dy === 0 ? GOLD_M : WOOD_D);
+}
+function put(x, y, c, gb) {
+  if (dith(x, y, gb)) plot(buf, x, y, c);
+}
+function face(hx, hy, sc, gb) { // the giant's glare on the tower top
+  const s = sc, ey = Math.round(hy + 5 * s);
+  const l = Math.round(hx - 3 * s), r = Math.round(hx + 2 * s), fl = pfr & 1;
+  put(l, ey, RED, gb); put(l + 1, ey, fl ? GOLD_L : RED, gb); put(r, ey, RED, gb); put(r + 1, ey, fl ? GOLD_L : RED, gb);
+  put(l - 1, ey - 2, INK, gb); put(l, ey - 1, INK, gb); put(l + 1, ey - 1, INK, gb); put(r + 2, ey - 2, INK, gb); put(r + 1, ey - 1, INK, gb); put(r, ey - 1, INK, gb);
+  if (s < 0.5) return;
+  const my = Math.round(hy + 9 * s);
+  for (let x = Math.round(hx - 3 * s); x <= Math.round(hx + 3 * s); x++) put(x, my, (x & 1) && fl ? SUN : INK, gb);
+  for (let y = my + 1; y <= Math.round(hy + 15 * s); y++) for (let x = Math.round(hx - 3 * s); x <= Math.round(hx + 3 * s); x++) if ((x + y) % 3 === 0) put(x, y, ROOF, gb);
+}
+function drawUnder() {
+  for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { // the sun
+    const x = sunX + dx, y = sunY + dy, d2 = dx * dx + dy * dy;
+    if (d2 > 17 || y < 0 || y >= H || !SKYM[y * W + x]) continue;
+    buf[y * W + x] = d2 <= 6 ? SUN : d2 <= 11 ? GOLD_L : (x + y) & 1 ? GOLD_L : buf[y * W + x];
+  }
+  for (let k = 0; k < 2; k++) { // two wisps crossing the sky once per loop
+    const cx = Math.round((k * 97 + tick * (W + 40) / 600) % (W + 40)) - 20, cy = 16 + k * 12;
+    for (let dx = -8; dx <= 8; dx++) { const x = cx + dx; if (x < 0 || x >= W) continue; plot(buf, x, cy, SKY_C); if (Math.abs(dx) < 5) plot(buf, x, cy - 1, SUN); }
+  }
+  sails(58, 45, 8, aF1, 0.4, gB);
+  sails(150, 44, 13, aF2, 0.62, gB);
+  if (gB > 0) { face(58, 45, 0.4, gB); face(150, 44, 0.62, gB); }
+  sails(HUBX, HUBY, SAILR, aN, 1, gB);
+  if (gB > 0) face(HUBX, HUBY, 1, gB);
+  if (swOn) { // dawn sweeps down the frame, one way or the other
+    const cut = swE * (H + 8) - 4;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x, above = dith(x, y, Math.max(0, Math.min(1, (cut - y) / 4 + 0.5)));
+      if (swDir ? above : !above) buf[i] = DAWN[buf[i]];
+    }
+  }
+}
+function shout(x, y) {
+  line(buf, x - 3, y, x - 4, y - 2, RED); line(buf, x, y - 1, x, y - 3, RED); line(buf, x + 3, y, x + 4, y - 2, RED);
+}
+function drawOver() {
+  drawParticles(false);
+  if (sShout && pfr & 1) shout(Math.round(sX) - 1, GY - 25);
+  if (kShout && pfr & 1) shout(Math.round(kX) + 2, Math.round(kY) - 31);
+  if (dizzy) for (let k = 0; k < 3; k++) { // stars round his head
+    xf(kX, kY, kR); tf(2, -15);
+    const a = pfr * 0.9 + k * 2.09, x = Math.round(TX + Math.cos(a) * 7), y = Math.round(TY - 6 + Math.sin(a) * 2);
+    plot(buf, x, y, SUN); plot(buf, x - 1, y, GOLD_L); plot(buf, x + 1, y, GOLD_L); plot(buf, x, y - 1, GOLD_L); plot(buf, x, y + 1, GOLD_L);
+    plot(buf, x - 1, y - 1, INK); plot(buf, x + 1, y + 1, INK); plot(buf, x + 1, y - 1, INK); plot(buf, x - 1, y + 1, INK);
+  }
+  drawParticles(true);
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

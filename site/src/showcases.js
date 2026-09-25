@@ -6,6 +6,33 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "don-quixote-windmills",
+    tags: ["humanoid", "melee", "impact", "day"],
+    country: "es",
+    title: "Don Quixote and the Windmills",
+    still: 240,
+    res: [160, 90],
+    loop: 10,
+    states: ["plain", "giants", "charge", "sail", "fall", "ride"],
+    kind: "Made with the skill",
+    note: "The knight is drawn in a rotating frame, so one rig rides, is swung round the sail feet first, tumbles through the air and lies flat on his back, while the giants are dithered over the turning sails.",
+    prompt:
+      "Pixel art Cervantes' Don Quixote charging the windmills, 160×90, one fixed shot, 10-second seamless loop, 6 " +
+      "states. Scene: the plain of La Mancha: a ridge of whitewashed windmills with dark conical caps and turning " +
+      "lattice sails across the right, golden fields and olive trees, a dusty road across the front; the sky runs " +
+      "from a pink dawn to a hot blue noon and back. Keep the frame readable: the knight, his squire and the " +
+      "nearest windmill. 1. plain: the lanky knight Don Quixote, in dented armor with a barber's basin for a helmet " +
+      "and his lance upright, rides in on his bony horse Rocinante, with round Sancho Panza behind on his donkey. " +
+      "2. giants: he lowers his lance at the mills, and in his eyes they shimmer into giants with glaring red eyes, " +
+      "bearded faces and long arms ending in grasping hands, while Sancho points and shakes his head. 3. charge: he " +
+      "couches his lance and gallops, dust flying, while Sancho waves his arms and shouts. 4. sail: the lance jams " +
+      "in a turning sail, which hoists the knight out of the saddle and swings him round a full circle while " +
+      "Rocinante rears below; the lance shatters and flings him down. 5. fall: he tumbles through the air and lands " +
+      "flat on his back in the dust, seeing stars, and Sancho trots up. 6. ride: the giants are windmills again; he " +
+      "dusts himself off, raises his broken lance, blames an enchanter, climbs back on Rocinante and gallops away " +
+      "with Sancho as dawn returns.",
+  },
+  {
     slug: "jack-beanstalk",
     tags: ["humanoid", "creature", "magic", "day"],
     country: "gb-eng",
@@ -887,7 +914,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['es', 'Spain'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
