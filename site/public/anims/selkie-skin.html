@@ -1,0 +1,684 @@
+<title>The Selkie's Skin</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #0a0a14; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #0a0a14; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art of the Scottish folk tale of the selkie wife on an Orkney shore under the midsummer twilight, where seals shed their skins and one is hidden in a cottage roof"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // spray, smoke and sparkles are culled at their own ground in step()
+const POSE_STEP = 6;               // 10 fps pose frames
+const HZ = 44;                     // the North Sea horizon
+const DOORX = 20, STEPY = 67;      // the cottage door and its step
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#0a0a14',
+  '#3a2e6a', '#8a5a9a', '#e8a0b8', '#fcd8c8',
+  '#1a3438', '#36605c', '#7aa8a0',
+  '#d8c8a0', '#a8987a',
+  '#2a4a2a', '#4a7a3a', '#8aaa5a',
+  '#c89a4a', '#8a4a2a',
+  '#f4f4fa', '#b8bcd0',
+  '#4a4850', '#7a7880', '#aaa8b0',
+  '#3a3a44', '#6a6e7a', '#c0c8d4',
+  '#f0d8c8', '#2a1a1a', '#e0dcec', '#7a4a8a', '#2a3050', '#5a3a22', '#f0c050',
+];
+const INK = 0, SKY_A = 1, SKY_B = 2, SKY_C = 3, SKY_D = 4, SEA_D = 5, SEA_M = 6, SEA_L = 7, SAND = 8, SAND_D = 9,
+  GRN_D = 10, GRN_M = 11, GRN_L = 12, TAN = 13, RUST = 14, SNOW = 15, SNOW_S = 16, STONE_D = 17, STONE = 18, STONE_L = 19,
+  SEAL_D = 20, SEAL = 21, SEAL_L = 22, PALE = 23, HAIR = 24, SHIFT = 25, DRESS = 26, NAVY = 27, EARTH = 28, GOLD = 29;
+
+// One step brighter per ramp; the silver of a sealskin is the brightest thing on the shore.
+const LIGHTEN = Uint8Array.of(
+  STONE_D,
+  SKY_B, SKY_C, SKY_D, SNOW,
+  SEA_M, SEA_L, SKY_D,
+  SNOW, SAND,
+  GRN_M, GRN_L, SKY_D,
+  SAND, TAN,
+  SNOW, SNOW,
+  STONE, STONE_L, SNOW,
+  SEAL, SEAL_L, SNOW,
+  SNOW, EARTH, SNOW, SKY_B, SEAL_D, TAN, SKY_D);
+const RAMP_SPRAY = Uint8Array.of(SNOW, SEA_L, SEA_M, SEA_D);
+const RAMP_SMOKE = Uint8Array.of(SNOW_S, STONE_L, STONE, STONE_D);
+const RAMP_SILVER = Uint8Array.of(SNOW, SEAL_L, SKY_C, SEAL);
+const RAMP_LEAF = Uint8Array.of(GRN_L, TAN, RUST, EARTH);
+const RAMPS = [RAMP_SPRAY, RAMP_SMOKE, RAMP_SILVER, RAMP_LEAF];
+const RIM = Uint8Array.of(SKY_C, SKY_D, SNOW);
+const RIM_BANDS = Uint16Array.of(14, 28, 44);
+const LIGHT = Float32Array.of(0.8, -0.6);         // the midnight sun lingering below the horizon, to the north-east
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[INK] = RIM_OK[SNOW] = RIM_OK[SKY_D] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY_A] = AIR[SKY_B] = AIR[SKY_C] = AIR[SKY_D] = 1;
+
+const SEALS = 0, SHED = 1, HIDE = 2, BRIDE = 3, FOUND = 4, SEA = 5, FAREWELL = 6, RETURN = 7;
+const DUR = Uint16Array.of(90, 90, 90, 90, 90, 90, 90, 90); // L = 720: swell 120, barking 90, smoke drift 360
+const EASE = Uint16Array.of(6, 6, 6, 6, 6, 6, 6, 6);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 0);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = [REST, REST, REST, REST, REST, REST, REST, REST];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables
+const TWO_PI = Math.PI * 2;
+const SKYM = new Uint8Array(N), SEAM = new Uint8Array(N), LANDM = new Uint8Array(N);
+const SUMMER = 0, AUTUMN = 1, WINTER = 2, SPRING = 3;
+const SMAP = [0, 1, 2, 3].map(() => new Uint8Array(PAL.length));
+const lay = new Uint8Array(N), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let grp = 0, pid = 0, lx0 = 0, ly0 = 0, lx1 = -1, ly1 = -1, bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+const pWL = new Float32Array(MAXP);
+const HX = Float32Array.of(108, 118, 134, 144), HY = Float32Array.of(55, 54, 60, 60), HF = Int8Array.of(1, -1, 1, -1);   // where the seals haul out
+const BX = Float32Array.of(98, 92, 102, 88), BY = Float32Array.of(80, 83, 85, 79);                                  // where they come ashore
+const NS = 6, SX = new Float32Array(NS), SY = new Float32Array(NS), SPOSE = new Int8Array(NS), SF = new Int8Array(NS), SUP = new Uint8Array(NS);
+const MXS = new Float32Array(4), MYS = new Float32Array(4), MPOSE = new Int8Array(4), SKON = new Uint8Array(4);
+// the wife's poses
+const W_STAND = 0, W_WALK = 1, W_HANG = 2, W_HOLD = 3;
+let pfr = 0, flick = 0, season = 0, seasonE = 0, seasonOn = 0,
+  wife = 0, wifeP = 0, wifeF = 1, fishOn = 0, fishX = 0, fishY = 0, fishA = 1, fishFly = 0,
+  fmOn = 0, fmX = 0, fmF = 1, fmCrouch = 0, fmReach = 0, fmCarry = 0, fmA = 1,
+  roofSkin = 0, roofLift = 0, skinFall = -1, skinGround = 0, glow = 0, gust = -1;
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return a + (b - a) * e;
+}
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+}
+function shoreX(y) {
+  return 70 + (y - 56) * 1.5;
+}
+function land(x, y, c, l) {
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  bg[y * W + x] = c; SKYM[y * W + x] = 0; SEAM[y * W + x] = 0; LANDM[y * W + x] = l;
+}
+
+function buildBackground() {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let c = y < 14 ? SKY_A : y < 28 ? SKY_B : y < 40 ? SKY_C : SKY_D;
+    if ((y === 13 || y === 27 || y === 39) && dith(x, y, 0.5)) c++;
+    if (y >= HZ) { c = y < 48 ? (dith(x, y, (48 - y) / 5) ? SEA_L : SEA_M) : y > 76 && dith(x, y, (y - 76) / 14) ? SEA_D : SEA_M; SEAM[y * W + x] = 1; }
+    bg[y * W + x] = c; SKYM[y * W + x] = y < HZ ? 1 : 0;
+  }
+  for (let x = 0; x < 60; x++) { const top = Math.round(40 + Math.sin(x * 0.08) * 2 + (x / 60) ** 2 * 6); for (let y = top; y < HZ + 4; y++) land(x, y, y === top ? GRN_L : GRN_D, 1); } // a low Orkney hill
+  for (let y = 50; y < H; y++) for (let x = 0; x < W; x++) { // grass, then the sandy beach down to the sea
+    const sx = shoreX(y);
+    if (x > sx) continue;
+    const grass = x < 48 - (y - 50) * 0.4 && y < 76;
+    if (grass) land(x, y, y === 50 ? GRN_L : (x * 3 + y) % 7 === 0 ? GRN_L : (x + y) % 5 === 0 ? GRN_D : GRN_M, 1);
+    else land(x, y, x > sx - 2 ? SNOW : x > sx - 7 ? ((x + y) % 9 === 0 ? GRN_D : SAND_D) : x > sx - 9 && (x * 3 + y) % 4 === 0 ? EARTH : (x * 5 + y * 3) % 13 === 0 ? SAND_D : (x * 7 + y * 11) % 53 === 0 ? STONE : SAND, 0);
+  }
+  for (let y = 46; y < 67; y++) for (let x = 6; x <= 38; x++) { // the cottage: drystone walls, a door, a lit window
+    const row = (y - 46) / 3 | 0, c = (y - 46) % 3 === 2 ? STONE_D : (x + row * 3) % 6 === 0 ? STONE_D : (x + row * 3) % 6 === 1 ? STONE_L : STONE;
+    land(x, y, x >= DOORX - 2 && x <= DOORX + 2 && y >= 56 ? (x === DOORX + 2 ? STONE_D : EARTH) : x >= 29 && x <= 33 && y >= 52 && y <= 56 ? (x === 31 || y === 54 ? EARTH : GOLD) : c, 0);
+  }
+  for (let y = 32; y < 47; y++) { // the turf roof, weighted with stones on ropes
+    const hw = Math.round((y - 32) * 1.45) + 2;
+    for (let x = 22 - hw; x <= 22 + hw; x++) land(x, y, y === 46 ? EARTH : (x + y * 2) % 7 === 0 ? GRN_L : (x * 3 + y) % 5 === 0 ? GRN_D : GRN_M, 1);
+  }
+  for (let x = 4; x <= 40; x += 4) { land(x, 47, STONE); land(x, 48, STONE_D); }
+  for (let y = 26; y < 33; y++) for (let x = 29; x <= 33; x++) land(x, y, y === 26 ? STONE_L : x === 33 ? STONE_D : STONE, 0);
+  for (let x = DOORX - 3; x <= DOORX + 3; x++) land(x, STEPY, STONE_L, 0);
+  for (const [cx, cy, rx] of [[114, 58, 12], [140, 63, 12]]) for (let y = cy - 5; y <= cy + 3; y++) for (let x = cx - rx; x <= cx + rx; x++) { // the dark skerries
+    const d = ((x - cx) / rx) ** 2 + ((y - cy) / 4) ** 2;
+    if (d > 1 || y > cy + 1) { if (d <= 1.2 && y === cy + 2) land(x, y, (x + y) & 1 ? SNOW : SEA_L, 0); continue; }
+    land(x, y, y < cy - 3 ? STONE : (x + y) % 4 === 0 ? SEA_D : STONE_D, 0);
+  }
+  for (let m = 0; m < 4; m++) for (let c = 0; c < PAL.length; c++) SMAP[m][c] = c;
+  const map = (m, a) => { for (let k = 0; k < a.length; k += 2) SMAP[m][a[k]] = a[k + 1]; };
+  map(AUTUMN, [GRN_L, TAN, GRN_M, RUST, GRN_D, EARTH]);
+  map(WINTER, [GRN_L, SNOW, GRN_M, SNOW_S, GRN_D, STONE]);
+  map(SPRING, [GRN_M, GRN_L, GRN_D, GRN_M]);
+  lay.fill(EMPTY);
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
+function sample() {
+  snap.set(pose);
+  const T = state, t = stT;
+  pfr = tick / POSE_STEP | 0; flick = (tick >> 3) & 1;
+  seasonOn = T === BRIDE ? 1 : 0;
+  if (seasonOn) { const p = t / 90 * 4; season = Math.min(3, p | 0); seasonE = p - season; }
+  for (let k = 0; k < NS; k++) { SPOSE[k] = -1; SUP[k] = 0; }
+  for (let k = 0; k < 4; k++) { MPOSE[k] = -1; SKON[k] = 0; }
+  wife = 0; wifeP = W_STAND; wifeF = 1; fishOn = 0; fishFly = 0; fishA = 1; fmOn = 0; fmF = 1; fmA = 1; fmCrouch = 0; fmReach = 0; fmCarry = 0;
+  roofSkin = 0; roofLift = 0; skinFall = -1; skinGround = 0; glow = 0; gust = -1;
+  const home = T === SEALS || (T === RETURN && t >= 70);
+  for (let k = 0; k < 4; k++) {
+    if (home) { SX[k] = HX[k]; SY[k] = HY[k]; SF[k] = HF[k]; SPOSE[k] = 0; SUP[k] = ((tick + k * 37) % 90) < 30 ? 1 : 0; }
+    else if (T === SHED && t < 32) { const u = ease(t / 30); SX[k] = mix(HX[k], BX[k], u); SY[k] = mix(HY[k], BY[k], u); SF[k] = -1; SPOSE[k] = SX[k] > shoreX(SY[k]) - 1 ? 1 : 0; }
+    else if (T === RETURN && t >= 10) { const ex = HX[k] + 10, ey = HY[k] + 8; if (t < 40) { const u = ease((t - 10) / 30); SX[k] = mix(172 + k * 8, ex, u); SY[k] = mix(72 + (k & 1) * 4, ey, u); SF[k] = -1; SPOSE[k] = 1; } else { const u = ease((t - 40) / 30); SX[k] = mix(ex, HX[k], u); SY[k] = mix(ey, HY[k], u); SF[k] = HF[k]; SPOSE[k] = u < 0.5 ? 1 : 0; } }
+  }
+  if (T === SHED && t >= 32) for (let k = 0; k < 4; k++) { SKON[k] = 1; MPOSE[k] = t >= 40 ? 1 : 0; const a = k * Math.PI / 2 + (t - 40) * 0.06, e = ease((t - 40) / 10); MXS[k] = mix(BX[k], 84 + Math.cos(a) * 12, e); MYS[k] = mix(BY[k], 79 + Math.sin(a) * 4, e); }
+  if (T === HIDE) {
+    for (let k = 0; k < 4; k++) {
+      const a = k * Math.PI / 2 + (Math.min(t, 30) + 50) * 0.06, rx = 84 + Math.cos(a) * 12, ry = 79 + Math.sin(a) * 4;
+      SKON[k] = k === 0 ? (t < 30 ? 1 : 0) : (t < 42 ? 1 : 0);
+      if (t < 30) { MPOSE[k] = 1; MXS[k] = rx; MYS[k] = ry; }
+      else if (k === 0) { MPOSE[k] = 0; const e = ease((t - 30) / 10); MXS[k] = mix(rx, BX[0], e) + (t >= 44 ? 4 * Math.sin((t - 44) * 0.2) : 0); MYS[k] = mix(ry, BY[0], e); }
+      else if (t < 42) { MPOSE[k] = 0; const e = ease((t - 30) / 10); MXS[k] = mix(rx, BX[k], e); MYS[k] = mix(ry, BY[k], e); }
+      else if (t < 80) { const u = ease((t - 44) / 36); SX[k] = mix(BX[k], 124 + k * 6, u); SY[k] = mix(BY[k], 76, u); SF[k] = 1; SPOSE[k] = SX[k] > shoreX(SY[k]) - 1 ? 1 : 0; }
+    }
+    fmOn = t < 66 ? 1 : 0; fmA = 1 - ease((t - 60) / 6);
+    if (t < 28) { fmX = mix(DOORX, 94, t / 28); fmCrouch = 1; } else if (t < 32) { fmX = 94; fmCrouch = 1; fmCarry = 1; } else if (t < 50) { fmX = mix(94, 14, (t - 32) / 18); fmCrouch = 1; fmCarry = 1; } else if (t < 60) { fmX = 14; fmReach = 1; fmCarry = t < 56 ? 1 : 0; } else fmX = mix(14, DOORX, (t - 60) / 6);
+    fmF = t >= 32 && t < 60 ? -1 : 1;
+    roofSkin = t >= 56 ? 1 : 0;
+  }
+  if (T === BRIDE) {
+    wife = 1; roofSkin = 1;
+    if (t < 40) { MXS[0] = 52; MYS[0] = 66; wifeP = W_HANG; } else if (t < 70) { MXS[0] = mix(52, 98, (t - 40) / 30); MYS[0] = mix(66, 78, (t - 40) / 30); wifeP = W_WALK; } else { MXS[0] = 98; MYS[0] = 78; }
+  }
+  if (T === FOUND) {
+    wife = 1; roofSkin = t < 22 ? 1 : 0; gust = t < 30 ? t : -1;
+    roofLift = t < 24 ? ease((t - 10) / 14) : 1 - ease((t - 34) / 16);
+    skinFall = t >= 22 && t < 36 ? (t - 22) / 14 : -1; skinGround = t >= 36 && t < 46 ? 1 : 0;
+    if (t < 44) { MXS[0] = mix(98, 16, ease(t / 44)); MYS[0] = mix(78, 67, ease(t / 44)); wifeP = W_WALK; wifeF = -1; } else { MXS[0] = 16; MYS[0] = 67; wifeP = t >= 50 ? W_HOLD : W_STAND; wifeF = -1; glow = t >= 50 ? 1 : 0; }
+  }
+  if (T === SEA) {
+    if (t < 42) { wife = 1; MXS[0] = mix(16, 100, ease(t / 36)); MYS[0] = mix(67, 79, ease(t / 36)); wifeP = t < 36 ? W_WALK : W_HOLD; glow = t >= 36 ? 1 : 0; }
+    else { const u1 = ease((t - 44) / 12), u2 = ease((t - 56) / 34); SX[4] = t < 56 ? mix(100, 110, u1) : mix(110, 116, u2); SY[4] = t < 56 ? mix(79, 80, u1) : mix(80, 74, u2); SF[4] = 1; SPOSE[4] = SX[4] > shoreX(SY[4]) - 1 ? 1 : 0; }
+  }
+  if (T === FAREWELL) {
+    SX[4] = t < 66 ? 116 : mix(116, 176, ease((t - 66) / 24)); SY[4] = 74; SPOSE[4] = 1; SF[4] = t >= 36 && t < 56 ? -1 : 1;
+    if (t >= 8) { SX[5] = t < 66 ? 130 : mix(130, 186, ease((t - 66) / 24)); SY[5] = 74 + Math.round((1 - ease((t - 8) / 16)) * 8); SPOSE[5] = 1; SF[5] = 1; }
+    if (t >= 44) { fishOn = 1; if (t < 66) { const u = (t - 44) / 22; fishX = mix(126, DOORX + 2, u); fishY = mix(68, STEPY - 1, u) - Math.sin(u * Math.PI) * 26; fishFly = 1; } else { fishX = DOORX + 2; fishY = STEPY - 1; } }
+  }
+  if (T === RETURN && t < 50) { fishOn = 1; fishX = DOORX + 2; fishY = STEPY - 1; fishA = 1 - ease((t - 20) / 30); }
+  for (let k = 0; k < NS; k++) { SX[k] = Math.round(SX[k]); SY[k] = Math.round(SY[k]); }
+  for (let k = 0; k < 4; k++) { MXS[k] = Math.round(MXS[k]); MYS[k] = Math.round(MYS[k]); }
+  fmX = Math.round(fmX); fishX = Math.round(fishX); fishY = Math.round(fishY);
+  srcX = 140; srcY = HZ; rim = 1;
+  if (glow) { srcX = MXS[0] + wifeF * 2; srcY = MYS[0] - 12; rim = 3; }
+  if (skinFall >= 0 || skinGround) { srcX = 13; srcY = 60; rim = 2; }
+}
+
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function step() {
+  if (tick % POSE_STEP === 0) sample();
+  const T = state, t = stT;
+  if (tick % 6 === 0) sp(MOTE, 40 + rand() * 20, 31 + (rand() - 0.5) * 2, 25, -0.25 - (T === FOUND && t < 30 ? 0.6 : 0), -0.2, 1, 99);       // peat smoke
+  if ((T === SHED && t === 32) || (T === HIDE && t === 42) || (T === SEA && t === 42)) { flashT = 2; for (let k = 0; k < 20; k++) sp(BURST, 12 + rand() * 10, 96 + (rand() - 0.5) * 16, 80 - rand() * 8, (rand() - 0.5) * 1.6, -0.5 - rand(), 2, 86); }
+  for (let k = 0; k < NS; k++) if (SPOSE[k] === 1 && tick % 8 === k) sp(BURST, 8 + rand() * 6, SX[k] - SF[k] * 3, SY[k], -SF[k] * 0.4, -0.3 - rand() * 0.4, 0, SY[k] + 1);
+  if (T === FAREWELL && t === 8) for (let k = 0; k < 20; k++) sp(BURST, 14 + rand() * 10, 130 + (rand() - 0.5) * 10, 74, (rand() - 0.5) * 1.6, -0.8 - rand() * 1.2, 0, 75);
+  if (T === FOUND && t < 30 && tick % 2 === 0) sp(TRAIL, 16 + rand() * 8, 60 + rand() * 20, 40 + rand() * 30, -2 - rand(), -0.2, 3, 99);
+  if (glow && tick % 3 === 0) sp(MOTE, 14 + rand() * 10, MXS[0] + (rand() - 0.5) * 8, MYS[0] - 12 + (rand() - 0.5) * 8, 0, -0.25, 2, 99);
+  if (T === FAREWELL && t === 66) for (let k = 0; k < 8; k++) sp(BURST, 10 + rand() * 6, DOORX + 2, STEPY - 1, (rand() - 0.5) * 1.2, -0.4 - rand() * 0.5, 0, STEPY);
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === BURST && pvy[i] > 0 && py[i] > pWL[i]) pKind[i] = 0;
+}
+
+function hint(x0, y0, x1, y1) {
+  bx0 = Math.max(0, x0 | 0); by0 = Math.max(0, y0 | 0); bx1 = Math.min(W - 1, x1 | 0); by1 = Math.min(H - 1, y1 | 0);
+}
+function layBox() {
+  lx0 = W; ly0 = H; lx1 = -1; ly1 = -1;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (lay[y * W + x] === EMPTY) continue;
+    if (x < lx0) lx0 = x;
+    if (x > lx1) lx1 = x;
+    if (y < ly0) ly0 = y;
+    ly1 = y;
+  }
+}
+function layFade(amt) { // dissolve the current part in or out
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (amt * 16 <= BAYER[(y & 3) * 4 + (x & 3)]) lay[y * W + x] = EMPTY;
+}
+function layEnd(clipY = H - 1) { // copy the part into spr down to clipY, then ink the other actors' parts it borders
+  layBox();
+  GRP[++pid] = grp;
+  for (let y = ly0; y <= Math.min(ly1, clipY); y++) for (let x = lx0; x <= lx1; x++) {
+    const i = y * W + x;
+    if (lay[i] !== EMPTY) { spr[i] = lay[i]; own[i] = pid; }
+  }
+  for (let y = Math.max(1, ly0 - 1); y <= Math.min(H - 2, ly1 + 1); y++) for (let x = Math.max(1, lx0 - 1); x <= Math.min(W - 2, lx1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
+  }
+  for (let y = by0; y <= by1; y++) lay.fill(EMPTY, y * W + bx0, y * W + bx1 + 1);
+  hint(0, 0, W - 1, H - 1);
+}
+
+function drawSeal(k) { // a grey seal, dappled silver: hauled out on the rock, or swimming with its head up
+  grp = 1 + k;
+  const x = SX[k], y = SY[k], f = SF[k], s = k === 5 ? 1.6 : 1, up = SUP[k];
+  if (SPOSE[k] === 1) {
+    const hx = x, hy = y - Math.round(2 * s);
+    hline(lay, x - f * Math.round(5 * s), x - f, y - 1, SEAL); hline(lay, x - f * Math.round(4 * s), x - f * 2, y - 2, SEAL_L);
+    disc(hx, hy, 1.8 * s, SEAL, lay); plot(lay, hx + f * Math.round(2 * s), hy + 1, SEAL_D); plot(lay, hx + f, hy - 1, INK); plot(lay, hx - f, hy - Math.round(s), SEAL_L);
+    if (k === 5) { plot(lay, hx + f * 4, hy + 2, SNOW); plot(lay, hx + f * 4, hy, SNOW); }
+    hint(x - 14, y - 10, x + 14, y + 2);
+    layEnd(y - 1); return;
+  }
+  capsule(lay, x - f * 5, y - 2, 1.8, x + f * 2, y - 3, 2.6, SEAL_D, SEAL, SEAL_L);
+  plot(lay, x - f * 2, y - 3, SEAL_D); plot(lay, x + f, y - 2, SEAL_D); plot(lay, x - f * 4, y - 3, SEAL_L);
+  const hx = x + f * 5, hy = y - 4 - up * 2;
+  disc(hx, hy, 1.8, SEAL, lay); plot(lay, hx + f * 2, hy + 1, up ? INK : SEAL_D); plot(lay, hx + f, hy - 1, INK); plot(lay, hx, hy - 1, SEAL_L);
+  plot(lay, x - f * 7, y - 1, SEAL_D); plot(lay, x - f * 8, y - 2, SEAL_D); plot(lay, x + f * 2, y, SEAL_D);
+  hint(x - 12, y - 10, x + 12, y + 1);
+  layEnd();
+}
+function drawMaiden(k) { // a selkie on the sand, long dark hair; the wife in a heather dress with a rust shawl
+  grp = 7 + k;
+  const x = MXS[k], y = MYS[k], isWife = k === 0 && wife, f = isWife ? wifeF : (k & 1 ? -1 : 1), s = (pfr + k) & 1, p = isWife ? wifeP : MPOSE[k] === 1 ? 9 : W_STAND;
+  const wk = p === W_WALK || p === 9 ? s : 0, body = isWife ? DRESS : SHIFT;
+  line(lay, x - 1, y - 3, x - 1 - wk, y, PALE); line(lay, x + 1, y - 3, x + 1 + (p === 9 ? 1 - s : wk), y, PALE);
+  for (let yy = y - 10; yy <= y - 2; yy++) hline(lay, x - 1 - (yy > y - 5 ? 1 : 0), x + 1 + (yy > y - 5 ? 1 : 0), yy, body);
+  if (isWife) { hline(lay, x - 2, x + 2, y - 10, RUST); hline(lay, x - 2, x + 2, y - 9, RUST); }
+  disc(x, y - 12, 1.6, PALE, lay); for (let yy = y - 14; yy <= y - 6; yy++) plot(lay, x - f * 2, yy, HAIR); hline(lay, x - 1, x + 1, y - 14, HAIR); plot(lay, x - f, y - 13, HAIR);
+  plot(lay, x + f, y - 12, INK);
+  if (p === 9) { if (s) { line(lay, x - 2, y - 9, x - 4, y - 14, PALE); line(lay, x + 2, y - 9, x + 4, y - 6, PALE); } else { line(lay, x - 2, y - 9, x - 4, y - 6, PALE); line(lay, x + 2, y - 9, x + 4, y - 14, PALE); } }
+  else if (p === W_HANG) { line(lay, x + 1, y - 9, x + 3, y - 15, PALE); line(lay, x - 1, y - 9, x + 1, y - 15, PALE); }
+  else if (p === W_HOLD) { line(lay, x + f, y - 9, x + f * 3, y - 12, PALE); hline(lay, x + f * 2 - 1, x + f * 2 + 2, y - 12, SEAL_L); plot(lay, x + f * 3, y - 13, SEAL); plot(lay, x + f * 2, y - 11, SEAL_L); }
+  else line(lay, x + f, y - 9, x + f * 2, y - 5 + wk, PALE);
+  hint(x - 8, y - 18, x + 8, y + 1);
+  layEnd();
+}
+function drawFisherman() { // a young Orkney fisherman in a gansey and cap
+  grp = 11;
+  const x = fmX, y = STEPY + (fmX > 40 ? Math.round((fmX - 40) * 0.25) : 0), c = fmCrouch ? 3 : 0, w = pfr & 1, f = fmF, s1 = c ? 1 : 0, hs = f * (c ? 2 : 0);
+  line(lay, x - f, y - 4, x - (2 + w) * f, y, EARTH); line(lay, x + f, y - 4, x + (1 + w) * f, y, EARTH);
+  const bl = f > 0 ? x - 2 + s1 : x - 1 - s1;
+  for (let yy = y - 11 + c; yy <= y - 4; yy++) hline(lay, bl, bl + 3, yy, NAVY);
+  disc(x + hs, y - 13 + c, 1.6, PALE, lay); hline(lay, x - 1 + hs, x + 1 + hs, y - 15 + c, NAVY); plot(lay, x + 2 * f + hs, y - 15 + c, NAVY);
+  plot(lay, x + f + hs, y - 12 + c, EARTH); plot(lay, x + hs, y - 11 + c, EARTH);
+  if (fmReach) { line(lay, x, y - 10, x - f, y - 21, NAVY); plot(lay, x - f, y - 22, PALE); if (fmCarry) { const sl = f > 0 ? x - 3 : x - 1; hline(lay, sl, sl + 4, y - 23, SEAL_L); plot(lay, x - 2 * f, y - 24, SEAL); } }
+  else { line(lay, x + (1 + c) * f, y - 9 + c, x + (4 + c) * f, y - 6, NAVY); if (fmCarry) { const sl = f > 0 ? x + 3 + c : x - 7 - c, sl2 = f > 0 ? x + 4 + c : x - 6 - c; hline(lay, sl, sl + 4, y - 6, SEAL_L); hline(lay, sl2, sl2 + 2, y - 7, SEAL); } }
+  hint(x - 12, y - 26, x + 12, y + 1);
+  if (fmA < 1) layFade(fmA);
+  layEnd();
+}
+function drawActor() {
+  own.fill(0); pid = 0;
+  for (let k = 0; k < NS; k++) if (SPOSE[k] >= 0) drawSeal(k);
+  for (let pass = 0; pass < 2; pass++) for (let k = 0; k < 4; k++) if ((MPOSE[k] >= 0 || (k === 0 && wife)) && (MYS[k] < 79) === (pass === 0)) drawMaiden(k);
+  if (fmOn && fmA > 0) drawFisherman();
+}
+
+function skin(x, y, c) { // a silver sealskin laid on the sand
+  hline(buf, x - 3, x + 2, y, SEAL_L); hline(buf, x - 2, x + 3, y - 1, c); plot(buf, x, y - 1, SEAL_D); plot(buf, x - 4, y, SEAL);
+}
+function drawUnder() {
+  const wv = (tick / 6 | 0) % 12;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    let c = buf[i];
+    if (SEAM[i] && y > HZ + 2 && y % 3 === 1 && (x + wv * 2 + y * 7) % 24 < 3) c = x > 124 && y < 70 ? SKY_D : SEA_L;          // the swell, a 72-tick roll
+    if (seasonOn && LANDM[i]) c = seasonE > 0 && dith(x, y, seasonE) ? SMAP[(season + 1) & 3][c] : SMAP[season][c];
+    buf[i] = c;
+  }
+  halo(140, HZ, 22, SKY_D, SKY_C);                                                                         // the midnight sun lingering below the horizon
+  if (roofLift > 0) { // the gust lifts a flap of turf
+    const dy = Math.round(roofLift * 5);
+    for (let y = 38; y <= 43; y++) for (let x = 13; x <= 23; x++) plot(buf, x, y, INK);
+    for (let y = 38; y <= 43; y++) for (let x = 13; x <= 23; x++) plot(buf, x + (dy >> 1), y - dy, bg[y * W + x]);
+  }
+  if (roofSkin) { plot(buf, 17, 42, SEAL_L); plot(buf, 18, 42, SEAL_L); plot(buf, 19, 43, SEAL); }
+  if (skinFall >= 0) { const y = Math.round(mix(43, STEPY, skinFall * skinFall)); skin(14, y, SEAL); halo(14, y, 6, SNOW, SKY_D); }
+  if (skinGround) { skin(14, STEPY, SEAL); lighten(14, STEPY - 1, 4); }
+  for (let k = 0; k < 4; k++) if (SKON[k]) skin(Math.round(BX[k]), Math.round(BY[k]) + 1, SEAL);
+  if (state === BRIDE) { line(buf, 44, 66, 44, 54, EARTH); line(buf, 62, 66, 62, 54, EARTH); for (let x = 45; x < 62; x++) for (let y = 55; y < 63; y++) if ((x + y) % 3 === 0 || (x - y + 99) % 3 === 0) plot(buf, x, y, (x + y) & 1 ? SEAL_D : STONE); } // nets hung to dry
+  if (fishOn) { const x = fishX, y = fishY; if (fishA >= 1 || dith(x, y, fishA)) { hline(buf, x - 2, x + 1, y, SEAL_L); plot(buf, x - 1, y - 1, SNOW); plot(buf, x + 2, y - 1, SEAL); plot(buf, x + 2, y + 1, SEAL); plot(buf, x - 2, y, INK); } if (fishFly) halo(x, y, 5, SNOW, SKY_D); }
+}
+function drawOver() {
+  drawParticles(false);
+  for (let k = 0; k < 4; k++) if (SPOSE[k] === 0 && SUP[k]) { const x = SX[k] + SF[k] * 8, y = SY[k] - 7; plot(buf, x, y, SNOW); plot(buf, x + SF[k], y - 1, SNOW); plot(buf, x + SF[k] * 2, y - 1, SNOW_S); }   // barking
+  if (glow) { halo(MXS[0] + wifeF * 2, MYS[0] - 12, 12, SNOW, SKY_D); }
+  if (gust >= 0) for (let k = 0; k < 10; k++) { const x = Math.round(160 - (gust * 6 + k * 23) % 180), y = 30 + (k * 11) % 36; line(buf, x, y, x + 6, y, SNOW_S); }   // the gust off the sea
+  drawParticles(true);
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

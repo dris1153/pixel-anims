@@ -6,6 +6,31 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "selkie-skin",
+    tags: ["humanoid", "creature", "magic", "night"],
+    country: "gb-sct",
+    title: "The Selkie's Skin",
+    still: 160,
+    res: [160, 90],
+    loop: 12,
+    states: ["seals", "shed", "hide", "bride", "found", "sea", "farewell", "return"],
+    kind: "Made with the skill",
+    note: "The cottage years are palette sweeps on the land only while the sea stays put, and every change between seal and woman happens on a one-frame flash, so the same figures swap sprites without an in-between.",
+    prompt:
+      "Pixel art the Scottish folk tale of the selkie wife, 160×90, one fixed shot, 12-second seamless loop, 8 " +
+      "states. Scene: an Orkney shore under the midsummer twilight: at the left a stone cottage with a turf roof " +
+      "and peat smoke, a sandy beach in the middle, dark skerries and the grey-green North Sea at the right, under " +
+      "a sky that stays pale pink and violet at midnight. Keep the frame readable: the selkie and one other figure " +
+      "at a time. 1. seals: seals haul out on the skerries, barking, the sea shining. 2. shed: they slip off their " +
+      "silver sealskins and become women with long dark hair, dancing in a ring on the sand. 3. hide: a young " +
+      "fisherman creeps out of the cottage and hides one sealskin in the thatch; the others pull on their skins and " +
+      "dive, leaving one woman alone. 4. bride: the seasons pass by the cottage; she hangs nets and walks the " +
+      "shore, always gazing at the sea. 5. found: a gust of wind lifts the thatch and the skin falls, glowing " +
+      "silver; she holds it to her face. 6. sea: she runs to the shore, pulls on the skin and dives in as a seal. " +
+      "7. farewell: a great bull seal rises beside her; she looks back once, and a fresh fish lands on the cottage " +
+      "step. 8. return: midsummer comes round again and the seals haul out on the skerries as before.",
+  },
+  {
     slug: "wayang-kulit-ramayana",
     tags: ["humanoid", "projectile", "night"],
     country: "id",
@@ -1529,7 +1554,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
