@@ -6,6 +6,33 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "war-of-the-worlds-1898",
+    tags: ["robot", "impact", "dusk"],
+    country: "gb-eng",
+    title: "The War of the Worlds, 1898",
+    still: 300,
+    res: [160, 90],
+    loop: 12,
+    states: ["common", "cylinder", "tripod", "heatray", "smoke", "redweed", "fall", "green"],
+    kind: "Made with the skill",
+    note: "Each fighting machine is one set of jointed legs turned about a pivot foot, so the same drawing strides, sways and topples, and the red weed is a precomputed creep order revealed by a single threshold.",
+    prompt:
+      "Pixel art H. G. Wells' The War of the Worlds (the 1898 novel), 160×90, one fixed shot, 12-second seamless " +
+      "loop, 8 states. Scene: the English countryside near Woking: a pine-edged common with a sandpit at the left, " +
+      "a brick village with a church and a railway in the middle, and the Thames glinting at the right; the sky " +
+      "runs from a calm Victorian dusk with red Mars rising, through fire and smoke, to a pale dawn. Keep the frame " +
+      "readable: one fighting machine as the main actor, the humans small. 1. common: at dusk villagers stroll on " +
+      "the common as a red star, Mars, glows low. 2. cylinder: a green flash streaks down, a cylinder smashes into " +
+      "the sandpit in a spray of sand, and its lid slowly unscrews. 3. tripod: a Martian fighting machine rises on " +
+      "three long jointed legs, a hooded metal cowl on top and metal tentacles dangling. 4. heatray: from a box on " +
+      "an arm a heat-ray sweeps across the scene: the pines burst into flame, a house glows and collapses, and " +
+      "people flee. 5. smoke: a black smoke cloud rolls from the tripod over the village as a second machine " +
+      "strides along the river. 6. redweed: a strange red weed spreads over the ruins and the river banks. 7. fall: " +
+      "the tripods stop, sway and topple one by one, slain by earthly germs, and crows land on the cowls. 8. green: " +
+      "green returns over the red weed, the church bells ring, people walk back, and dusk falls with Mars rising " +
+      "again.",
+  },
+  {
     slug: "suho-white-horse",
     tags: ["humanoid", "creature", "projectile", "dusk"],
     country: "mn",
