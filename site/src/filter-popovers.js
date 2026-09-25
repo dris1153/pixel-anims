@@ -38,7 +38,9 @@ export function setupFacets(bar, active, { picked, onChange, countFor }) {
       for (const [id] of group.tags) picked.delete(id);
       onChange();
     });
-    pop.append(el('p', 'facet-title', group.label), ...options.map(o => o.row), clear);
+    const list = el('div', 'facet-list'); // only the options scroll: the title and the clear button stay in view
+    list.append(...options.map(o => o.row));
+    pop.append(el('p', 'facet-title', group.label), list, clear);
     pop.addEventListener('toggle', e => { if (e.newState === 'open') place(pop, badge); });
     bar.append(badge, pop);
     return { group, g, pop, badge, count, options, clear };
@@ -80,11 +82,15 @@ export function setupFacets(bar, active, { picked, onChange, countFor }) {
   return { update };
 }
 
-// Below the badge, clamped to the viewport; above it when there is no room below.
+// Below the badge, clamped to the viewport; above it when only that side has room, or when below is cramped and above
+// is roomier. Either way it is cut to fit, and the option list scrolls.
 function place(pop, badge) {
+  pop.style.maxHeight = '';
   const r = badge.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, pad = 12;
-  const left = Math.max(pad, Math.min(r.left, innerWidth - w - pad));
-  const top = r.bottom + 8 + h > innerHeight - pad && r.top - 8 - h > pad ? r.top - 8 - h : r.bottom + 8;
-  pop.style.left = `${left}px`;
-  pop.style.top = `${top}px`;
+  const below = innerHeight - pad - (r.bottom + 8), above = r.top - 8 - pad;
+  const up = h > below && (h <= above || (below < 240 && above > below));
+  const room = up ? above : below;
+  if (h > room) pop.style.maxHeight = `${Math.max(room, 120)}px`;
+  pop.style.left = `${Math.max(pad, Math.min(r.left, innerWidth - w - pad))}px`;
+  pop.style.top = `${up ? r.top - 8 - Math.min(h, Math.max(room, 120)) : r.bottom + 8}px`;
 }

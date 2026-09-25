@@ -34,6 +34,7 @@ if (bar) {
   const open = on => {
     if (on) for (const a of menu.querySelectorAll('a')) a.href = langUrl(a.hreflang); // pages rewrite their query (filters)
     menu.hidden = !on;
+    if (on) menu.style.maxHeight = `${Math.max(160, innerHeight - menu.getBoundingClientRect().top - 12)}px`; // short screens scroll it
     button.setAttribute('aria-expanded', String(on));
   };
   button.addEventListener('click', () => open(menu.hidden));
