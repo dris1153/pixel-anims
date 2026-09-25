@@ -6,6 +6,42 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "hou-yi-ten-suns",
+    tags: ["humanoid", "projectile", "magic", "day"],
+    country: "cn",
+    title: "Hou Yi and the Ten Suns",
+    still: 396,
+    res: [160, 90],
+    loop: 20,
+    states: ["fusang", "ten", "scorch", "archer", "volley", "rain", "elixir", "thief", "flight", "moon", "lanterns", "return"],
+    kind: "Made with the skill",
+    note: "Ten suns share one sprite routine with a three-legged crow inside; each is shot on a pose frame, falls as a crow, and flies home at dawn to relight on its own branch, so the loop closes on the Fusang tree.",
+    prompt:
+      "Pixel art the Chinese myth of Hou Yi, who shot down nine suns, and Chang'e, who flew to the moon, 160×90, " +
+      "one fixed shot, 20-second seamless loop, 12 states. Scene: a wide view from a mountain ridge: at the right " +
+      "the Fusang mulberry tree rising from the eastern sea at the edge of the world, a river valley with rice " +
+      "terraces and a village of curved tiled roofs in the middle, and at the left a high ridge with a red " +
+      "pavilion; the sky runs from dawn through a blinding white-gold noon of ten suns, a cool rain and a deep blue " +
+      "Mid-Autumn night with a full moon, and back to dawn. Keep the frame readable: Hou Yi or Chang'e and one " +
+      "wonder at a time. 1. fusang: at dawn ten suns, each a golden three-legged crow in a ring of fire, perch in " +
+      "the branches of the Fusang tree while farmers work the terraces; one sun flies up to cross the sky. 2. ten: " +
+      "all ten fly up at once and the sky blazes white-gold. 3. scorch: the river dries to cracked mud, the rice " +
+      "and the tree turn brown, the valley shimmers in heat haze, and the farmers run inside. 4. archer: Hou Yi " +
+      "strides up the ridge with a red bow and a quiver of white arrows, draws, and aims at the sky. 5. volley: he " +
+      "shoots again and again; each arrow hits a sun that bursts in sparks and falls as a black three-legged crow, " +
+      "until only one sun is left and the sky turns blue. 6. rain: dark clouds roll in, rain pours, the river runs " +
+      "again, the terraces turn green, and Hou Yi raises his arms. 7. elixir: the Queen Mother of the West descends " +
+      "on a cloud and hands Hou Yi a glowing jade gourd of the elixir of immortality, and he carries it to his wife " +
+      "Chang'e at the pavilion door. 8. thief: night falls and Hou Yi goes out; a thief creeps up the ridge, and " +
+      "Chang'e swallows the elixir so he cannot take it, glowing as she does. 9. flight: she floats up from the " +
+      "pavilion with her long sleeves and ribbons streaming, rising toward the full moon while the thief shakes his " +
+      "fist and runs. 10. moon: the moon swells close: the cold Palace of Guanghan, the osmanthus tree, the Jade " +
+      "Rabbit pounding medicine at its mortar, and Chang'e waving. 11. lanterns: Hou Yi sets out a table of " +
+      "mooncakes and fruit with a curl of incense, and red lanterns drift up from the village toward the moon. 12. " +
+      "return: the moon sets, dawn breaks, the nine crows fly home to the Fusang tree and relight one by one, the " +
+      "tenth sun rises from the sea to its branch, and the farmers go back to their fields.",
+  },
+  {
     slug: "bakunawa-moon-eater",
     tags: ["creature", "humanoid", "magic", "night"],
     country: "ph",
