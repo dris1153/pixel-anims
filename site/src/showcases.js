@@ -6,6 +6,35 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "bakunawa-moon-eater",
+    tags: ["creature", "humanoid", "magic", "night"],
+    country: "ph",
+    title: "Bakunawa Swallows the Moon",
+    still: 222,
+    res: [160, 90],
+    loop: 12,
+    states: ["moon", "rise", "swallow", "gongs", "spit", "dive", "festival", "calm"],
+    kind: "Made with the skill",
+    note: "The serpent's neck is one curve that the swallowed moon travels down as a glowing bulge and back up before the spit, while the eclipse is a dithered palette swap that bleeds the sky and sea red.",
+    prompt:
+      "Pixel art the Philippine legend of the Bakunawa, the sea serpent that swallows the moon, 160×90, one fixed " +
+      "shot, 12-second seamless loop, 8 states. Scene: a Visayan fishing village of nipa huts on bamboo stilts at " +
+      "the left with lit windows, an outrigger boat pulled up on the sand, leaning palms, and a wide dark sea to " +
+      "the right under a huge full moon; the sky is a deep indigo night that turns blood red during the eclipse. " +
+      "Keep the frame readable: the serpent and the moon are the actors, the villagers small. 1. moon: the full " +
+      "moon shines, its light path glitters on the sea, and faint ghosts of six more moons shimmer in the sky, " +
+      "memories of the seven the god Bathala made. 2. rise: the sea bulges and the Bakunawa bursts up in a spray of " +
+      "foam: a giant sea dragon with sail fins, red gills, horns and a mouth as wide as a lake. 3. swallow: it " +
+      "arches up, opens its jaws around the moon and snaps them shut; the sky and sea bleed red, and the moon glows " +
+      "inside its throat as it slides down. 4. gongs: the villagers pour out and bang pots and gongs; rings of " +
+      "sound roll up at the serpent, which shakes its head. 5. spit: the glowing lump rises back up its throat, the " +
+      "Bakunawa spits the moon out, and it flies back to its place in a trail of sparks as the red drains from the " +
+      "sky. 6. dive: the serpent sinks back under the waves, its fins glowing as it goes, with a great splash and " +
+      "spreading ripples. 7. festival: the villagers dance on the beach with torches, and sky lanterns drift up " +
+      "into the night. 8. calm: the villagers wave goodnight and go home, the sea goes still, and the ghost moons " +
+      "shimmer again.",
+  },
+  {
     slug: "hanuman-leaps-to-lanka",
     tags: ["humanoid", "creature", "magic", "night"],
     country: "in",
@@ -943,7 +972,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['es', 'Spain'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['es', 'Spain'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
