@@ -6,6 +6,42 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "ragnarok-twilight-gods",
+    tags: ["creature", "lightning", "breath", "impact", "dusk"],
+    country: "no",
+    title: "Ragnarök, Twilight of the Gods",
+    still: 560,
+    res: [160, 90],
+    loop: 20,
+    states: ["yggdrasil", "winter", "horn", "unchained", "serpent", "thunder", "fire", "burning", "sinking", "silence", "rising", "return"],
+    kind: "Made with the skill",
+    note: "The whole world is one composed backdrop that the scene sinks, floods and regrows: the land shifts down under a rising sea, the world tree burns from the roots up and grows back as a scaled sapling, and the rainbow bridge is rebuilt arc by arc.",
+    prompt:
+      "Pixel art the Norse twilight of the gods, Ragnarök, 160×90, one fixed shot, 20-second seamless loop, 12 " +
+      "states. Scene: a wide view across a northern sea from a rocky shore: the world tree Yggdrasil towers at the " +
+      "left edge with its crown in the clouds, the rainbow bridge Bifröst arcs from the top right down to a " +
+      "watchtower on a crag, snow peaks and a fjord behind; the sky runs from golden dusk through blizzard, black " +
+      "night and fire to a clean green dawn. Keep the frame readable: one great arrival at a time, each giant shown " +
+      "in part so it fills the frame without hiding the rest, each gone before the next. 1. yggdrasil: golden dusk; " +
+      "the tree sways, two ravens circle its crown, and the watchman Heimdall stands guard at the foot of the " +
+      "bridge. 2. winter: the Fimbulwinter falls, snow blasts sideways, the sea ices over, and two shadow wolves " +
+      "chase the sun and the moon across the sky until both go dark. 3. horn: Heimdall lifts the Gjallarhorn and " +
+      "blows; rings of sound roll out across the ice and the bridge shivers. 4. unchained: on the shore the giant " +
+      "wolf Fenrir strains at the silk ribbon Gleipnir, it snaps in a burst of sparks, and his jaws gape from the " +
+      "sea to the clouds. 5. serpent: the world serpent Jörmungandr heaves its coils out of the sea and rears its " +
+      "head, spraying green venom over the rocks. 6. thunder: Thor lands on the crag in a bolt of lightning and " +
+      "hurls Mjölnir again and again, lightning striking the serpent's head until its coils slump into the sea, " +
+      "while Thor staggers nine steps and falls. 7. fire: the fire giant Surtr rises beyond the fjord with a crown " +
+      "of flame and a blazing sword, sweeps it across the sky, and Bifröst shatters into falling colored shards. 8. " +
+      "burning: flames race up Yggdrasil to its crown; embers and ash stream across the red sky. 9. sinking: the " +
+      "burning land sinks into the sea in a line of steam, and the stars fall in streaks. 10. silence: only dark " +
+      "calm water and a few slow stars. 11. rising: new land rises green out of the sea, waterfalls pouring from " +
+      "its cliffs, and a sea eagle dives for a fish. 12. return: a young sun climbs, a sapling of the world tree " +
+      "grows back to its full height, the rainbow bridge rebuilds arc by arc, two survivors step out from the " +
+      "roots, golden game pieces glint in the grass, Heimdall returns to his post, and the sky warms into the " +
+      "golden dusk of the start.",
+  },
+  {
     slug: "hou-yi-ten-suns",
     tags: ["humanoid", "projectile", "magic", "day"],
     country: "cn",
@@ -1008,7 +1044,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['es', 'Spain'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
