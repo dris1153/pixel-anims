@@ -60,12 +60,12 @@ body { position: relative; }
 }
 
 /* HUD frame: a double border with a soft blue glow, and pixel brackets on the corners. */
-.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame, .brief, .story {
+.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame, .brief, .story, .timeline {
   background-color: var(--panel); border: 2px solid var(--line);
   box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 3px var(--line-d), 0 0 0 2px var(--shadow), 0 0 26px -6px var(--glow);
 }
-.hud, .facts, .panel, .feature, .tile-card, .filters, .story { position: relative; }
-:is(.hud, .facts, .panel, .feature, .tile-card, .filters, .story, .screen .frame, .detail-grid > .frame)::after {
+.hud, .facts, .panel, .feature, .tile-card, .filters, .story, .timeline { position: relative; }
+:is(.hud, .facts, .panel, .feature, .tile-card, .filters, .story, .timeline, .screen .frame, .detail-grid > .frame)::after {
   --c: var(--line-l); --k: 12px;
   content: ''; position: absolute; inset: -6px; z-index: 2; pointer-events: none;
   background:

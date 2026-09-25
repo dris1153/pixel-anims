@@ -1,0 +1,18 @@
+/* collapse.js: a block resting on its first line, and the Show more / Show less toggle under it. */
+.clamp { overflow: hidden; }
+.clamp.is-clamped { cursor: pointer; }
+.clamp.is-clamped > :not(:first-child) { display: none; }
+.clamp.is-clamped > :first-child {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; margin-bottom: 0;
+}
+.clamp-toggle {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 4px 0;
+  font: 700 .7rem var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--cyan);
+  background: none; border: 0;
+}
+.clamp-toggle::after { /* the 4px pixel triangle the facet badges use; it flips when open */
+  content: ''; border: 4px solid transparent; border-bottom: 0; border-top-color: currentColor;
+  transition: rotate var(--duration-fast) var(--ease-smooth-out);
+}
+.clamp-toggle[aria-expanded="true"]::after { rotate: 180deg; }
+.clamp-toggle:hover { color: var(--cyan-l); }

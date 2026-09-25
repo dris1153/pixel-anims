@@ -6,7 +6,7 @@
 <title>Showcase · pixel-anims</title>
 <style>html.i18n-pending body{visibility:hidden}</style>
 <script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('pixel-anims:lang')||((navigator.languages||[navigator.language])[0]||'').slice(0,2).toLowerCase();if(/^(vi|ko|ja|zh|th|hi|ar|es)$/.test(l)){document.documentElement.classList.add('i18n-pending');setTimeout(function(){document.documentElement.classList.remove('i18n-pending')},1500)}}catch(e){}</script>
-<meta name="description" content="A pixel-anims showcase: a live 16-bit sprite animation, the brief that made it, and its timings.">
+<meta name="description" content="A pixel-anims showcase: a live 16-bit sprite animation, the prompt that made it, and its timings.">
 <meta property="og:title" content="pixel-anims showcase">
 <meta property="og:description" content="Live, looping 16-bit sprite animations made with the pixel-anims Agent Skill.">
 <meta property="og:type" content="website">
@@ -44,7 +44,6 @@
       <dl class="specs">
         <div><dt data-i18n="dt.res">Resolution</dt><dd data-spec="res"></dd></div>
         <div><dt data-i18n="dt.loop">Loop</dt><dd data-spec="loop"></dd></div>
-        <div><dt data-i18n="dt.states">States</dt><dd data-spec="states"></dd></div>
         <div><dt data-i18n="dt.country">Country</dt><dd class="tags" data-spec="country"></dd></div>
         <div><dt data-i18n="dt.tags">Tags</dt><dd class="tags" data-spec="tags"></dd></div>
       </dl>
@@ -52,11 +51,14 @@
       <a class="open" target="_blank" rel="noopener"><span data-i18n="dt.open">Open full screen</span> <span class="nudge nudge-ne" aria-hidden="true">↗</span><span class="sr-only" data-i18n="dt.open.sr"> (opens in a new tab)</span></a>
     </div>
   </div>
+  <section class="timeline" hidden aria-labelledby="timeline-h"></section>
   <section class="story" hidden aria-labelledby="story-h"></section>
   <div class="prompt brief">
-    <h2 class="brief-label" data-i18n="dt.brief">Brief</h2>
-    <p></p>
-    <button class="copy" type="button" data-i18n="copy.brief">Copy brief</button>
+    <div class="brief-head">
+      <h2 class="brief-label" data-i18n="dt.prompt">Prompt</h2>
+      <button class="copy" type="button" data-i18n="copy.prompt">Copy prompt</button>
+    </div>
+    <div class="brief-body"><p></p></div>
   </div>
   <nav class="pager" aria-label="More showcases" data-i18n-attr="aria-label:dt.more">
     <a rel="prev"><span class="pager-dir"><span class="nudge nudge-l" aria-hidden="true">←</span> <span data-i18n="dt.prev">Previous</span></span><span class="pager-name"></span></a>

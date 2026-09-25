@@ -12,21 +12,20 @@ export function el(tag, className, text) {
   return node;
 }
 
-// Play/Pause swaps the iframe between the live page and its one-tick still. Returns a seek: show tick N paused.
+// Play/Pause swaps the iframe between the live page and its one-tick still.
 export function addPlayToggle(frame, iframe, file, still, title, playing) {
   const button = el('button', 'play');
   button.type = 'button';
   let live = false;
-  const set = (on, load = true, tick = still) => {
+  const set = (on, load = true) => {
     live = on;
-    if (load) iframe.src = on ? file : stillOf(file, tick);
+    if (load) iframe.src = on ? file : stillOf(file, still);
     button.textContent = t(on ? 'pause' : 'play');
     button.setAttribute('aria-label', t(on ? 'pause.label' : 'play.label', { title }));
   };
   button.addEventListener('click', () => set(!live));
   frame.append(button);
   set(playing, !(playing && iframe.getAttribute('src')));
-  return tick => set(false, true, tick);
 }
 
 // The engine scales by whole numbers and pads the rest with the scene's own background, so each iframe renders

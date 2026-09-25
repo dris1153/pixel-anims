@@ -1,0 +1,68 @@
+/* The state timeline on the detail page: a rail of segments sized by duration, labels alternating above and below,
+   and one tooltip that glides between segments (transitions.dev tooltip timing). Phones get a vertical list. */
+.timeline { margin-top: 40px; padding: 18px 22px 22px; }
+.timeline-h { margin: 0 0 8px; font: 700 .7rem/2.2 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); }
+.tl-track { display: flex; gap: 3px; margin: 0; padding: 30px 6px; list-style: none; }
+.tl-seg { position: relative; flex: 1 1 0; min-width: 0; }
+.tl-node {
+  position: relative; display: block; width: 100%; height: 14px; padding: 0;
+  background: var(--night); border: 2px solid var(--line); cursor: pointer;
+  transition: background-color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out);
+}
+.tl-seg:nth-child(even) .tl-node { background: var(--deep); }
+.tl-node::before { /* a pixel diamond where the state begins */
+  content: ''; position: absolute; left: -6px; top: 50%; width: 8px; height: 8px; translate: 0 -50%; rotate: 45deg;
+  background: var(--stone); box-shadow: 0 0 0 2px var(--ink);
+}
+.tl-label { position: absolute; left: 0; bottom: calc(100% + 6px); display: flex; gap: 6px; align-items: baseline; white-space: nowrap; }
+.tl-seg:nth-child(even) .tl-label { top: calc(100% + 6px); bottom: auto; }
+.tl-seg:last-child .tl-label { left: auto; right: 0; } /* stays inside the frame */
+.tl-name { font: 600 .72rem var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--silver); }
+.tl-time { font: 500 .68rem var(--mono); color: var(--muted); }
+.tl-desc { display: none; }
+.tl-node:hover, .tl-node:focus-visible { border-color: var(--line-l); background: var(--line); }
+.tl-node:hover::before, .tl-node:focus-visible::before { background: var(--cyan); }
+.tl-node:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.tl-node::after { /* the playhead fill: the current state by its progress, earlier states in full */
+  content: ''; position: absolute; inset: 0; background: rgba(79, 216, 255, .22); pointer-events: none;
+  transform: scaleX(0); transform-origin: left; /* a transform, so the per-frame playhead never re-lays out the page */
+}
+.tl-seg.is-past .tl-node::after { transform: none; }
+.tl-seg.is-past .tl-node::before { background: var(--cyan); }
+.tl-seg.is-now .tl-node { border-color: var(--gold); }
+.tl-seg.is-now .tl-node::after { transform: scaleX(var(--p, 0)); background: rgba(242, 184, 75, .38); }
+.tl-seg.is-now .tl-node::before { background: var(--gold); }
+.tl-seg.is-now .tl-name { color: var(--gold); }
+
+.tl-tip {
+  --tt-in: 150ms; --tt-out: 50ms; --tt-delay: 80ms; --tt-move: 160ms;
+  position: absolute; left: 0; top: 0; z-index: 5; width: max-content; max-width: min(300px, 90%); padding: 8px 12px;
+  color: var(--silver); font-size: .88rem; line-height: 1.45; background: var(--ink); border: 2px solid var(--line-l);
+  box-shadow: 0 0 0 2px var(--shadow), 0 0 22px -6px var(--glow);
+  translate: var(--tt-x, 0px) var(--tt-y, 0px); scale: .98; transform-origin: 50% 100%; opacity: 0; pointer-events: none;
+  transition: opacity var(--tt-out) ease-out, scale var(--tt-out) ease-out, translate var(--tt-move) var(--ease-smooth-out);
+}
+.tl-tip[data-show="true"] { /* the appear delay belongs to showing only, so hiding is instant */
+  opacity: 1; scale: 1;
+  transition: opacity var(--tt-in) ease-out var(--tt-delay), scale var(--tt-in) ease-out var(--tt-delay), translate var(--tt-move) var(--ease-smooth-out);
+}
+.tl-tip b { font: 700 .72rem var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--gold); }
+.tl-tip-time { margin-left: 8px; font: 500 .75rem var(--mono); color: var(--muted); }
+.tl-tip-text { display: block; margin-top: 4px; }
+.tl-tip-text[hidden] { display: none; }
+
+@media (max-width: 900px), (hover: none) { /* a vertical roadmap: the rail on the left, each beat written out (touch has no hover) */
+  .tl-track { flex-direction: column; gap: 0; padding: 4px 0 0; }
+  .tl-seg { padding: 0 0 14px 24px; }
+  .tl-seg::before { content: ''; position: absolute; left: 7px; top: 6px; bottom: -6px; width: 2px; background: var(--line); }
+  .tl-seg:last-child::before { display: none; }
+  .tl-node, .tl-seg:nth-child(even) .tl-node { width: auto; height: auto; padding: 2px 0; background: none; border: 0; }
+  .tl-node::before { left: -21px; }
+  .tl-label, .tl-seg:nth-child(even) .tl-label { position: static; }
+  .tl-desc { display: block; margin: 2px 0 0; color: var(--silver); font-size: .95rem; line-height: 1.55; }
+  .tl-seg.is-now .tl-node { background: none; }
+  .tl-node::after { display: none; }
+  .tl-tip { display: none; }
+  .timeline { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .tl-tip, .tl-node { transition: none !important; } }
