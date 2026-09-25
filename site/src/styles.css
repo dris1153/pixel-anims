@@ -18,8 +18,8 @@
   --blur-small: 2px; --blur-medium: 3px;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 94px; }
-body { margin: 0; background: var(--ink); color: var(--text); font: 400 1.0625rem/1.65 var(--body); }
+html { scroll-behavior: smooth; scroll-padding-top: 94px; overflow-y: auto; } /* the viewport scrolls from here, so body can clip */
+body { margin: 0; background: var(--ink); color: var(--text); font: 400 1.0625rem/1.65 var(--body); overflow: clip; } /* nothing absolute can stretch the page past the body, and the cliffs end where it ends */
 a { color: var(--cyan); text-underline-offset: 3px; transition: color var(--duration-quick) var(--ease-smooth-out); }
 a:hover { color: var(--cyan-l); }
 code { font-family: var(--mono); font-size: .92em; color: var(--cyan-l); }
@@ -111,7 +111,7 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 .hero-then { margin: 10px 0 0; color: var(--muted); font-size: .92rem; }
 .flag { display: inline-block; flex: none; width: 16px; height: 12px; margin-right: 6px; vertical-align: -1px; shape-rendering: crispEdges; box-shadow: 0 0 0 1px var(--ink); }
 .flag-globe { box-shadow: none; } /* the globe is round: no frame */
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .play {
   position: absolute; top: 8px; right: 8px; z-index: 1; padding: 6px 9px;
   font: 700 .62rem var(--display); letter-spacing: .06em; text-transform: uppercase;
