@@ -1,0 +1,774 @@
+<title>Manco Capac Founds Cusco</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #0a0714; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #0a0714; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art of the Inca founders Manco Capac and Mama Ocllo rising from Lake Titicaca and founding Cusco where the golden staff sinks into the earth"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // sparkles, spray and dust are culled at their own ground in step()
+const POSE_STEP = 6;               // 10 fps pose frames
+const SHORE = 72;                  // where Lake Titicaca meets its reedy shore
+const VALLEY = 78;                 // where the founders stand in the valley of Cusco
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#0a0714',
+  '#2a58c8', '#4a8ae0', '#9ac8ee',
+  '#6a3a78', '#e8864a', '#fcd28a',
+  '#2e1a52', '#7a3288', '#e0688a',
+  '#080c26', '#1c2250',
+  '#f4f6ff', '#9aaad8', '#2e2a44', '#5e5670',
+  '#0c2462', '#1c4ea8', '#5aa0e8',
+  '#24461e', '#44782a', '#8ab43e',
+  '#c0a060', '#6e4a28',
+  '#5a5258', '#968c86', '#cac0b0',
+  '#e4a41c', '#fff0a0', '#c8242e', '#a8683a', '#fffaf0',
+];
+const INK = 0, SKY_A = 1, SKY_B = 2, SKY_C = 3, DWN_A = 4, DWN_B = 5, DWN_C = 6, DSK_A = 7, DSK_B = 8, DSK_C = 9,
+  NIT_A = 10, NIT_B = 11, SNOW = 12, SNOW_S = 13, ROCK_D = 14, ROCK = 15, LAK_D = 16, LAK_M = 17, LAK_L = 18,
+  GRN_D = 19, GRN_M = 20, GRN_L = 21, TAN = 22, EARTH = 23, STN_D = 24, STN = 25, STN_L = 26,
+  GOLD = 27, GOLD_L = 28, RED = 29, SKIN = 30, WHITE = 31;
+
+// One step brighter per ramp; the high Andes climb toward Inti's gold.
+const LIGHTEN = Uint8Array.of(
+  ROCK_D,
+  SKY_B, SKY_C, WHITE,
+  DWN_B, DWN_C, GOLD_L,
+  DSK_B, DSK_C, DWN_C,
+  NIT_B, SKY_A,
+  WHITE, SNOW, ROCK, STN,
+  LAK_M, LAK_L, SKY_C,
+  GRN_M, GRN_L, GOLD_L,
+  DWN_C, TAN,
+  STN, STN_L, WHITE,
+  GOLD_L, WHITE, DSK_C, DWN_B, WHITE);
+const RAMP_GOLD = Uint8Array.of(WHITE, GOLD_L, GOLD, EARTH);
+const RAMP_SPRAY = Uint8Array.of(WHITE, LAK_L, LAK_M, LAK_D);
+const RAMP_DUST = Uint8Array.of(STN_L, TAN, EARTH, ROCK_D);
+const RAMP_FEST = Uint8Array.of(GOLD_L, RED, DSK_B, DSK_A);
+const RAMPS = [RAMP_GOLD, RAMP_SPRAY, RAMP_DUST, RAMP_FEST];
+const RIM = Uint8Array.of(GOLD, GOLD_L, WHITE);
+const RIM_BANDS = Uint16Array.of(14, 28, 44);
+const LIGHT = Float32Array.of(-0.6, -0.8);        // Inti rising over the lake, up on the left
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[INK] = RIM_OK[GOLD] = RIM_OK[GOLD_L] = RIM_OK[WHITE] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY_A] = AIR[SKY_B] = AIR[SKY_C] = AIR[DWN_A] = AIR[DWN_B] = AIR[DWN_C] = AIR[DSK_A] = AIR[DSK_B] = AIR[DSK_C] = AIR[NIT_A] = AIR[NIT_B] = 1;
+
+const TITICACA = 0, EMERGE = 1, JOURNEY = 2, SINK = 3, CUSCO = 4, TEACH = 5, RAYMI = 6, NIGHT = 7;
+const DUR = Uint16Array.of(90, 90, 90, 90, 90, 90, 90, 90); // L = 720: lake ripple 120, llamas 240, reed boats 720
+const EASE = Uint16Array.of(6, 6, 6, 6, 6, 6, 6, 6);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 0);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = [REST, REST, REST, REST, REST, REST, REST, REST];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables
+const TWO_PI = Math.PI * 2;
+const SKYM = new Uint8Array(N), WATM = new Uint8Array(N), VALM = new Uint8Array(N);
+const CITY = new Uint8Array(N).fill(EMPTY), CITYR = new Float32Array(N), TERC = new Uint8Array(N).fill(EMPTY), TERR = new Float32Array(N);
+const DAWNM = 0, NOONM = 1, DUSKM = 2, NIGHTM = 3;
+const MAPS = [0, 1, 2, 3].map(() => new Uint8Array(PAL.length));
+const lay = new Uint8Array(N), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let grp = 0, pid = 0, lx0 = 0, ly0 = 0, lx1 = -1, ly1 = -1, bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+const pWL = new Float32Array(MAXP);
+const NS = 120, NMW = 64;                          // stars, the first NMW of them strung along the Milky Way
+const SR = new Float32Array(NS), STH = new Float32Array(NS);
+const ND = 7;
+const DOORX = new Uint8Array(ND), DOORY = new Uint8Array(ND);
+const LX = Uint8Array.of(64, 73, 92), LF = Int8Array.of(1, -1, -1), LCOL = Uint8Array.of(WHITE, TAN, WHITE), LG = new Uint8Array(3);
+const NDN = 5, DNX = new Float32Array(NDN);
+const STRIPE = Uint8Array.of(RED, GOLD, LAK_M, GRN_L, WHITE, RED, DSK_B, GOLD);
+let pfr = 0, flick = 0, modeA = DAWNM, modeB = DAWNM, modeE = 0, sunY = 99, rays = 0, starRot = 0,
+  cityA = 0, cityF = 1, terrA = 0, mistA = 0, ringR = -1, glowA = 0, glint = -1, lights = 0, sunDisc = 0, discFl = 0,
+  fdOn = 0, fdA = 1, emDY = 0, maX = 44, maY = SHORE, maWalk = 0, maStaff = 0, staffTop = 0, staffHeld = 1, maArm = 0, maF = 1,
+  moX = 38, moY = SHORE, moWalk = 0, moSit = 0, loom = 0, danceOn = 0, danceA = 1, coOn = 0, coX = 0, coY = 0;
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return a + (b - a) * e;
+}
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+}
+function gyf(x) { // the path from the lakeshore over the ridge and down into the valley
+  return x <= 60 ? SHORE : x <= 80 ? SHORE - 16 * ease((x - 60) / 20) : x <= 102 ? 56 + 22 * ease((x - 80) / 22) : VALLEY;
+}
+function land(x, y, c) {
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  bg[y * W + x] = c; SKYM[y * W + x] = 0;
+}
+function cityPut(x, y, c) {
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  CITY[y * W + x] = c; CITYR[y * W + x] = (VALLEY - 1 - y) / 24 + ((x * 7) % 5) * 0.004;
+}
+function house(x0, x1, base, h, door) { // fitted stone walls, a trapezoid door, a gabled roof of ichu thatch
+  for (let y = base - h; y < base; y++) for (let x = x0; x <= x1; x++) {
+    const row = (base - y) / 3 | 0, joint = (y - base) % 3 === 0 || (x + row * 2) % 5 === 0;
+    cityPut(x, y, joint ? STN_D : (x + row * 2) % 5 === 1 ? STN_L : STN);
+  }
+  if (door) { const dx = Math.round((x0 + x1) / 2); for (let y = base - 5; y < base; y++) { const hw = y < base - 3 ? 0 : 1; for (let x = dx - hw; x <= dx + hw; x++) cityPut(x, y, ROCK_D); } for (let k = 0; k < ND; k++) if (DOORX[k] === 0) { DOORX[k] = dx; DOORY[k] = base - 3; break; } }
+  const cx = (x0 + x1) / 2, rh = Math.round((x1 - x0) / 2) + 1;
+  for (let j = 0; j < rh; j++) { const y = base - h - 1 - j, hw = Math.round((x1 - x0) / 2 + 1 - j); for (let x = Math.round(cx) - hw; x <= Math.round(cx) + hw; x++) cityPut(x, y, j === 0 ? EARTH : (x + j) % 3 === 0 ? EARTH : TAN); }
+}
+
+function buildBackground() {
+  let seed = 977;
+  const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let c = y < 16 ? SKY_A : y < 34 ? SKY_B : SKY_C;
+    if ((y === 15 || y === 33) && dith(x, y, 0.5)) c++;
+    bg[y * W + x] = c; SKYM[y * W + x] = 1;
+  }
+  const CX = [8, 70, 100, 130, 156], CT = [30, 16, 26, 18, 26], CS = [0.9, 0.75, 0.8, 0.7, 0.8];
+  for (let x = 0; x < W; x++) { // the snowy Andes, lit from the east
+    let top = 46, cone = -1;
+    for (let k = 0; k < 5; k++) { const t = CT[k] + Math.abs(x - CX[k]) * CS[k]; if (t < top) { top = t; cone = k; } }
+    top = Math.round(top);
+    const shade = cone >= 0 && x > CX[cone], snowTo = top + Math.round((52 - top) * 0.34);
+    for (let y = top; y < 53; y++) land(x, y, y < snowTo ? (shade ? SNOW_S : (x * 3 + y) % 11 === 0 ? SNOW_S : SNOW) : y < snowTo + 1 && dith(x, y, 0.5) ? SNOW_S : shade ? ROCK_D : ROCK);
+  }
+  for (let y = 46; y < 64; y++) for (let x = 70; x < W; x++) land(x, y, y < 52 ? ((x + y) % 4 === 0 ? GRN_M : GRN_D) : (x * 5 + y * 3) % 9 === 0 ? GRN_D : GRN_M); // the far valley slopes
+  for (let y = 52; y < SHORE; y++) for (let x = 0; x < 70; x++) { // Lake Titicaca
+    const i = y * W + x;
+    bg[i] = y < 56 ? (dith(x, y, (56 - y) / 5) ? LAK_L : LAK_M) : y < 65 ? LAK_M : dith(x, y, (y - 64) / 8) ? LAK_D : LAK_M; SKYM[i] = 0; WATM[i] = 1;
+  }
+  for (let x = 12; x <= 46; x++) { const top = Math.round(47 + ((x - 29) / 17) ** 2 * 6); for (let y = top; y < 54; y++) { land(x, y, y === top ? GRN_L : (y - top) % 2 === 1 && x % 4 ? STN_D : x > 32 ? EARTH : TAN); WATM[y * W + x] = 0; } } // the Island of the Sun, terraced
+  for (let y = 64; y < H; y++) for (let x = 70; x < W; x++) { land(x, y, (x * 3 + y * 7) % 13 === 0 ? GRN_L : (x + y * 5) % 11 === 0 ? GRN_D : GRN_M); VALM[y * W + x] = 1; } // the valley floor
+  for (let x = 114; x < W; x++) { // the hillside the terraces will climb
+    const top = Math.round(66 - (x - 114) * 0.72);
+    for (let y = top; y < 76; y++) {
+      const i = y * W + x;
+      land(x, y, y === top ? GRN_L : (x * 5 + y * 3) % 7 === 0 ? TAN : (x + y) % 5 === 0 ? GRN_D : GRN_M); VALM[i] = 0;
+      if (y > top) { TERR[i] = (77 - y) / 44; const b = (y - 38) % 4; TERC[i] = b === 0 ? ((x % 3 === 0 && (y >> 2) % 2) ? GOLD : (x % 4 === 1 && !((y >> 2) % 2)) ? RED : GRN_L) : b === 3 ? STN_D : (x + y * 2) % 5 === 0 ? STN_D : STN; }
+    }
+  }
+  for (let y = SHORE; y < H; y++) for (let x = 0; x < 62; x++) land(x, y, y === SHORE ? (x % 3 ? TAN : GRN_L) : (x * 7 + y * 3) % 11 === 0 ? EARTH : (x + y * 2) % 3 === 0 ? TAN : GRN_M); // the reedy shore
+  for (let k = 0; k < 26; k++) { const x = r() * 40 | 0, h = 6 + (r() * 8 | 0); for (let y = H - 1; y > H - 1 - h; y--) land(x, y, y === H - h ? GRN_L : k & 1 ? GRN_M : GRN_D); } // totora reeds
+  for (let x = 56; x <= 104; x++) { const top = Math.round(gyf(x)); for (let y = top; y < H; y++) { land(x, y, y === top ? (x % 3 ? TAN : GRN_L) : y < top + 3 ? ((x + y) % 3 ? TAN : GRN_L) : (x * 5 + y * 3) % 9 === 0 ? EARTH : (x + y * 2) % 3 === 0 ? TAN : GRN_M); VALM[y * W + x] = x > 90 ? 1 : 0; } } // the puna ridge
+  house(99, 107, 72, 7, 1); house(134, 143, 70, 7, 1); house(145, 155, 67, 7, 1);
+  house(110, 130, 74, 12, 0);                                                                     // the Temple of the Sun
+  for (let y = 64; y <= 65; y++) for (let x = 110; x <= 130; x++) cityPut(x, y, (x + y) % 4 === 0 ? GOLD_L : GOLD);
+  for (let k = 0; k < 3; k++) { const dx = 114 + k * 6; for (let y = 68; y < 74; y++) { const hw = y < 70 ? 0 : 1; for (let x = dx - hw; x <= dx + hw; x++) cityPut(x, y, ROCK_D); } }
+  house(134, 144, 77, 8, 1); house(146, 156, 77, 8, 1);
+  for (let k = 0; k < NS; k++) { // stars wheel about the south pole below the horizon
+    SR[k] = 40 + r() * 130;
+    STH[k] = k < NMW ? -2.05 + (r() - 0.5) * 0.26 + (r() - 0.5) * 0.1 : -Math.PI + r() * Math.PI;
+  }
+  for (let m = 0; m < 4; m++) for (let c = 0; c < PAL.length; c++) MAPS[m][c] = c;
+  const map = (m, a) => { for (let k = 0; k < a.length; k += 2) MAPS[m][a[k]] = a[k + 1]; };
+  map(DAWNM, [SKY_A, DWN_A, SKY_B, DWN_B, SKY_C, DWN_C, SNOW, DWN_C, SNOW_S, DSK_C, LAK_L, DWN_C, GRN_L, TAN]);
+  map(DUSKM, [SKY_A, DSK_A, SKY_B, DSK_B, SKY_C, DSK_C, SNOW, DSK_C, SNOW_S, DSK_B, LAK_L, DSK_C, LAK_M, LAK_D, GRN_L, GRN_M, STN_L, STN]);
+  map(NIGHTM, [SKY_A, NIT_A, SKY_B, NIT_A, SKY_C, NIT_B, SNOW, SNOW_S, SNOW_S, ROCK_D, ROCK, ROCK_D, LAK_L, LAK_M, LAK_M, LAK_D, GRN_L, GRN_D, GRN_M, GRN_D,
+    TAN, EARTH, EARTH, ROCK_D, STN_L, STN_D, STN, STN_D, GOLD_L, GOLD, GOLD, EARTH, RED, EARTH]);
+  lay.fill(EMPTY);
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
+function sample() {
+  snap.set(pose);
+  const T = state, t = stT;
+  pfr = tick / POSE_STEP | 0; flick = (tick >> 3) & 1;
+  modeA = modeB = NOONM; modeE = 0;
+  if (T === TITICACA) modeA = modeB = DAWNM;
+  else if (T === EMERGE) { modeA = DAWNM; modeE = ease((t - 10) / 60); }
+  else if (T === RAYMI) { modeB = DUSKM; modeE = ease(t / 40); }
+  else if (T === NIGHT) { if (t < 50) { modeA = DUSKM; modeB = NIGHTM; modeE = ease(t / 24); } else { modeA = NIGHTM; modeB = DAWNM; modeE = ease((t - 56) / 30); } }
+  sunY = T === TITICACA ? mix(62, 36, ease(t / 86)) : T === EMERGE ? mix(36, -14, ease(t / 90)) : 99;
+  rays = (T === TITICACA && t >= 20) || (T === EMERGE && t < 60) ? 1 : 0;
+  starRot = T === NIGHT ? t * 0.005 : 0;
+  cityA = T < CUSCO ? 0 : T === CUSCO ? ease((t - 4) / 66) : 1;
+  terrA = T < TEACH ? 0 : T === TEACH ? ease((t - 4) / 60) : 1;
+  cityF = T === NIGHT ? 1 - ease((t - 28) / 30) : 1;
+  mistA = T === NIGHT ? ease((t - 18) / 20) * (1 - ease((t - 62) / 22)) : 0;
+  ringR = T === SINK && t >= 46 ? (t - 46) * 2.2 : -1; glowA = T === SINK ? 1 - ease((t - 60) / 30) : 0;
+  glint = T === CUSCO && t >= 60 ? 108 + (t - 60) * 0.9 : T === TEACH && t < 24 ? 135 : -1;
+  lights = (T === RAYMI && t >= 54) || (T === NIGHT && t < 56) ? 1 : 0;
+  sunDisc = T === RAYMI ? ease((t - 10) / 16) : 0; discFl = T === RAYMI && t >= 30 && t < 48 ? 1 : 0;
+  // the founders
+  fdOn = T >= EMERGE ? 1 : 0; fdA = T === NIGHT ? 1 - ease((t - 30) / 24) : 1; emDY = 0;
+  maWalk = 0; maStaff = 0; staffTop = 0; staffHeld = 1; maArm = 0; maF = T === RAYMI || T === NIGHT ? -1 : 1; moWalk = 0; moSit = 0; loom = 0;
+  if (T === EMERGE) { maX = 44; moX = 37; emDY = Math.round((1 - ease((t - 16) / 44)) * 22); maStaff = 1; }
+  else if (T === JOURNEY) {
+    maStaff = 1;
+    if (t < 40) { maX = mix(44, 80, t / 40); maWalk = 1; } else if (t < 58) { maX = 80; staffTop = t < 46 ? -3 : t < 52 ? 1 : 0; } else { maX = mix(80, 100, (t - 58) / 32); maWalk = 1; }
+    moX = Math.max(37, maX - 8); moWalk = maWalk;
+  } else if (T === SINK) {
+    maX = mix(100, 104, ease(t / 12)); moX = maX - 8; maWalk = t < 12 ? 1 : 0; moWalk = maWalk;
+    if (t < 24) maStaff = 1; else if (t < 46) { maStaff = 2; staffTop = Math.round(ease((t - 26) / 20) * 21); staffHeld = t < 36 ? 1 : 0; } else maArm = t < 70 ? 2 : 0;
+  } else if (T === CUSCO) { maX = 104; moX = 96; maArm = t >= 20 && t < 70 ? 1 : 0; }
+  else if (T === TEACH) { maX = mix(104, 130, ease(t / 30)); maWalk = t < 30 ? 1 : 0; maArm = t >= 34 ? 1 : 0; moX = 96; moSit = 1; loom = ease((t - 8) / 70); }
+  else if (T === RAYMI) { maX = 130; moX = 96; maArm = t >= 30 && t < 60 ? 2 : 0; }
+  else if (T === NIGHT) { maX = 130; moX = 96; }
+  maX = Math.round(maX); moX = Math.round(moX); maY = Math.round(gyf(maX)); moY = Math.round(gyf(moX));
+  // llamas graze and look up on a 240-tick cycle
+  for (let k = 0; k < 3; k++) LG[k] = ((tick + k * 80) % 240) < 150 ? 1 : 0;
+  // Inti Raymi
+  danceOn = T === RAYMI ? 1 : 0; danceA = ease(t / 12) * (1 - ease((t - 72) / 14));
+  for (let k = 0; k < NDN; k++) DNX[k] = 106 + k * 9 + Math.round(2 * Math.sin(t * TWO_PI / 30 + k * 1.3));
+  coOn = T === RAYMI && t < 90 ? 1 : 0; coX = Math.round(mix(186, -30, t / 90)); coY = Math.round(18 + 3 * Math.sin(t * TWO_PI / 90));
+  srcX = 80; srcY = 0; rim = 1;
+  if (sunY < 60) { srcX = 30; srcY = Math.round(sunY); rim = 2; }
+  if (T === SINK && t >= 40 && t < 66) { srcX = maX + 5; srcY = VALLEY; rim = 3; }
+  else if (T === CUSCO || T === TEACH) { srcX = 120; srcY = 64; }
+  else if (T === RAYMI) { srcX = 118; srcY = 44; rim = discFl ? 3 : 2; }
+}
+
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function step() {
+  if (tick % POSE_STEP === 0) sample();
+  const T = state, t = stT;
+  if (T === EMERGE && t < 50 && tick % 2 === 0) sp(MOTE, 14 + rand() * 14, 32 + rand() * 22, SHORE - 1 - rand() * 3, (rand() - 0.5) * 0.3, -0.25 - rand() * 0.3, 0, 99);
+  if (T === EMERGE && t === 16) for (let k = 0; k < 30; k++) sp(BURST, 16 + rand() * 12, 34 + rand() * 16, SHORE - 1, (rand() - 0.5) * 1.6, -0.8 - rand() * 1.4, 1, SHORE);
+  if (T === JOURNEY && t === 48) for (let k = 0; k < 12; k++) sp(BURST, 10 + rand() * 8, maX + 5, maY - 1, (rand() - 0.5) * 1.4, -0.3 - rand() * 0.8, 2, maY);
+  if (T === SINK && t === 46) { flashT = 3; shakeT = 8; for (let k = 0; k < 36; k++) sp(BURST, 18 + rand() * 16, maX + 5, VALLEY - 1, (rand() - 0.5) * 2.4, -1 - rand() * 2, 0, VALLEY); }
+  if (T === SINK && t > 46 && t < 76 && tick % 2 === 0) sp(MOTE, 16 + rand() * 12, 80 + rand() * 78, 64 + rand() * 24, 0, -0.3, 0, 99);
+  if (T === CUSCO && t > 4 && t < 70 && tick % 3 === 0) sp(BURST, 10 + rand() * 8, 100 + rand() * 56, 58 + rand() * 18, (rand() - 0.5) * 0.6, -0.4, 2, 90);
+  if (T === CUSCO && t >= 66 && tick % 4 === 0) sp(MOTE, 10 + rand() * 10, 110 + rand() * 20, 64, 0, -0.2, 0, 99);
+  if (danceOn && danceA > 0.5 && tick % 3 === 0) sp(MOTE, 18 + rand() * 12, 104 + rand() * 44, 72 + rand() * 6, (rand() - 0.5) * 0.4, -0.3, 3, 99);
+  if (T === RAYMI && t === 36) { flashT = 2; for (let k = 0; k < 24; k++) sp(BURST, 14 + rand() * 12, 118, 44, (rand() - 0.5) * 2.4, (rand() - 0.5) * 2.4, 0, 99); }
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === BURST && pvy[i] > 0 && py[i] > pWL[i]) pKind[i] = 0;
+}
+
+function hint(x0, y0, x1, y1) {
+  bx0 = Math.max(0, x0 | 0); by0 = Math.max(0, y0 | 0); bx1 = Math.min(W - 1, x1 | 0); by1 = Math.min(H - 1, y1 | 0);
+}
+function layBox() {
+  lx0 = W; ly0 = H; lx1 = -1; ly1 = -1;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (lay[y * W + x] === EMPTY) continue;
+    if (x < lx0) lx0 = x;
+    if (x > lx1) lx1 = x;
+    if (y < ly0) ly0 = y;
+    ly1 = y;
+  }
+}
+function layFade(amt) { // dissolve the current part in or out
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (amt * 16 <= BAYER[(y & 3) * 4 + (x & 3)]) lay[y * W + x] = EMPTY;
+}
+function layEnd(clipY = H - 1) { // copy the part into spr down to clipY, then ink the other actors' parts it borders
+  layBox();
+  GRP[++pid] = grp;
+  for (let y = ly0; y <= Math.min(ly1, clipY); y++) for (let x = lx0; x <= lx1; x++) {
+    const i = y * W + x;
+    if (lay[i] !== EMPTY) { spr[i] = lay[i]; own[i] = pid; }
+  }
+  for (let y = Math.max(1, ly0 - 1); y <= Math.min(H - 2, ly1 + 1); y++) for (let x = Math.max(1, lx0 - 1); x <= Math.min(W - 2, lx1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
+  }
+  for (let y = by0; y <= by1; y++) lay.fill(EMPTY, y * W + bx0, y * W + bx1 + 1);
+  hint(0, 0, W - 1, H - 1);
+}
+
+function drawManco() { // Manco Capac: a red tunic with a band of gold tocapu, a brown cape, gold ear discs, the golden staff
+  grp = 1;
+  const x = maX, y = maY + emDY, w = maWalk ? pfr & 1 : 0, f = maF;                          // f = -1 faces the Raymi sun disc
+  line(lay, x - f, y - 5, x - f * (1 + w), y, SKIN); line(lay, x + f, y - 5, x + f * (1 + w), y, SKIN);
+  for (let yy = y - 13; yy <= y - 6; yy++) { hline(lay, x - 2, x + 2, yy, RED); plot(lay, x - 3 * f, yy, EARTH); }
+  for (let dx = -2; dx <= 2; dx++) { plot(lay, x + dx, y - 9, (dx & 1) ? GOLD : RED); plot(lay, x + dx, y - 8, (dx & 1) ? RED : GOLD); }
+  hline(lay, x - 2, x + 2, y - 5, GOLD);
+  disc(x, y - 16, 2, SKIN, lay);
+  plot(lay, x - 2 * f, y - 16, ROCK_D); plot(lay, x - 2 * f, y - 15, ROCK_D); plot(lay, x - f, y - 17, ROCK_D);
+  hline(lay, x - 2, x + 2, y - 18, RED); plot(lay, x, y - 19, WHITE); plot(lay, x - f, y - 20, WHITE);     // the royal headband and plume
+  plot(lay, x - f, y - 16, GOLD); plot(lay, x + f, y - 16, INK);
+  if (maStaff === 1) { line(lay, x + f, y - 12, x + 4 * f, y - 10, SKIN); line2(lay, x + 4 * f, y - 21 + staffTop, x + 4 * f, y + staffTop, GOLD_L, GOLD); plot(lay, x + 4 * f, y - 22 + staffTop, GOLD_L); }
+  else if (maStaff === 2) {
+    const top = y - 21 + staffTop;
+    if (top < y) { line2(lay, x + 5 * f, top, x + 5 * f, y, GOLD_L, GOLD); plot(lay, x + 5 * f, top - 1, GOLD_L); }
+    if (staffHeld) line(lay, x + f, y - 12, x + 4 * f, Math.min(top, y - 7), SKIN); else line(lay, x + f, y - 12, x + 2 * f, y - 8, SKIN);
+  } else if (maArm === 1) line(lay, x + f, y - 12, x + 4 * f, y - 17, SKIN);
+  else if (maArm === 2) { line(lay, x + 1, y - 12, x + 3, y - 18, SKIN); line(lay, x - 1, y - 12, x - 3, y - 18, SKIN); }
+  else line(lay, x + f, y - 12, x + 2 * f, y - 8, SKIN);
+  hint(x - 9, y - 26, x + 9, y + 2);
+  if (fdA < 1) layFade(fdA);
+  layEnd(emDY > 0 ? SHORE - 1 : H - 1);
+}
+function drawMama() { // Mama Ocllo: a long blue dress, a purple shawl with a gold pin, a white headcloth; later, a backstrap loom
+  grp = 2;
+  const x = moX, y = moY + emDY, w = moWalk ? pfr & 1 : 0;
+  if (!moSit) {
+    plot(lay, x - 1, y, SKIN); plot(lay, x + 1 + w, y, SKIN);
+    for (let yy = y - 12; yy <= y - 7; yy++) hline(lay, x - 2, x + 2, yy, LAK_M);
+    for (let yy = y - 6; yy <= y - 1; yy++) hline(lay, x - 3 + (yy > y - 3 ? w : 0), x + 3 + (yy > y - 3 ? w : 0), yy, yy === y - 2 ? RED : LAK_M);
+    for (let dx = -2; dx <= 2; dx++) plot(lay, x + dx, y - 8, dx & 1 ? RED : GOLD);
+    for (let yy = y - 13; yy <= y - 11; yy++) hline(lay, x - 3, x + 2, yy, DSK_B);
+    plot(lay, x, y - 12, GOLD);
+    disc(x, y - 15, 2, SKIN, lay); for (let yy = y - 15; yy <= y - 10; yy++) plot(lay, x - 2 - (yy > y - 13 ? 1 : 0), yy, ROCK_D);
+    hline(lay, x - 2, x + 2, y - 17, WHITE); plot(lay, x - 2, y - 16, WHITE); plot(lay, x - 3, y - 16, WHITE); plot(lay, x + 1, y - 15, INK);
+    line(lay, x + 1, y - 11, x + 2, y - 7, SKIN);
+  } else {
+    for (let yy = y - 4; yy <= y - 1; yy++) hline(lay, x - 4, x + 3, yy, yy === y - 1 ? RED : LAK_M);
+    for (let yy = y - 9; yy <= y - 5; yy++) hline(lay, x - 2, x + 2, yy, yy === y - 5 ? GOLD : LAK_M);
+    for (let yy = y - 10; yy <= y - 8; yy++) hline(lay, x - 3, x + 2, yy, DSK_B);
+    plot(lay, x, y - 9, GOLD);
+    disc(x, y - 12, 2, SKIN, lay); for (let yy = y - 12; yy <= y - 7; yy++) plot(lay, x - 3, yy, ROCK_D);
+    hline(lay, x - 2, x + 2, y - 14, WHITE); plot(lay, x - 2, y - 13, WHITE); plot(lay, x + 1, y - 12, INK);
+    line(lay, x + 1, y - 8, x + 4, y - 6, SKIN);
+    const len = Math.round(loom * 12);                                                         // the striped cloth grows from the post
+    for (let k = 0; k <= 12; k++) { const cx = x + 17 - k; if (k > len) break; for (let yy = y - 7; yy <= y - 5; yy++) plot(lay, cx, yy, STRIPE[k % 8]); }
+    line(lay, x + 5, y - 6, x + 17 - len, y - 6, TAN); line(lay, x + 18, y - 11, x + 18, y + 3, EARTH); plot(lay, x + 18, y - 6, TAN);
+  }
+  hint(x - 8, y - 22, x + 20, y + 4);
+  if (fdA < 1) layFade(fdA);
+  layEnd(emDY > 0 ? SHORE - 1 : H - 1);
+}
+function drawLlamas() { // white and fawn llamas with red ear tassels, grazing the puna
+  grp = 3;
+  for (let k = 0; k < 3; k++) {
+    const x = LX[k], y = Math.round(gyf(x)), f = LF[k], c = LCOL[k];
+    for (let yy = y - 7; yy <= y - 5; yy++) hline(lay, x - 3, x + 3, yy, c);
+    hline(lay, x - 2, x + 2, y - 8, c); plot(lay, x - f * 4, y - 7, c);
+    if (k === 2) { plot(lay, x, y - 6, EARTH); plot(lay, x + 1, y - 6, EARTH); plot(lay, x - 1, y - 7, EARTH); }
+    line(lay, x - 3, y - 4, x - 3, y, EARTH); line(lay, x - 2, y - 4, x - 2, y, EARTH); line(lay, x + 2, y - 4, x + 2, y, EARTH); line(lay, x + 3, y - 4, x + 3, y, EARTH);
+    if (LG[k]) { line(lay, x + f * 3, y - 7, x + f * 5, y - 3, c); hline(lay, Math.min(x + f * 5, x + f * 6), Math.max(x + f * 5, x + f * 6), y - 2, c); plot(lay, x + f * 5, y - 4, RED); }
+    else { line(lay, x + f * 3, y - 7, x + f * 4, y - 12, c); hline(lay, Math.min(x + f * 4, x + f * 6), Math.max(x + f * 4, x + f * 6), y - 12, c); plot(lay, x + f * 4, y - 13, c); plot(lay, x + f * 4, y - 14, RED); plot(lay, x + f * 5, y - 12, INK); }
+  }
+  hint(50, 36, 108, 80);
+  layEnd();
+}
+function drawDancer(k) { // Inti Raymi dancers in spinning red and gold skirts
+  grp = 4 + k;
+  const x = Math.round(DNX[k]), y = 87, s = (pfr + k) & 1;
+  for (let j = 0; j < 4; j++) for (let dx = -(1 + j); dx <= 1 + j; dx++) plot(lay, x + dx, y - 4 + j, ((dx + s + j) & 1) ? RED : GOLD);
+  for (let yy = y - 7; yy <= y - 5; yy++) hline(lay, x - 1, x + 1, yy, RED);
+  disc(x, y - 9, 1.3, SKIN, lay); hline(lay, x - 1, x + 1, y - 11, GOLD); plot(lay, x, y - 12, GOLD_L); plot(lay, x + (s ? 1 : -1), y - 13, RED);
+  if (s) line(lay, x - 4, y - 6, x + 4, y - 6, SKIN); else { line(lay, x - 1, y - 6, x - 3, y - 9, SKIN); line(lay, x + 1, y - 6, x + 3, y - 9, SKIN); }
+  hint(x - 8, y - 16, x + 8, H - 1);
+  if (danceA < 1) layFade(danceA);
+  layEnd();
+}
+function drawCondor() { // the Andean condor soaring: fingered wingtips, white wing bars and collar
+  grp = 10;
+  const x = coX, y = coY, lift = (pfr >> 2) & 1;
+  for (let s = -1; s <= 1; s += 2) {
+    line(lay, x + s, y, x + s * 13, y - 1 - lift, ROCK_D); line(lay, x + s, y + 1, x + s * 12, y - lift, ROCK_D);
+    line(lay, x + s * 3, y + 1, x + s * 10, y + 1 - lift, WHITE);
+    plot(lay, x + s * 14, y - 2 - lift, ROCK_D); plot(lay, x + s * 14, y - lift, ROCK_D); plot(lay, x + s * 15, y - 1 - lift, ROCK_D);
+  }
+  disc(x, y, 1.6, ROCK_D, lay); plot(lay, x + 2, y + 2, ROCK_D); plot(lay, x + 1, y + 2, ROCK_D);
+  plot(lay, x - 2, y - 1, WHITE); plot(lay, x - 3, y - 1, RED); plot(lay, x - 4, y - 1, SKIN);
+  hint(x - 18, y - 6, x + 18, y + 5);
+  layEnd();
+}
+function drawActor() {
+  own.fill(0); pid = 0;
+  if (coOn) drawCondor();
+  drawLlamas();
+  if (danceOn && danceA > 0) for (let k = 0; k < NDN; k++) drawDancer(k);
+  if (fdOn && fdA > 0) { drawMama(); drawManco(); }
+}
+
+function drawUnder() {
+  for (let k = 0; k < 2; k++) { // reed boats drift across the lake on a 720-tick swing
+    const x = Math.round(k ? 50 - 12 * Math.sin(tick * TWO_PI / 720) : 16 + 10 * Math.sin(tick * TWO_PI / 720 + 1)), y = k ? 66 : 59;
+    hline(buf, x - 5, x + 5, y, TAN); hline(buf, x - 4, x + 4, y + 1, EARTH); plot(buf, x - 6, y - 1, TAN); plot(buf, x + 6, y - 1, TAN); plot(buf, x - 6, y - 2, TAN); plot(buf, x + 6, y - 2, TAN);
+    plot(buf, x, y - 1, RED); plot(buf, x, y - 2, RED); plot(buf, x, y - 3, SKIN); line(buf, x + 1, y - 3, x + 4, y + 1, EARTH);
+  }
+  const MA = MAPS[modeA], MB = MAPS[modeB], wv = (tick / 12 | 0) % 10;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    let c = buf[i];
+    if (WATM[i] && y > 55 && c !== TAN && c !== EARTH && c !== RED && c !== SKIN && (x * 3 + y * 5 + wv * 2) % 13 === 0) c = LAK_L;     // the lake rippling, a 120-tick cycle
+    if (TERC[i] !== EMPTY && TERR[i] < terrA && (cityF >= 1 || dith(x, y, cityF))) c = TERC[i];
+    if (CITY[i] !== EMPTY && CITYR[i] < cityA && (cityF >= 1 || dith(x, y, cityF))) c = CITY[i];
+    if (glowA > 0 && VALM[i] && CITY[i] === EMPTY) { // the land glows gold where the staff sank
+      const d = Math.hypot(x - maX - 5, (y - VALLEY) * 3);
+      if (ringR >= 0 && Math.abs(d - ringR) < 2.5) c = GOLD_L; else if (ringR >= 0 && d < ringR && dith(x, y, glowA * 0.45)) c = GOLD;
+    }
+    c = modeE > 0 && dith(x, y, modeE) ? MB[c] : MA[c];
+    if (c === NIT_A && starRot > 0 && y < 60) { const a = Math.atan2((y - 100) / 0.9, x - 80) + 2.05 - starRot; if (Math.abs(a) < 0.1 && dith(x, y, 0.55 - Math.abs(a) * 4)) c = NIT_B; } // the Milky Way's glow
+    buf[i] = c;
+  }
+  for (let k = 0; k < NS; k++) { // the Milky Way and the stars wheel across the night sky
+    const a = STH[k] + starRot, x = Math.round(80 + Math.cos(a) * SR[k]), y = Math.round(100 + Math.sin(a) * SR[k] * 0.9);
+    if (x < 1 || x >= W - 1 || y < 1 || y >= H - 1) continue;
+    const i = y * W + x;
+    if (buf[i] !== NIT_A && buf[i] !== NIT_B) continue;
+    if (k < NMW) { if (buf[i + 1] === NIT_A) buf[i + 1] = NIT_B; if (buf[i - W] === NIT_A) buf[i - W] = NIT_B; if (buf[i - 1] === NIT_A && k & 1) buf[i - 1] = NIT_B; }
+    buf[i] = k % 7 === 0 ? GOLD_L : k % 3 === 0 ? WHITE : SNOW_S;
+  }
+  if (sunY < 60) { // Inti rising behind the Island of the Sun
+    const sx = 30, sy = Math.round(sunY);
+    if (rays) for (let k = 0; k < 12; k++) { const a = k * TWO_PI / 12 + 0.13; for (let d = 9; d < 30; d++) { const x = Math.round(sx + Math.cos(a) * d), y = Math.round(sy + Math.sin(a) * d); if (x >= 0 && x < W && y >= 0 && y < H && SKYM[y * W + x] && dith(x, y, 0.7 - d / 45)) buf[y * W + x] = LIGHTEN[buf[y * W + x]]; } }
+    halo(sx, sy, 13, DWN_C, DWN_B);
+    for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { const x = sx + dx, y = sy + dy, dd = dx * dx + dy * dy; if (dd > 36 || y < 0 || y >= H || !SKYM[y * W + x]) continue; buf[y * W + x] = dd > 25 ? GOLD : GOLD_L; }
+    if (sy - 1 >= 0 && SKYM[(sy - 1) * W + sx - 2]) { plot(buf, sx - 2, sy - 1, GOLD); plot(buf, sx + 2, sy - 1, GOLD); }
+    if (sy + 2 < H && SKYM[(sy + 2) * W + sx]) hline(buf, sx - 1, sx + 1, sy + 2, GOLD);
+    if (sy > 0) for (let y = 53; y < SHORE; y++) for (let x = sx - 6; x <= sx + 6; x++) { const i = y * W + x; if (WATM[i] && Math.abs(x - sx) <= 1 + (y - 52) * 0.25 && (x + y + wv) % 3 === 0) buf[i] = GOLD_L; } // its glitter on the lake
+  }
+  if (glint >= 0) for (let y = 64; y <= 65; y++) for (let x = Math.round(glint) - 1; x <= Math.round(glint) + 1; x++) if (CITY[y * W + x] === GOLD || CITY[y * W + x] === GOLD_L) buf[y * W + x] = WHITE;
+  if (lights) for (let k = 0; k < ND; k++) if (DOORX[k] && CITYR[DOORY[k] * W + DOORX[k]] < cityA && dith(DOORX[k], DOORY[k], cityF)) { plot(buf, DOORX[k], DOORY[k], GOLD_L); plot(buf, DOORX[k], DOORY[k] + 1, GOLD); }
+  if (mistA > 0) for (let y = 50; y < 84; y++) for (let x = 60; x < W; x++) { // morning mist rolls over the valley
+    const v = mistA * (0.55 + 0.45 * Math.sin((x + stT * 0.6) * 0.11 + y * 0.8)) * (1 - Math.abs(y - 68) / 20);
+    if (dith(x, y, v)) buf[y * W + x] = v > 0.6 ? STN_L : SNOW_S;
+  }
+}
+function drawOver() {
+  drawParticles(false);
+  if (sunDisc > 0) { // the great gold sun disc raised over the temple for Inti Raymi
+    const cx = 118, cy = 44 + Math.round((1 - sunDisc) * 12);
+    line(buf, cx, cy + 5, cx, 56, EARTH);
+    disc(cx, cy, 5, GOLD); disc(cx, cy, 3, discFl ? WHITE : GOLD_L);
+    for (let k = 0; k < 8; k++) { const a = k * TWO_PI / 8 + pfr * 0.2; plot(buf, Math.round(cx + Math.cos(a) * 7), Math.round(cy + Math.sin(a) * 7), GOLD); }
+    plot(buf, cx - 1, cy - 1, GOLD); plot(buf, cx + 1, cy - 1, GOLD); hline(buf, cx - 1, cx + 1, cy + 1, GOLD);
+    if (discFl) halo(cx, cy, 16, GOLD_L, DSK_C);
+  }
+  drawParticles(true);
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

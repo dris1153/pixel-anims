@@ -6,6 +6,34 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "manco-capac-cusco",
+    tags: ["humanoid", "magic", "craft", "dawn"],
+    country: "pe",
+    title: "Manco Capac Founds Cusco",
+    still: 580,
+    res: [160, 90],
+    loop: 12,
+    states: ["titicaca", "emerge", "journey", "sink", "cusco", "teach", "raymi", "night"],
+    kind: "Made with the skill",
+    note: "Cusco and its terraces are baked bitmaps revealed row by row from the ground up, and the Milky Way wheels about a pole below the horizon, drawn only where the sky has turned to night.",
+    prompt:
+      "Pixel art the Inca legend of Manco Capac and Mama Ocllo, founders of Cusco, 160×90, one fixed shot, " +
+      "12-second seamless loop, 8 states. Scene: the high Andes: at the left the deep blue Lake Titicaca with reed " +
+      "boats and the Island of the Sun, snowy peaks behind, and at the right a green valley under the mountains " +
+      "where Cusco will rise; the sky runs from a gold dawn through a deep blue noon and a purple dusk to a starry " +
+      "night with the Milky Way, and back. Keep the frame readable: the two founders and one wonder at a time. 1. " +
+      "titicaca: at dawn the sun god Inti rises from behind the Island of the Sun, its rays spreading over the " +
+      "lake. 2. emerge: from the sparkling foam Manco Capac and Mama Ocllo rise, dressed in bright woven cloth with " +
+      "gold ear discs, Manco holding a golden staff. 3. journey: they walk over the mountains past grazing llamas, " +
+      "testing the staff in the ground, but it will not sink. 4. sink: in the green valley the staff sinks into the " +
+      "earth to its tip in a flash of gold, and the land glows. 5. cusco: fitted stone walls with trapezoid doors " +
+      "rise, and the golden Temple of the Sun gleams at the center. 6. teach: stepped terraces of maize and " +
+      "potatoes climb the hills as Manco teaches farming and Mama Ocllo weaves a bright striped cloth. 7. raymi: at " +
+      "the Inti Raymi festival dancers in red and gold spin, a great gold sun disc flashes, and a condor soars " +
+      "overhead. 8. night: the stars and the Milky Way wheel over the quiet city, which fades into the mist as dawn " +
+      "breaks over the lake again.",
+  },
+  {
     slug: "harbor-titan",
     tags: ["creature", "robot", "breath", "impact", "night"],
     title: "Harbor Titan",
@@ -1383,7 +1411,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
