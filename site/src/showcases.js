@@ -6,6 +6,37 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "obatala-shapes-the-world",
+    tags: ["humanoid", "creature", "magic", "dawn"],
+    country: "ng",
+    title: "Obatala Shapes the World",
+    still: 800,
+    res: [160, 90],
+    loop: 16,
+    states: ["waters", "chain", "descend", "sand", "hen", "palm", "clay", "breath", "ife", "olokun"],
+    kind: "Made with the skill",
+    note: "The land is one distance field grown out from the first mound of sand, so the hen's scratching spreads hills and valleys with a single radius, and Olokun's wave takes them back by masking everything behind its crest.",
+    prompt:
+      "Pixel art the Yoruba creation myth of Obatala, who made the land at Ile-Ife, 160×90, one fixed shot, " +
+      "16-second seamless loop, 10 states. Scene: a world with only water below and sky above: a wide primordial " +
+      "marsh of shimmering water in the lower half, and in the upper half the realm of Olorun in golden clouds with " +
+      "a palace of light; later a green land and the city of Ile-Ife spread across the water; the light runs from a " +
+      "soft violet dawn through gold day to a deep dusk and back. Keep the frame readable: Obatala and one wonder " +
+      "at a time. 1. waters: violet dawn over the endless marsh, mist drifting, only the glints of the sea goddess " +
+      "Olokun moving below. 2. chain: from the clouds Obatala, in white robes with white beads, lowers a golden " +
+      "chain that uncoils link by link down to the water. 3. descend: he climbs down it carrying a snail shell, a " +
+      "five-toed hen and a palm nut, the chain swaying. 4. sand: hanging just above the water, he pours sand from " +
+      "the snail shell and a small golden mound rises. 5. hen: the hen hops down and scratches, flinging sand in " +
+      "every direction, and the land spreads across the frame into hills and valleys. 6. palm: he plants the palm " +
+      "nut; a palm tree shoots up, then a forest of palms and kola trees, birds bursting from them. 7. clay: by a " +
+      "pond he shapes figures of clay, rows of small people drying in the sun. 8. breath: the sky god Olodumare " +
+      "breathes; a swirl of light flows over the figures and they stand up, stretch and dance to talking drums. 9. " +
+      "ife: the city of Ile-Ife grows, with red earth walls, thatched roofs, a market of indigo and orange cloth, " +
+      "drummers and a palace courtyard. 10. olokun: at dusk the jealous sea goddess Olokun raises great waves that " +
+      "wash over the land, the city sinks back into the marsh, and the golden chain slides up into the clouds, " +
+      "ready to fall again.",
+  },
+  {
     slug: "maui-fishes-the-island",
     tags: ["humanoid", "creature", "magic", "dawn"],
     country: "nz",
@@ -1612,7 +1643,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
