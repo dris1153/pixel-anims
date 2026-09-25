@@ -6,6 +6,33 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "harbor-titan",
+    tags: ["creature", "robot", "breath", "impact", "night"],
+    title: "Harbor Titan",
+    still: 470,
+    res: [160, 90],
+    loop: 12,
+    states: ["harbor", "boil", "rise", "roar", "drop", "clash", "retreat", "dawn"],
+    kind: "Made with the skill",
+    note: "The blackout is a per-window block threshold: every lit window belongs to one of twelve city blocks, so the dark sweeps across the skyline and the lights come back the same way at dawn.",
+    prompt:
+      "Pixel art a giant-monster movie night: a sea titan against a giant robot in a harbor city, 160×90, one fixed " +
+      "shot, 12-second seamless loop, 8 states. Scene: a neon port city at night: container cranes and stacked " +
+      "colored containers at the left, a lighthouse on a breakwater, skyscrapers with lit windows along the bay at " +
+      "the back, the dark harbor water across the front; the sky is navy with a low moon. The titan is an original " +
+      "creature, not any film monster: an abyssal beast with crab-armored forearms, a crest of glowing blue vents " +
+      "down its back, four eyes and barnacle-crusted plates. Keep the frame readable: the titan and the robot each " +
+      "fill half the frame height, ships and buildings small. 1. harbor: a ferry crosses, cranes swing, and the " +
+      "lighthouse sweeps its beam. 2. boil: the water bubbles, sonar rings pulse out, ships rock and sirens flash " +
+      "red along the pier. 3. rise: the titan rises from the harbor, water streaming off its plates, its vents " +
+      "lighting up one by one. 4. roar: it roars and fires a cyan beam from its jaws across the sky, and the city " +
+      "lights go dark block by block. 5. drop: a giant robot drops from the clouds on burning thrusters and lands " +
+      "on the breakwater in a wall of spray. 6. clash: they grapple; the robot's shoulder shield blocks the beam in " +
+      "a spray of sparks, then the robot lands a rocket punch. 7. retreat: the titan sinks back under the waves, " +
+      "its vents dimming. 8. dawn: the city lights flicker back on block by block, the robot lifts off into the " +
+      "dawn clouds, and night returns to the quiet harbor.",
+  },
+  {
     slug: "ra-night-barque",
     tags: ["humanoid", "creature", "magic", "night"],
     country: "eg",
