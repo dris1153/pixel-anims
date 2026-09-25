@@ -6,6 +6,35 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "hanuman-leaps-to-lanka",
+    tags: ["humanoid", "creature", "magic", "night"],
+    country: "in",
+    title: "Hanuman Leaps to Lanka",
+    still: 560,
+    res: [160, 90],
+    loop: 12,
+    states: ["crouch", "leap", "surasa", "grove", "captive", "blaze", "douse", "return"],
+    kind: "Made with the skill",
+    note: "Hanuman is one pose-keyed rig that scales from a speck to a giant: he grows on the peak, shrinks to slip through Surasa's jaws, and his burning tail lights five rooftop fires that burn on until dawn.",
+    prompt:
+      "Pixel art the Ramayana's Hanuman leaping to Lanka, 160×90, one fixed shot, 12-second seamless loop, 8 " +
+      "states. Scene: the southern tip of India at the left, a green mountain with a rocky summit and palms on the " +
+      "shore; a wide stormy ocean across the middle; and at the right the golden island city of Lanka with domed " +
+      "palaces and towers above a rampart, an Ashoka tree in a grove below; the sky runs from purple dusk to a " +
+      "night lit red by fire, and back to dusk. Keep the frame readable: Hanuman and one foe or wonder at a time. " +
+      "1. crouch: on the mountaintop Hanuman, the monkey hero with a golden mace and crown, crouches and grows " +
+      "until the mountain trembles under him. 2. leap: he springs into the air and streaks across the ocean in a " +
+      "long arc as night falls and the clouds part around him. 3. surasa: the sea serpent Surasa rises with a " +
+      "jeweled hood and opens her jaws wide as a bay; he shrinks tiny as a fly, darts in and out of her mouth, " +
+      "grows back and flies on. 4. grove: in the Ashoka grove of Lanka he kneels before Sita, in a red sari under " +
+      "the flowering tree, and shows her Rama's ring, which glows. 5. captive: demon guards with a spear and a " +
+      "torch bind him and wrap his tail in cloth, setting it alight. 6. blaze: he snaps the ropes and bounds from " +
+      "roof to roof, his burning tail setting the golden roofs of Lanka ablaze until flames and embers roll up into " +
+      "the night. 7. douse: he leaps down to the shore and dips his tail into the sea in a hiss of steam. 8. " +
+      "return: he leaps back across the ocean to the mountain with a jewel from Sita in his hand as Lanka's fires " +
+      "fade and the sky turns to purple dusk again.",
+  },
+  {
     slug: "don-quixote-windmills",
     tags: ["humanoid", "melee", "impact", "day"],
     country: "es",
