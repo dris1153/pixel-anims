@@ -6,6 +6,34 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "oisin-tir-na-nog",
+    tags: ["humanoid", "creature", "magic", "dusk"],
+    country: "ie",
+    title: "Oisin in Tir na nOg",
+    still: 150,
+    res: [160, 90],
+    loop: 12,
+    states: ["hunt", "niamh", "ride", "youth", "years", "home", "fall", "return"],
+    kind: "Made with the skill",
+    note: "The ring fort is one sprite with a baked ruin beside it, so three hundred years are a dither between the two, while the seasons whirl through the orchard of Tír na nÓg as a palette cycle on the island alone.",
+    prompt:
+      "Pixel art the Irish legend of Oisín in Tír na nÓg, the Land of Youth, 160×90, one fixed shot, 12-second " +
+      "seamless loop, 8 states. Scene: the wild west coast of Ireland: green cliffs and a round stone fort at the " +
+      "left, the Atlantic across the middle, and far out on the right horizon a glowing island of apple blossoms " +
+      "with a castle of white stone; the light runs from gold dusk through a shimmering summer and a grey rain, and " +
+      "back. Keep the frame readable: Oisín and one wonder at a time. 1. hunt: the warriors of the Fianna hunt " +
+      "along the clifftop with their hounds, Oisín with his harp on his back. 2. niamh: Niamh of the Golden Hair " +
+      "rides out of the sea on the white horse Embarr, galloping over the waves, and holds out her hand. 3. ride: " +
+      "Oisín leaps up behind her and they gallop across the sea, the hooves throwing spray, while a ghostly deer " +
+      "and hound run beside them on the water. 4. youth: on Tír na nÓg it is endless summer; apple blossoms fall, a " +
+      "feast glows in the castle, and Oisín plays his harp. 5. years: the seasons whirl past in a blur of blossom, " +
+      "sun and snow: three hundred years in the blink of an eye. 6. home: Oisín rides Embarr back alone to Ireland " +
+      "and finds the fort in ruins, overgrown with grass, and small farmers struggling to lift a stone. 7. fall: he " +
+      "leans from the saddle to help, the girth snaps, he falls to the ground and in a flash turns into an old man " +
+      "with a long white beard. 8. return: the old man fades into the mist, Embarr gallops back across the waves " +
+      "into the sunset toward Niamh's glowing island, and on the cliff the Fianna's hunting horns sound again.",
+  },
+  {
     slug: "selkie-skin",
     tags: ["humanoid", "creature", "magic", "night"],
     country: "gb-sct",
@@ -1554,7 +1582,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
