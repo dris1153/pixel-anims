@@ -3,7 +3,7 @@
 .journal a {
   --tab: var(--gold);
   display: block; max-width: 10px; overflow: hidden; white-space: nowrap; padding: 3px 0 3px 10px;
-  font: 700 .62rem/1 var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none;
+  font: 700 .7rem/1 var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none;
   color: transparent; background: var(--tab); /* collapsed: only the colored strip shows */
   clip-path: polygon(0 3px, 3px 3px, 3px 0, 100% 0, 100% 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px));
   transition: max-width var(--duration-fast) var(--ease-smooth-out), padding var(--duration-fast) var(--ease-smooth-out), color var(--duration-quick) var(--ease-out);

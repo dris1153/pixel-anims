@@ -1,0 +1,25 @@
+/* The Story panel on the detail page: a HUD frame (theme.css) holding the legend and the beats of the animation. */
+.story { margin-top: 40px; padding: 18px 22px 24px; }
+.story-h { margin: 0 0 6px; font: 700 .7rem/2.2 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); }
+.story-origin { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
+.story-fallback { margin: 0 0 12px; padding: 8px 12px; color: var(--silver); font-size: .92rem; background: var(--night); border: 2px dashed var(--line); }
+.story-langs { margin: 0 0 16px; color: var(--muted); font-size: .9rem; }
+.story-langs a { margin-right: 12px; }
+.story-langs a[aria-current] { color: var(--gold); text-decoration: none; }
+.story-body { max-width: 72ch; }
+.story-body p { margin: 0 0 1em; color: var(--silver); font-size: 1.05rem; line-height: 1.75; }
+.story-body p.dropcap::first-letter { /* a gold initial with a hard shadow like the logo */
+  float: left; margin: .06em .14em 0 0; font: 700 3.2em/.85 var(--display); color: var(--gold); text-shadow: 3px 3px 0 #7a3e12;
+}
+.story-sub { margin: 26px 0 12px; font: 700 .7rem/2 var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); }
+html:lang(ar) .story-body:not([dir="rtl"]) .story-sub { text-align: left; } /* an Arabic label over a fallback story lines up with its text */
+.beats { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.beats li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 12px; align-items: baseline; }
+.beat-key {
+  justify-self: start; padding: 3px 8px; font: 400 .7rem var(--display); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); background: var(--night); border: 2px solid var(--line);
+}
+button.beat-key { cursor: pointer; }
+button.beat-key:hover, button.beat-key[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+.beat-text { color: var(--silver); }
+@media (max-width: 560px) { .beats li { grid-template-columns: 1fr; gap: 4px; } .story { padding: 16px; } }

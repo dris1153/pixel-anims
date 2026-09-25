@@ -1,6 +1,7 @@
 import { animUrl, countryOf, detailUrl, metaLine, posterUrl, stillOf } from './showcases.js';
 import { flag } from './flags.js';
 import { addTilt } from './tilt.js';
+import { t } from './i18n/i18n.js';
 
 export const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -11,18 +12,21 @@ export function el(tag, className, text) {
   return node;
 }
 
-// Play/Pause swaps the iframe between the live page and its one-tick still.
+// Play/Pause swaps the iframe between the live page and its one-tick still. Returns a seek: show tick N paused.
 export function addPlayToggle(frame, iframe, file, still, title, playing) {
   const button = el('button', 'play');
   button.type = 'button';
-  const set = (on, load = true) => {
-    if (load) iframe.src = on ? file : stillOf(file, still);
-    button.textContent = on ? 'Pause' : 'Play';
-    button.setAttribute('aria-label', `${on ? 'Pause' : 'Play'} ${title}`);
+  let live = false;
+  const set = (on, load = true, tick = still) => {
+    live = on;
+    if (load) iframe.src = on ? file : stillOf(file, tick);
+    button.textContent = t(on ? 'pause' : 'play');
+    button.setAttribute('aria-label', t(on ? 'pause.label' : 'play.label', { title }));
   };
-  button.addEventListener('click', () => set(button.textContent === 'Play'));
+  button.addEventListener('click', () => set(!live));
   frame.append(button);
   set(playing, !(playing && iframe.getAttribute('src')));
+  return tick => set(false, true, tick);
 }
 
 // The engine scales by whole numbers and pads the rest with the scene's own background, so each iframe renders
@@ -61,7 +65,7 @@ function fitNow(frame) {
 function liveIframe(title) {
   const iframe = el('iframe');
   iframe.tabIndex = -1;
-  iframe.title = `${title}: live pixel art animation`;
+  iframe.title = t('anim.title', { title });
   return iframe;
 }
 
@@ -94,9 +98,9 @@ export function featureCard(s) {
   const frame = wideFrame(s);
   addPlayToggle(frame, frame.querySelector('iframe'), animUrl(s), s.still, s.title, !calm);
   const body = el('div', 'feature-body');
-  const more = el('a', 'btn', 'View details');
+  const more = el('a', 'btn', t('card.details'));
   more.href = detailUrl(s);
-  more.append(el('span', 'sr-only', ` for ${s.title}`));
+  more.append(el('span', 'sr-only', t('card.details.sr', { title: s.title })));
   body.append(kind(s), el('h3', '', s.title), el('p', 'meta', metaLine(s)), more);
   card.append(frame, body);
   return card;

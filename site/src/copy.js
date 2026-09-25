@@ -1,3 +1,5 @@
+import { t } from './i18n/i18n.js';
+
 // Every .copy button copies the code/p text of its .cmd or .prompt block.
 export function setupCopy() {
   for (const button of document.querySelectorAll('.copy')) { // wrap labels so they can swap in place
@@ -35,9 +37,9 @@ async function onCopyClick(e) {
   if (!ok) getSelection().selectAllChildren(source); // let the user copy by hand
   const label = button.querySelector('.copy-label');
   button.dataset.label ??= label.textContent;
-  swapLabel(label, ok ? 'Copied' : 'Selected');
+  swapLabel(label, t(ok ? 'copy.done' : 'copy.selected'));
   const status = document.getElementById('copy-status');
-  if (status) status.textContent = ok ? 'Copied to clipboard' : 'Copy failed, text selected';
+  if (status) status.textContent = t(ok ? 'copy.status.ok' : 'copy.status.fail');
   clearTimeout(button.resetTimer);
   button.resetTimer = setTimeout(() => swapLabel(label, button.dataset.label), 1400);
 }

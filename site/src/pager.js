@@ -1,4 +1,5 @@
 import { el } from './cards.js';
+import { t } from './i18n/i18n.js';
 
 export const PER_PAGE = 12;
 
@@ -26,13 +27,13 @@ export function renderPager(nav, page, pages, onPage) {
   };
   const numbers = pageList(page, pages).map(p => {
     if (p === '…') return el('span', 'pagination-gap', '…');
-    const b = button(String(p), p, 'pagination-page', `Page ${p}`);
+    const b = button(String(p), p, 'pagination-page', t('pager.page', { n: p }));
     if (p === page) b.setAttribute('aria-current', 'page');
     return b;
   });
   nav.replaceChildren(
-    button('Prev', page - 1, 'pagination-step', 'Previous page'),
+    button(t('pager.prev'), page - 1, 'pagination-step', t('pager.prev.label')),
     ...numbers,
-    button('Next', page + 1, 'pagination-step', 'Next page'),
+    button(t('pager.next'), page + 1, 'pagination-step', t('pager.next.label')),
   );
 }

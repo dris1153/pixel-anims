@@ -24,9 +24,10 @@ let proc;
 if (!browser) fail('No Chrome/Edge found. Set CHROME_PATH to its executable.');
 if (typeof WebSocket === 'undefined') fail('Needs Node 22+ for the global WebSocket.');
 
-// --remote-debugging-port=0 lets Chrome pick a free port and write it to DevToolsActivePort.
+// --remote-debugging-port=0 lets Chrome pick a free port and write it to DevToolsActivePort; file access lets the
+// backdrop art page import its ES modules over file://.
 const profile = mkdtempSync(join(tmpdir(), 'posters-'));
-proc = spawn(browser, ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+proc = spawn(browser, ['--headless=new', '--remote-debugging-port=0', '--allow-file-access-from-files', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
 proc.on('error', e => fail(`Could not start ${browser}: ${e.message}`));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let port;

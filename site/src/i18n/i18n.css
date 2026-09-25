@@ -1,0 +1,37 @@
+/* Per-language type and direction, and the header's language menu. */
+
+/* Type per script: IBM Plex Sans for Latin, then Plex's own sibling for the script (Chinese has none: Noto). Headings
+   and labels use the same stack (--display). */
+html:lang(ja) { --body: 'IBM Plex Sans', 'IBM Plex Sans JP', system-ui, sans-serif; }
+html:lang(ko) { --body: 'IBM Plex Sans', 'IBM Plex Sans KR', system-ui, sans-serif; }
+html:lang(zh) { --body: 'IBM Plex Sans', 'Noto Sans SC', system-ui, sans-serif; }
+html:lang(th) { --body: 'IBM Plex Sans', 'IBM Plex Sans Thai', system-ui, sans-serif; }
+html:lang(hi) { --body: 'IBM Plex Sans', 'IBM Plex Sans Devanagari', system-ui, sans-serif; }
+html:lang(ar) { --body: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif; }
+/* Arabic reads right to left inside each text block; the HUD layout keeps its left-to-right order. */
+html:lang(ar) :is(p, li, h1, h2, h3, dt, dd, figcaption, label, .story) { unicode-bidi: plaintext; text-align: start; }
+
+/* The page stays hidden (not blank-flashing English) while another language's dictionary loads; see the head script. */
+html.i18n-pending body { visibility: hidden; }
+
+/* Language menu: a HUD button with the language's pixel flag, and a panel of flagged language names. */
+.lang { position: relative; flex: none; }
+.lang-btn {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px; font: 500 .8rem var(--display); color: var(--muted);
+  letter-spacing: .04em; background: var(--night); border: 2px solid var(--line);
+  box-shadow: inset 2px 2px 0 rgba(111, 125, 255, .22), inset -2px -2px 0 var(--shadow);
+}
+.lang-btn:hover, .lang-btn[aria-expanded="true"] { color: var(--text); border-color: var(--line-l); }
+.lang-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; min-width: 170px; margin: 0; padding: 6px; list-style: none;
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--stone) transparent;
+  background: var(--ink); border: 2px solid var(--line-l); box-shadow: inset 0 0 0 2px var(--shadow), 0 0 24px -6px var(--glow);
+}
+.lang .flag { margin: 0; }
+.lang-menu a { display: flex; align-items: center; gap: 10px; padding: 7px 12px; color: var(--silver); text-decoration: none; font: 500 .95rem/1.5 var(--body); } /* a set line height: each script's font would size its row differently */
+.lang-menu a:hover, .lang-menu a:focus-visible { color: var(--text); background: var(--deep); }
+.lang-menu a[aria-current] { color: var(--gold); }
+.lang-menu a[aria-current]::after { content: ' ◂'; }
+@media (max-width: 480px) { .lang-btn { padding: 5px 8px; font-size: .7rem; } }
+/* Phones: logo and language on the first row, the menu on its own row, instead of a squeezed three-row stack. */
+@media (max-width: 560px) { .bar { flex-wrap: wrap; row-gap: 10px; } .bar nav { order: 1; flex-basis: 100%; } }

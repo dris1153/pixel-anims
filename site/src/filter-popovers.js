@@ -1,6 +1,7 @@
 import { TAG_GROUPS } from './showcases.js';
 import { el } from './cards.js';
 import { flag } from './flags.js';
+import { t } from './i18n/i18n.js';
 
 // One badge per tag group opens a native popover of checkboxes with live counts; picked tags also show as
 // removable chips. countFor(g, id) says how many showcases would show with that option on.
@@ -31,13 +32,15 @@ export function setupFacets(bar, active, { picked, onChange, countFor }) {
       row.append(el('span', 'facet-name', name), n);
       return { id, row, box, n };
     });
-    const clear = el('button', 'facet-clear', `Clear ${group.label.toLowerCase()}`);
+    const clear = el('button', 'facet-clear', t('facet.clear', { group: group.label.toLowerCase() }));
     clear.type = 'button';
     clear.addEventListener('click', () => {
       for (const [id] of group.tags) picked.delete(id);
       onChange();
     });
-    pop.append(el('p', 'facet-title', group.label), ...options.map(o => o.row), clear);
+    const list = el('div', 'facet-list'); // only the options scroll: the title and the clear button stay in view
+    list.append(...options.map(o => o.row));
+    pop.append(el('p', 'facet-title', group.label), list, clear);
     pop.addEventListener('toggle', e => { if (e.newState === 'open') place(pop, badge); });
     bar.append(badge, pop);
     return { group, g, pop, badge, count, options, clear };
@@ -53,7 +56,7 @@ export function setupFacets(bar, active, { picked, onChange, countFor }) {
       const on = group.tags.filter(([id]) => picked.has(id)).length;
       badge.classList.toggle('is-on', on > 0);
       count.textContent = on ? ` · ${on}` : '';
-      badge.setAttribute('aria-label', on ? `${group.label}, ${on} selected` : group.label);
+      badge.setAttribute('aria-label', on ? t('facet.badge', { group: group.label, n: on }) : group.label);
       clear.hidden = !on;
       for (const o of options) {
         const n = countFor(g, o.id);
@@ -65,7 +68,7 @@ export function setupFacets(bar, active, { picked, onChange, countFor }) {
     const chips = groups.flatMap(({ group }) => group.tags.filter(([id]) => picked.has(id)).map(([id, name]) => {
       const chip = el('button', 'active-chip');
       chip.type = 'button';
-      chip.setAttribute('aria-label', `Remove ${name} filter`);
+      chip.setAttribute('aria-label', t('chip.remove', { name }));
       if (group.flags) chip.append(flag(id));
       chip.append(el('span', '', name), el('span', 'active-x', '✕'));
       chip.addEventListener('click', () => {
@@ -79,11 +82,15 @@ export function setupFacets(bar, active, { picked, onChange, countFor }) {
   return { update };
 }
 
-// Below the badge, clamped to the viewport; above it when there is no room below.
+// Below the badge, clamped to the viewport; above it when only that side has room, or when below is cramped and above
+// is roomier. Either way it is cut to fit, and the option list scrolls.
 function place(pop, badge) {
+  pop.style.maxHeight = '';
   const r = badge.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, pad = 12;
-  const left = Math.max(pad, Math.min(r.left, innerWidth - w - pad));
-  const top = r.bottom + 8 + h > innerHeight - pad && r.top - 8 - h > pad ? r.top - 8 - h : r.bottom + 8;
-  pop.style.left = `${left}px`;
-  pop.style.top = `${top}px`;
+  const below = innerHeight - pad - (r.bottom + 8), above = r.top - 8 - pad;
+  const up = h > below && (h <= above || (below < 240 && above > below));
+  const room = up ? above : below;
+  if (h > room) pop.style.maxHeight = `${Math.max(room, 120)}px`;
+  pop.style.left = `${Math.max(pad, Math.min(r.left, innerWidth - w - pad))}px`;
+  pop.style.top = `${up ? r.top - 8 - Math.min(h, Math.max(room, 120)) : r.bottom + 8}px`;
 }

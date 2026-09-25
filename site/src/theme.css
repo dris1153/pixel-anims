@@ -9,6 +9,7 @@
   --i-file: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 0h4l2 2v6H1z' fill='%236f7dff'/%3E%3Cpath d='M5 0v2h2z' fill='%23a8f0ff'/%3E%3Cpath d='M2 3h4v1H2zM2 5h4v1H2z' fill='%23eef1ff'/%3E%3C/svg%3E");
   --i-bolt: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M4 0h3L5 3h2L2 8l1-4H1z' fill='%234fd8ff'/%3E%3Cpath d='M4 0h1L3 4H2z' fill='%23a8f0ff'/%3E%3C/svg%3E");
   --i-pad: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 2h6v1h1v4H6V6H2v1H0V3h1z' fill='%236f7dff'/%3E%3Cpath d='M2 3h1v1h1v1H3v1H2V5H1V4h1z' fill='%23eef1ff'/%3E%3Crect x='5' y='3' width='1' height='1' fill='%23f2b84b'/%3E%3Crect x='6' y='4' width='1' height='1' fill='%23d8574a'/%3E%3C/svg%3E");
+  --i-cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 5' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h1v1h1v1h1v1H2v1H1v1H0z' fill='%23f2b84b'/%3E%3C/svg%3E");
   --i-shield: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 0h6v1h1v3H7v2H6v1H5v1H3V7H2V6H1V4H0V1h1z' fill='%236f7dff'/%3E%3Cpath d='M2 4h1v1h1V4h1V3h1v1H5v1H4v1H3V5H2z' fill='%23eef1ff'/%3E%3C/svg%3E");
 }
 @media (min-width: 1201px) { :root { --s: 4; } }
@@ -34,6 +35,10 @@ body { position: relative; }
   box-shadow: 0 0 0 calc(var(--s) * 2px) rgba(242, 184, 75, 0.18), 0 0 0 calc(var(--s) * 4px) rgba(242, 184, 75, 0.08);
   animation: flicker 2.8s steps(1) calc(var(--d) * -1s) infinite;
 }
+.sky canvas { /* the live backdrop (src/sky), laid exactly over the still */
+  position: absolute; left: 50%; top: 0; width: calc(400px * var(--s)); height: calc(180px * var(--s)); translate: -50% 0;
+}
+.sky:is([data-mode="probe"], [data-mode="live"]) :is(i, b) { display: none; } /* the live scene twinkles and flickers on its own */
 @keyframes twinkle { 0%, 55% { opacity: 1; } 62% { opacity: 0.2; } 70% { opacity: 0.7; } 78%, 100% { opacity: 1; } }
 @keyframes flicker { 0%, 100% { opacity: 1; } 22% { opacity: 0.55; } 26% { opacity: 1; } 64% { opacity: 0.75; } 68% { opacity: 1; } }
 .cliffs { top: calc(165px * var(--s)); bottom: 0; display: none; mask-image: linear-gradient(transparent, #000 200px); }
@@ -45,13 +50,22 @@ body { position: relative; }
 .cliffs::after { right: 0; transform: scaleX(-1); background-position-y: calc(120px * var(--ss)); } /* mirrored, half a tile out of step */
 @media (min-width: 1440px) { .cliffs { display: block; } } /* only where the margins can hold them */
 
+/* Text laid straight on the backdrop gets a dark edge, so drifting clouds and moonlit hills never wash it out (panels
+   need none). Headings and labels take a hard one-pixel outline like game text; body copy a soft halo close to the glyphs. */
+:is(.hero h1, .screen figcaption, .page-head > :is(.back, h1), .detail > .back, .detail-body > :is(.kind, h1, .open), .specs dt) {
+  text-shadow: 1px 0 var(--ink), -1px 0 var(--ink), 0 1px var(--ink), 0 -1px var(--ink), 0 2px var(--shadow), 0 0 10px rgba(7, 10, 28, .7);
+}
+:is(.hero .lede, .hero-then, .hero-links, .page-head > .section-lede, .detail-body > .note, .specs dd) {
+  text-shadow: 0 0 2px var(--ink), 0 0 6px var(--ink), 0 0 12px rgba(7, 10, 28, .8);
+}
+
 /* HUD frame: a double border with a soft blue glow, and pixel brackets on the corners. */
-.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame, .brief {
+.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame, .brief, .story {
   background-color: var(--panel); border: 2px solid var(--line);
   box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 3px var(--line-d), 0 0 0 2px var(--shadow), 0 0 26px -6px var(--glow);
 }
-.hud, .facts, .panel, .feature, .tile-card, .filters { position: relative; }
-:is(.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame)::after {
+.hud, .facts, .panel, .feature, .tile-card, .filters, .story { position: relative; }
+:is(.hud, .facts, .panel, .feature, .tile-card, .filters, .story, .screen .frame, .detail-grid > .frame)::after {
   --c: var(--line-l); --k: 12px;
   content: ''; position: absolute; inset: -6px; z-index: 2; pointer-events: none;
   background:
@@ -67,7 +81,7 @@ body { position: relative; }
 }
 
 /* Icons and chips */
-.logo::before { content: ''; display: inline-block; width: 0.8em; height: 0.8em; margin-right: 0.5em; vertical-align: -0.05em; background: var(--i-spark) center / contain no-repeat; image-rendering: pixelated; }
+.logo::before { content: ''; display: inline-block; width: 0.8em; height: 0.8em; margin-right: 0.5em; vertical-align: -0.05em; background: var(--i-spark) center / contain no-repeat; image-rendering: pixelated; animation: twinkle 3.6s steps(1) infinite; }
 .foot .logo::before { display: none; }
 .bar nav a[href*="github.com"]::after {
   content: ''; display: inline-block; width: 12px; height: 12px; margin-left: 7px; vertical-align: -1px;
@@ -78,4 +92,4 @@ body { position: relative; }
   background: var(--i-spark) center / contain no-repeat; image-rendering: pixelated;
 }
 .copy::after { content: ''; display: inline-block; width: 10px; height: 10px; margin-left: 7px; vertical-align: -1px; background: var(--i-copy) center / contain no-repeat; image-rendering: pixelated; }
-.hl { color: var(--gold); }
+.hl { color: var(--gold); white-space: nowrap; } /* "16-bit" stays on one line */

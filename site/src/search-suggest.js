@@ -1,5 +1,6 @@
 import { SHOWCASES, TAG_GROUPS, detailUrl } from './showcases.js';
 import { el } from './cards.js';
+import { t } from './i18n/i18n.js';
 
 const MAX = 8;
 const TAGS = TAG_GROUPS.flatMap(g => g.tags.map(([id, name]) => ({ id, name, group: g.label })));
@@ -44,8 +45,8 @@ export function setupSuggest(input, list, { picked, onTag }) {
     const shows = SHOWCASES.filter(s => s.title.toLowerCase().includes(q))
       .sort((a, b) => rank(a.title) - rank(b.title)).slice(0, MAX - tags.length);
     options = [
-      ...tags.map(t => ({ id: t.id, kind: `Tag · ${t.group}`, label: t.name })),
-      ...shows.map(s => ({ url: detailUrl(s), kind: 'Showcase', label: s.title })),
+      ...tags.map(g => ({ id: g.id, kind: t('suggest.tag', { group: g.group }), label: g.name })),
+      ...shows.map(s => ({ url: detailUrl(s), kind: t('suggest.showcase'), label: s.title })),
     ];
     if (!options.length) return close();
     options.forEach((o, k) => {
