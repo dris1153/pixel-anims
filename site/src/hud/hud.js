@@ -13,7 +13,7 @@ if (bar && nav) {
       .sort((a, b) => b.pathname.length - a.pathname.length)[0] ?? links[0];
   scoreBoard();
   const cat = !calm && matchMedia('(hover: hover) and (pointer: fine)').matches ? startCat(bar, home) : null;
-  menuCursor(home, a => cat?.go(a));
+  menuCursor(home, a => cat?.go(a), (cx, cy) => cat?.hits(cx, cy));
 }
 
 function scoreBoard() { // SHOWCASES 074 ★ COUNTRIES 031, counting up like an arcade score
@@ -34,7 +34,7 @@ function scoreBoard() { // SHOWCASES 074 ★ COUNTRIES 031, counting up like an 
   requestAnimationFrame(count);
 }
 
-function menuCursor(home, onTarget) { // one cursor that steps to the hovered or focused link and back home
+function menuCursor(home, onTarget, onCat) { // one cursor that steps to the hovered or focused link and back home
   const cur = document.createElement('span');
   cur.className = 'hud-cursor';
   cur.setAttribute('aria-hidden', 'true');
@@ -44,11 +44,9 @@ function menuCursor(home, onTarget) { // one cursor that steps to the hovered or
   const put = () => { cur.style.translate = `${target.offsetLeft}px ${target.offsetTop + (target.offsetHeight >> 1) - 5}px`; };
   const to = a => { if (!a) return; if (a !== target) { target = a; put(); } onTarget(a); }; // the cat may still be off on a stroll
   nav.addEventListener('pointerover', e => to(e.target.closest('a')));
-  nav.addEventListener('pointerleave', e => {
-    if (e.relatedTarget?.closest?.('.hud-cat')) return;                         // reaching for the cat on its button
-    const f = document.activeElement;
-    to(nav.contains(f) && f.matches(':focus-visible') ? f : home);
-  });
+  const rest = () => { const f = document.activeElement; to(nav.contains(f) && f.matches(':focus-visible') ? f : home); };
+  nav.addEventListener('pointerleave', e => { if (!onCat(e.clientX, e.clientY)) rest(); }); // reaching up for the cat keeps it there
+  bar.addEventListener('pointerleave', rest);
   nav.addEventListener('focusin', e => to(e.target.closest('a')));
   nav.addEventListener('focusout', e => { if (!nav.contains(e.relatedTarget)) to(home); });
   nav.addEventListener('pointerdown', e => {

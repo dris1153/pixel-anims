@@ -51,7 +51,7 @@ export function startCat(bar, home) {
   function hopTo(x1, y1, then) {
     hop = { t0: performance.now(), x0: x, y0: y, x1, y1, arc: Math.max(0, Math.min(14, y, y1)) }; // the arc never lifts it off the top of the bar
     if (x1 !== x) facing = x1 < x ? -1 : 1;
-    mode = 'hop'; frame = 1; arrive = then; paint(); run();
+    mode = 'hop'; frame = 1; arrive = then; bar.style.cursor = ''; paint(); run();
   }
   function floorTo(x1, fast, then) { // down to the floor if needed, then walk (or run) to x1; a new call just retargets
     walkTo = clampX(x1); speed = fast ? RUN_PX : WALK_PX; after = then;
@@ -60,7 +60,7 @@ export function startCat(bar, home) {
     if (on || mode === 'hop') { hopTo(x, floorY(), startWalk); hop.floor = true; }
     else startWalk();
   }
-  function startWalk() { on = null; mode = 'walk'; arrive = after; paint(); run(); }
+  function startWalk() { on = null; mode = 'walk'; arrive = after; bar.style.cursor = ''; paint(); run(); }
   function sitOn(a) { // walk under the button if on the floor, then hop up onto it
     if (!a || (on === a && mode === 'sit')) return;
     const [x1, y1] = onTop(a);
@@ -71,14 +71,19 @@ export function startCat(bar, home) {
   const wake = () => { activity = performance.now(); if (mode === 'sleep') { mode = 'sit'; paint(); } };
 
   // the pointer on the bar's empty space: the cat jumps down and chases it along the floor
+  // it never blocks the menu: pats are found by position, and only off the links
+  const hits = (cx, cy) => { const r = canvas.getBoundingClientRect(); return canvas.offsetWidth > 0 && cx >= r.left - 3 && cx <= r.right + 3 && cy >= r.top - 3 && cy <= r.bottom + 3; };
   bar.addEventListener('pointermove', e => {
     wake(); clearTimeout(leave);
-    if (e.target.closest('a, nav, .hud-cat')) return;
+    const link = e.target.closest('a, nav'), over = hits(e.clientX, e.clientY);
+    bar.style.cursor = !link && over ? 'pointer' : '';
+    if (link || over || performance.now() < scared) return;                     // on the cat: let it be patted; bolting: let it run
     chasing = true; clearTimeout(back);
     floorTo(e.clientX - bar.getBoundingClientRect().left - CW * PX / 2, true);
   });
-  bar.addEventListener('pointerleave', () => { if (chasing) leave = setTimeout(() => { chasing = false; sitOn(home); }, 900); });
-  canvas.addEventListener('pointerdown', e => { // a pat: a hop and a heart; three quick ones and it bolts to the far end
+  bar.addEventListener('pointerleave', () => { bar.style.cursor = ''; if (performance.now() >= scared) leave = setTimeout(() => { chasing = false; sitOn(home); }, 900); });
+  bar.addEventListener('pointerdown', e => { // a pat: a hop and a heart; three quick ones and it bolts to the far end
+    if (e.target.closest('a, button') || !hits(e.clientX, e.clientY)) return;
     e.preventDefault(); wake(); clearTimeout(back);
     const now = performance.now();
     clicks = clicks.filter(t => now - t < 2000); clicks.push(now);
@@ -113,5 +118,5 @@ export function startCat(bar, home) {
   function place() { if ((mode === 'sit' || mode === 'sleep') && on) { [x, y] = onTop(on); put(); } else if (!on && mode !== 'hop') { y = floorY(); x = clampX(x); put(); } }
   paint(); place();
   new ResizeObserver(place).observe(bar);
-  return { go: a => { if (performance.now() < scared) return; chasing = false; clearTimeout(leave); clearTimeout(back); wake(); sitOn(a); } };
+  return { hits, go: a => { if (performance.now() < scared) return; chasing = false; clearTimeout(leave); clearTimeout(back); wake(); sitOn(a); } };
 }

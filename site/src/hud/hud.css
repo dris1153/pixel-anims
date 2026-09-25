@@ -36,8 +36,9 @@
 .hud-cursor.blip { animation: blip .3s steps(3), cursor 1s steps(1) .3s infinite; } /* the page may stay: keep blinking after */
 @keyframes blip { 0% { scale: 1.8; filter: brightness(1.8); } 100% { scale: 1; filter: none; } }
 
-/* The cat: a 14x11 sprite (rim included) at 2x, on a menu button or in the lane under the bar's content. */
-.hud-cat { position: absolute; left: 0; top: 0; width: 28px; height: 22px; cursor: pointer; image-rendering: pixelated; }
+/* The cat: a 12x7 sprite (rim included) at 2x, on a menu button or in the lane under the bar's content; clicks pass
+   through it to the menu (cat.js finds pats by position). */
+.hud-cat { position: absolute; left: 0; top: 0; width: 24px; height: 14px; pointer-events: none; image-rendering: pixelated; }
 .hud-bubble { /* a heart, a "!" or a "z" floating up from the cat */
   position: absolute; left: 0; top: 0; width: 10px; height: 10px; pointer-events: none; image-rendering: pixelated;
   background: var(--b) center / contain no-repeat; animation: bubble 1.2s steps(6) forwards;
@@ -46,6 +47,6 @@
 .hud-bubble.bang { --b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 5' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v3H2zM2 4h1v1H2z' fill='%23f2b84b'/%3E%3C/svg%3E"); }
 .hud-bubble.zz { --b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 5' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h3v1H3v1H2v1h2v1H1V4h1V3h1V2H1z' fill='%23c3cae8'/%3E%3C/svg%3E"); }
 @keyframes bubble { from { margin-top: 0; opacity: 1; } to { margin-top: -14px; opacity: 0; } }
-@media (min-width: 701px) { header.bar { padding-block: 22px; } } /* headroom over the buttons, the cat's lane under them */
+@media (min-width: 701px) { header.bar { padding-block: 14px; } } /* headroom over the buttons, the cat's lane under them */
 @media (max-width: 700px) { .hud-cat { display: none; } } /* narrow bars wrap the menu: no cat there */
 @media (max-width: 480px) { .bar nav.has-cursor a { padding-left: 16px; } .hud-cursor { margin-left: 6px; } }
