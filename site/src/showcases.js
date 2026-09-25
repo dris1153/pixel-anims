@@ -6,6 +6,32 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "wayang-kulit-ramayana",
+    tags: ["humanoid", "projectile", "night"],
+    country: "id",
+    title: "Wayang Kulit: the Ramayana",
+    still: 230,
+    res: [160, 90],
+    loop: 12,
+    states: ["gunungan", "forest", "abduct", "army", "battle", "victory", "close", "dawn"],
+    kind: "Made with the skill",
+    note: "Every puppet is drawn into one shadow mask, so its edges soften against the screen, its carved lace lets the lamp shine through, and only the golden deer keeps its gilt.",
+    prompt:
+      "Pixel art the Javanese shadow play, wayang kulit, telling the Ramayana, 160×90, one fixed shot, 12-second " +
+      "seamless loop, 8 states. Scene: a night performance in a village pavilion: a big white screen fills the " +
+      "middle, lit from behind by a flickering oil lamp so the carved leather puppets cast crisp, lacy shadows with " +
+      "a warm halo; in front, a row of gamelan musicians with bronze gongs and metallophones; carved banana trunks " +
+      "at the base of the screen hold the waiting puppets; a starry sky and palm silhouettes above. Keep the frame " +
+      "readable: two shadow puppets at a time on the screen, the lamp flicker always alive. 1. gunungan: the " +
+      "leaf-shaped tree-of-life puppet quivers in the center of the screen, opening the play. 2. forest: Prince " +
+      "Rama and Sita walk through a shadow forest and a golden deer leaps past. 3. abduct: the demon king Rahwana, " +
+      "huge with bulging eyes and a crown, swoops in and carries Sita away. 4. army: monkey warriors leap across " +
+      "the screen, building a bridge of rocks. 5. battle: Rama and Rahwana clash, arrows flying as shadow streaks, " +
+      "the gongs pounding. 6. victory: Rama's arrow strikes, Rahwana topples off the screen, and Sita returns. 7. " +
+      "close: the gunungan returns and spins, closing the story, and the gamelan players bow. 8. dawn: the lamp " +
+      "burns low, the sky pales to dawn over the palms, and the lamp flares up again for the next night.",
+  },
+  {
     slug: "gilgamesh-uruk-epic",
     tags: ["humanoid", "creature", "melee", "dusk"],
     country: "iq",
@@ -1503,7 +1529,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
