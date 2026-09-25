@@ -6,6 +6,32 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "forging-the-sampo",
+    tags: ["humanoid", "craft", "magic", "night"],
+    country: "fi",
+    title: "Forging the Sampo",
+    still: 320,
+    res: [160, 90],
+    loop: 12,
+    states: ["forge", "bow", "boat", "winds", "sampo", "grind", "lock", "night"],
+    kind: "Made with the skill",
+    note: "The aurora is a sine curtain drawn over the sky with one intensity per state, so it grows with every gift out of the fire, flares with the four winds and dims again as the forge cools to embers.",
+    prompt:
+      "Pixel art the Finnish Kalevala: Ilmarinen forging the Sampo, 160×90, one fixed shot, 12-second seamless " +
+      "loop, 8 states. Scene: Pohjola, the cold North: a log smithy with an open forge glowing on a snowy shore at " +
+      "the left, black pines, a frozen lake, and at the right a copper-red mountain; the sky is the long arctic " +
+      "night, blue-black with stars, and the aurora grows stronger with each state. Keep the frame readable: " +
+      "Ilmarinen and one thing out of the fire at a time. 1. forge: the smith Ilmarinen pumps the bellows; sparks " +
+      "shoot up into the night. 2. bow: the fire spits out a golden crossbow; it wants blood every day, so he snaps " +
+      "it and throws it back. 3. boat: a red boat bursts out; it wants war, so he breaks it too. 4. winds: he calls " +
+      "the four winds and they blow the bellows by themselves; the forge roars white-hot and the aurora flares " +
+      "green and violet. 5. sampo: from the flames rises the Sampo, a magic mill with a lid of many colors that " +
+      "spins by itself. 6. grind: it grinds a bin of flour, a bin of salt and a bin of gold coins, overflowing onto " +
+      "the snow. 7. lock: Louhi, the grey Mistress of the North, carries the Sampo into the copper mountain behind " +
+      "nine locks, and roots grow over the door. 8. night: the forge cools to embers, snow falls, and the aurora " +
+      "dims until the fire is lit again.",
+  },
+  {
     slug: "vesuvius-79-pompeii",
     tags: ["humanoid", "impact", "lightning", "day"],
     country: "it",
@@ -1749,7 +1775,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['mn', 'Mongolia'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['it', 'Italy'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['mn', 'Mongolia'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['fi', 'Finland'], ['de', 'Germany'], ['es', 'Spain'], ['it', 'Italy'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
