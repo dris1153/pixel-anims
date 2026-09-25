@@ -6,6 +6,42 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "wonderful-wizard-of-oz",
+    tags: ["humanoid", "creature", "magic", "day"],
+    country: "us",
+    title: "The Wonderful Wizard of Oz",
+    still: 800,
+    res: [160, 90],
+    loop: 20,
+    states: ["kansas", "cyclone", "munchkin", "road", "tin", "lion", "poppies", "emerald", "monkeys", "bucket", "balloon", "shoes"],
+    kind: "Made with the skill",
+    note: "One road carries the whole journey across lands that change color, and Kansas is a greyscale palette map laid over the frame, so the color floods in when the house lands and drains away when Dorothy clicks her heels home.",
+    prompt:
+      "Pixel art L. Frank Baum's The Wonderful Wizard of Oz (the 1900 book), 160×90, one fixed shot, 20-second " +
+      "seamless loop, 12 states. Scene: a yellow brick road running from a little farmhouse at the left across a " +
+      "land that changes color: prairie, then blue Munchkin country with domed houses, a cornfield, a dark wood and " +
+      "a field of red poppies, toward the green towers and walls of the Emerald City on the right horizon; in " +
+      "Kansas the whole world is grey, and the sky runs from grey to bright blue, a stormy yellow west, gold, and " +
+      "back to grey. Keep the frame readable: Dorothy and one new friend or foe at a time, the friends then " +
+      "following her in a line. 1. kansas: on the grey prairie Dorothy, in a blue-and-white gingham dress with " +
+      "brown braids, claps as her little black dog Toto runs circles round her by the farmhouse. 2. cyclone: a " +
+      "black funnel cloud twists across the plain, Dorothy runs inside with Toto, and the house lifts off and spins " +
+      "up out of frame with her face at the window. 3. munchkin: the house drops with a thump, the color floods in, " +
+      "the Wicked Witch of the East's striped legs and silver shoes stick out from under it, Munchkins peek from " +
+      "their domes, and the Good Witch of the North kisses Dorothy's forehead with a glowing mark as she takes the " +
+      "silver shoes. 4. road: she walks the yellow brick road and helps the Scarecrow down from his pole in the " +
+      "cornfield. 5. tin: she oils the rusted Tin Woodman, who swings his axe again. 6. lion: the Cowardly Lion " +
+      "bounds out roaring, Dorothy slaps his nose, and he cries. 7. poppies: in the red poppy field Dorothy and the " +
+      "Lion fall asleep, and a team of field mice haul the Lion out on a cart. 8. emerald: at the Emerald City, " +
+      "everyone in green spectacles, the Wizard appears as a giant floating head over the towers. 9. monkeys: the " +
+      "sky turns a stormy yellow, the Wicked Witch of the West, one-eyed with an umbrella, puts on the Golden Cap " +
+      "before her dark castle, and the Winged Monkeys swoop down and carry the friends away. 10. bucket: Dorothy " +
+      "throws a bucket of water and the witch melts into a puddle, leaving the Golden Cap behind. 11. balloon: the " +
+      "friends come back together as the humbug Wizard waves goodbye from his striped hot-air balloon, drifting " +
+      "away over the city. 12. shoes: Dorothy clicks the silver heels three times, spins through the air in a whirl " +
+      "of color, the shoes falling away, and lands back on the grey prairie by the new farmhouse, hugging Toto.",
+  },
+  {
     slug: "yamata-no-orochi",
     tags: ["humanoid", "creature", "melee", "night"],
     country: "jp",
@@ -1172,7 +1208,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['fr', 'France'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
