@@ -6,6 +6,39 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "gilgamesh-uruk-epic",
+    tags: ["humanoid", "creature", "melee", "dusk"],
+    country: "iq",
+    title: "The Epic of Gilgamesh",
+    still: 440,
+    res: [160, 90],
+    loop: 20,
+    states: ["uruk", "wild", "wrestle", "forest", "humbaba", "cedar", "bull", "grief", "waters", "plant", "serpent", "return"],
+    kind: "Made with the skill",
+    note: "The Waters of Death are the same frame drowned: a black sea rises over the plain, then deep water covers everything, and draining it back reveals the morning pool where the serpent steals the plant.",
+    prompt:
+      "Pixel art the Epic of Gilgamesh, the oldest story ever written, 160×90, one fixed shot, 20-second seamless " +
+      "loop, 12 states. Scene: ancient Mesopotamia: at the right the mud-brick walls of Uruk with a blue glazed " +
+      "gate and a stepped ziggurat, the Euphrates winding through date palms in the middle, and at the left a hill " +
+      "where the dark giants of the Cedar Forest rise into mist; the light runs from a copper dusk through night, " +
+      "blazing noon and a storm, and back to dusk. Keep the frame readable: Gilgamesh and one companion or foe at a " +
+      "time. 1. uruk: at dusk Gilgamesh, king of Uruk, paces the rampart in a lion-fringed robe with a curled " +
+      "beard. 2. wild: out by a waterhole the wild man Enkidu, covered in hair, drinks beside gazelles. 3. wrestle: " +
+      "Enkidu comes to the gate and they wrestle; the doorposts shake and dust bursts, until they clasp arms and " +
+      "laugh as friends. 4. forest: the two walk into the Cedar Forest, trunks towering past the top of the frame. " +
+      "5. humbaba: the guardian Humbaba bursts out, his face a maze of coils and seven auras flaring around him " +
+      "like halos of fire; the sun god sends thirteen winds that pin him to the ground. 6. cedar: they fell the " +
+      "tallest cedar and float it down the river as a raft to make a gate for Uruk. 7. bull: the Bull of Heaven " +
+      "stamps down from the clouds, each snort cracking the earth into pits; Enkidu seizes its horns and Gilgamesh " +
+      "drives his blade between its shoulders. 8. grief: under a night of stars Enkidu lies still and Gilgamesh " +
+      "kneels over him, tearing his robe. 9. waters: Gilgamesh crosses the Waters of Death with the boatman " +
+      "Urshanabi, poling across a black sea toward a far glowing island. 10. plant: he ties stones to his feet and " +
+      "sinks to the seabed, where he plucks a thorny flower that glows green: the plant of youth. 11. serpent: as " +
+      "he bathes in a pool on the way home, a serpent slides out, swallows the plant and sheds its skin in a flash " +
+      "of light, young again. 12. return: at dawn Gilgamesh stands on the walls of Uruk again and looks out over " +
+      "the city he built, and the sky warms back into copper dusk.",
+  },
+  {
     slug: "tenochtitlan-eagle-lake",
     tags: ["humanoid", "creature", "craft", "dawn"],
     country: "mx",
@@ -1470,7 +1503,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
