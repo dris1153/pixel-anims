@@ -86,7 +86,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  font: 700 0.64rem var(--display);
+  font: 700 0.7rem var(--display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--ink);

@@ -2,6 +2,7 @@
 import './hud.css';
 import { SHOWCASES, countryOf } from '../showcases.js';
 import { startCat } from './cat.js';
+import { t } from '../i18n/i18n.js';
 
 const bar = document.querySelector('.bar'), nav = bar?.querySelector('nav');
 const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -21,7 +22,8 @@ function scoreBoard() { // SHOWCASES 074 ★ COUNTRIES 031, counting up like an 
   const el = document.createElement('p');
   el.className = 'hud-score';
   el.setAttribute('aria-hidden', 'true');
-  el.innerHTML = 'Showcases <b>000</b><i></i>Countries <b>000</b>';
+  const num = () => { const b = document.createElement('b'); b.textContent = '000'; return b; };
+  el.append(t('hud.showcases'), ' ', num(), document.createElement('i'), t('hud.countries'), ' ', num());
   bar.insertBefore(el, nav);
   const digits = el.querySelectorAll('b'), pad = n => String(n).padStart(3, '0');
   if (calm) { digits.forEach((b, k) => { b.textContent = pad(counts[k]); }); return; }
@@ -34,15 +36,14 @@ function scoreBoard() { // SHOWCASES 074 ★ COUNTRIES 031, counting up like an 
   requestAnimationFrame(count);
 }
 
-function menuCursor(home, onTarget, onCat) { // one cursor that steps to the hovered or focused link and back home
-  const cur = document.createElement('span');
-  cur.className = 'hud-cursor';
-  cur.setAttribute('aria-hidden', 'true');
-  nav.append(cur);
+function menuCursor(home, onTarget, onCat) { // the hovered or focused link holds the cursor, else home does
   nav.classList.add('has-cursor');
-  let target = home;
-  const put = () => { cur.style.translate = `${target.offsetLeft}px ${target.offsetTop + (target.offsetHeight >> 1) - 5}px`; };
-  const to = a => { if (!a) return; if (a !== target) { target = a; put(); } onTarget(a); }; // the cat may still be off on a stroll
+  let target = null;
+  const to = a => { // the cat may still be off on a stroll, so it hears every visit
+    if (!a) return;
+    if (a !== target) { target?.classList.remove('is-target', 'blip'); target = a; a.classList.add('is-target'); }
+    onTarget(a);
+  };
   nav.addEventListener('pointerover', e => to(e.target.closest('a')));
   const rest = () => { const f = document.activeElement; to(nav.contains(f) && f.matches(':focus-visible') ? f : home); };
   nav.addEventListener('pointerleave', e => { if (!onCat(e.clientX, e.clientY)) rest(); }); // reaching up for the cat keeps it there
@@ -50,11 +51,12 @@ function menuCursor(home, onTarget, onCat) { // one cursor that steps to the hov
   nav.addEventListener('focusin', e => to(e.target.closest('a')));
   nav.addEventListener('focusout', e => { if (!nav.contains(e.relatedTarget)) to(home); });
   nav.addEventListener('pointerdown', e => {
-    if (!e.target.closest('a')) return;
-    cur.classList.remove('blip'); void cur.offsetWidth; cur.classList.add('blip');   // restart the flash on every press
+    const a = e.target.closest('a');
+    if (!a) return;
+    a.classList.remove('blip'); void a.offsetWidth; a.classList.add('blip');   // restart the flash on every press
   });
-  put();
-  cur.getBoundingClientRect(); // settle the first position before transitions apply
-  cur.classList.add('ready');
-  new ResizeObserver(put).observe(nav); // fonts, wrapping and scrollbars all move the links
+  target = home;
+  home?.classList.add('is-target');
+  nav.getBoundingClientRect(); // lay out the resting state before transitions apply, so the first paint doesn't animate
+  nav.classList.add('ready');
 }

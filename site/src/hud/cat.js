@@ -32,6 +32,7 @@ export function startCat(bar, home) {
     const dt = Math.min(50, now - (last || now));
     last = now;
     if (hop) {
+      if (hop.to) [hop.x1, hop.y1] = onTop(hop.to); // the menu may still be opening room on that button
       const u = Math.min(1, (now - hop.t0) / HOP_MS);
       x = hop.x0 + (hop.x1 - hop.x0) * u; y = hop.y0 + (hop.y1 - hop.y0) * u - Math.sin(Math.PI * u) * hop.arc;
       if (u >= 1) { hop = null; settle(); }
@@ -64,7 +65,7 @@ export function startCat(bar, home) {
   function sitOn(a) { // walk under the button if on the floor, then hop up onto it
     if (!a || (on === a && mode === 'sit')) return;
     const [x1, y1] = onTop(a);
-    const up = () => hopTo(x1, y1, () => { on = a; });
+    const up = () => { hopTo(x1, y1, () => { on = a; }); hop.to = a; };
     if (on || mode === 'hop') up();
     else floorTo(x1, Math.abs(x1 - x) > 300, up);                             // a long way home is a trot
   }
@@ -75,7 +76,7 @@ export function startCat(bar, home) {
   const hits = (cx, cy) => { const r = canvas.getBoundingClientRect(); return canvas.offsetWidth > 0 && cx >= r.left - 3 && cx <= r.right + 3 && cy >= r.top - 3 && cy <= r.bottom + 3; };
   bar.addEventListener('pointermove', e => {
     wake(); clearTimeout(leave);
-    const link = e.target.closest('a, nav'), over = hits(e.clientX, e.clientY);
+    const link = e.target.closest('a, nav, .lang'), over = hits(e.clientX, e.clientY);
     bar.style.cursor = !link && over ? 'pointer' : '';
     if (link || over || performance.now() < scared) return;                     // on the cat: let it be patted; bolting: let it run
     chasing = true; clearTimeout(back);
@@ -118,5 +119,6 @@ export function startCat(bar, home) {
   function place() { if ((mode === 'sit' || mode === 'sleep') && on) { [x, y] = onTop(on); put(); } else if (!on && mode !== 'hop') { y = floorY(); x = clampX(x); put(); } }
   paint(); place();
   new ResizeObserver(place).observe(bar);
+  bar.addEventListener('transitionend', e => { if (e.propertyName === 'padding-left') place(); }); // the menu's cursor room moves buttons
   return { hits, go: a => { if (performance.now() < scared) return; chasing = false; clearTimeout(leave); clearTimeout(back); wake(); sitOn(a); } };
 }

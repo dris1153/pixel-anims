@@ -3,6 +3,7 @@
 /* Logo: three hard color bands clipped to the letters, a dark outline and drop as filters (a text-shadow would paint
    over the clipped letters), and a glint that sweeps across in steps every five seconds. */
 .bar .logo {
+  font-size: 1.5rem; /* 3x the 8px pixel grid: crisp */
   color: transparent; -webkit-background-clip: text; background-clip: text; background-repeat: no-repeat;
   background-image: linear-gradient(115deg, transparent 40%, #fff8e0 40% 46%, transparent 46%), linear-gradient(#ffe29a 0 38%, #f2b84b 38% 68%, #e8862e 68%);
   background-size: 300% 100%, 100% 100%; background-position: 120% 0, 0 0;
@@ -15,25 +16,29 @@
 /* Score board: a small LCD panel next to the logo, only where the bar has room. */
 .hud-score {
   display: none; align-items: center; gap: 8px; margin: 0 auto 0 18px; padding: 5px 12px; /* beside the logo: the rest is the cat's */
-  font: 400 .7rem var(--display); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+  font: 500 .7rem var(--display); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
   background: var(--ink); border: 2px solid var(--line); box-shadow: inset 2px 2px 0 var(--shadow), 0 0 12px -6px var(--glow);
 }
 .hud-score b { font-weight: 700; color: var(--gold); text-shadow: 0 0 8px rgba(242, 184, 75, .45); }
 .hud-score i { width: 9px; height: 9px; margin: 0 4px; background: var(--i-spark) center / contain no-repeat; image-rendering: pixelated; }
 @media (min-width: 1100px) { .hud-score { display: inline-flex; } }
 
-/* Menu cursor: JS moves one cursor in pixel steps; every link keeps room for it. */
-.bar nav.has-cursor { position: relative; }
-.bar nav.has-cursor a { padding-left: 22px; }
-.bar nav.has-cursor a:hover { translate: none; } /* the cursor and the cat sit on the links: they must not sink */
-.bar nav.has-cursor a[aria-current="page"]::before { display: none; }
-.hud-cursor {
-  position: absolute; left: 0; top: 0; width: 6px; height: 10px; pointer-events: none;
-  margin-left: 9px; background: var(--i-cursor) center / contain no-repeat; image-rendering: pixelated;
-  animation: cursor 1s steps(1) infinite;
+/* Menu cursor: JS marks one link as the target (hovered or focused, else this page's); only the target opens room on
+   its left, and the cursor slides in while the room opens. */
+.bar nav.has-cursor a:not(.is-target) { padding-left: 12px; }
+.bar nav.has-cursor a.is-target { padding-left: 24px; }
+.bar nav.has-cursor a:hover { translate: none; } /* the cat sits on the links: they must not sink */
+.bar nav.has-cursor a::before {
+  content: ''; position: absolute; left: 9px; top: 50%; width: 6px; height: 10px; pointer-events: none;
+  background: var(--i-cursor) center / contain no-repeat; image-rendering: pixelated;
+  opacity: 0; translate: -4px -50%; animation: none;
 }
-.hud-cursor.ready { transition: translate 140ms steps(4, end); }
-.hud-cursor.blip { animation: blip .3s steps(3), cursor 1s steps(1) .3s infinite; } /* the page may stay: keep blinking after */
+.bar nav.has-cursor a.is-target::before { /* the blink restarts on each new target, so it always arrives lit */
+  opacity: 1; translate: 0 -50%; animation: cursor 1s steps(1) infinite;
+}
+.bar nav.has-cursor.ready a { transition: color var(--duration-quick) var(--ease-smooth-out), padding-left var(--duration-fast) var(--ease-smooth-out); }
+.bar nav.has-cursor.ready a::before { transition: opacity var(--duration-fast) var(--ease-smooth-out), translate var(--duration-fast) var(--ease-smooth-out); }
+.bar nav.has-cursor a.blip::before { animation: blip .3s steps(3), cursor 1s steps(1) .3s infinite; } /* the page may stay: keep blinking after */
 @keyframes blip { 0% { scale: 1.8; filter: brightness(1.8); } 100% { scale: 1; filter: none; } }
 
 /* The cat: a 12x7 sprite (rim included) at 2x, on a menu button or in the lane under the bar's content; clicks pass
@@ -49,4 +54,9 @@
 @keyframes bubble { from { margin-top: 0; opacity: 1; } to { margin-top: -14px; opacity: 0; } }
 @media (min-width: 701px) { header.bar { padding-block: 14px; } } /* headroom over the buttons, the cat's lane under them */
 @media (max-width: 700px) { .hud-cat { display: none; } } /* narrow bars wrap the menu: no cat there */
-@media (max-width: 480px) { .bar nav.has-cursor a { padding-left: 16px; } .hud-cursor { margin-left: 6px; } }
+@media (max-width: 480px) {
+  .bar .logo { font-size: 1rem; } /* 2x the pixel grid */
+  .bar nav.has-cursor a:not(.is-target) { padding-left: 9px; }
+  .bar nav.has-cursor a.is-target { padding-left: 20px; }
+  .bar nav.has-cursor a::before { left: 7px; }
+}

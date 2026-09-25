@@ -5,8 +5,8 @@
   --muted: #a6aede; --silver: #c3cae8; --text: #eef1ff; --shadow: #02040c;
   --red: #d8574a; --gold: #f2b84b; --gold-l: #ffd27a; --cyan: #4fd8ff; --cyan-l: #a8f0ff; --violet: #5b4bd6;
   --line-l: #6f7dff; --line-d: #1a2464; --glow: rgba(111, 125, 255, 0.45); --panel: rgba(11, 17, 48, 0.84);
-  --display: 'Silkscreen', 'Courier New', monospace;
   --body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display: var(--body); /* headings and labels read like the text; only the logo keeps its pixel face */
   --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
   --notch: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px),
     calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
@@ -40,12 +40,12 @@ button:disabled { cursor: not-allowed; }
   background: repeating-conic-gradient(var(--line) 0 25%, var(--shadow) 0 50%) 0 0 / 4px 4px;
 }
 .logo {
-  font: 700 1.05rem var(--display); color: var(--gold); text-decoration: none; letter-spacing: .06em; white-space: nowrap;
+  font: 700 1.05rem 'Silkscreen', 'Courier New', monospace; color: var(--gold); text-decoration: none; letter-spacing: .06em; white-space: nowrap;
   text-shadow: 2px 2px 0 #7a3e12, 0 0 14px rgba(242, 184, 75, .35); /* a hard pixel drop shadow, like a title screen */
 }
 .bar nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .bar nav a {
-  position: relative; padding: 6px 12px; font: 400 .8rem var(--display); color: var(--muted); text-decoration: none; letter-spacing: .04em;
+  position: relative; padding: 6px 12px; font: 500 .8rem var(--display); color: var(--muted); text-decoration: none; letter-spacing: .04em;
   background: var(--night); border: 2px solid var(--line);
   box-shadow: inset 2px 2px 0 rgba(111, 125, 255, .22), inset -2px -2px 0 var(--shadow); /* a bevel: lit top-left, shaded bottom-right */
 }
@@ -74,7 +74,7 @@ h3 { font: 600 1.12rem/1.3 var(--body); margin: 0 0 8px; }
 .eyebrow {
   display: inline-flex; align-items: center; gap: 12px; max-width: 100%; margin: 0 0 20px; padding: 8px 14px;
   font: 700 .72rem/1.5 var(--display); color: var(--cyan-l); letter-spacing: .1em; text-transform: uppercase;
-  background: var(--panel); border: 2px solid var(--line-l); box-shadow: 0 0 16px -5px var(--glow);
+  background: var(--panel); border: 2px solid var(--line-l); box-shadow: 0 0 16px -5px var(--glow); text-wrap: pretty;
 }
 .eyebrow::before { content: ''; flex: none; width: 14px; height: 14px; background: var(--i-spark) center / contain no-repeat; image-rendering: pixelated; }
 h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; text-wrap: balance; }
@@ -114,7 +114,7 @@ h1 { font: 700 clamp(1.9rem, 4vw, 3rem)/1.12 var(--display); margin: 0 0 22px; t
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .play {
   position: absolute; top: 8px; right: 8px; z-index: 1; padding: 6px 9px;
-  font: 700 .62rem var(--display); letter-spacing: .06em; text-transform: uppercase;
+  font: 700 .7rem var(--display); letter-spacing: .06em; text-transform: uppercase;
   color: var(--text); background: rgba(7, 10, 28, .85); border: 2px solid var(--line-l); box-shadow: 0 0 10px -3px var(--glow);
   transition: color var(--duration-quick) var(--ease-smooth-out), border-color var(--duration-quick) var(--ease-smooth-out), transform var(--duration-quick) var(--ease-smooth-out);
 }

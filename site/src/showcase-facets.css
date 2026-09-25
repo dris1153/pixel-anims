@@ -34,7 +34,7 @@
 .suggest-kind {
   order: 1;
   flex: none;
-  font: 700 0.6rem var(--display);
+  font: 700 0.7rem var(--display);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -72,7 +72,7 @@
   color: var(--gold);
   border-color: var(--gold);
 }
-.facet-caret { /* a 4px pixel triangle: the display font has no ▾ glyph */
+.facet-caret { /* a 4px pixel triangle, drawn to match the HUD rather than a ▾ glyph */
   width: 0;
   height: 0;
   border: 4px solid transparent;
@@ -104,7 +104,7 @@
 }
 .facet-title {
   margin: 2px 6px 8px;
-  font: 700 0.62rem var(--display);
+  font: 700 0.7rem var(--display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -154,7 +154,7 @@
   justify-self: end;
   margin-top: 6px;
   padding: 4px 6px;
-  font: 700 0.62rem var(--display);
+  font: 700 0.7rem var(--display);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--cyan);

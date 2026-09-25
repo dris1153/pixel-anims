@@ -51,7 +51,7 @@ body { position: relative; }
 @media (min-width: 1440px) { .cliffs { display: block; } } /* only where the margins can hold them */
 
 /* Text laid straight on the backdrop gets a dark edge, so drifting clouds and moonlit hills never wash it out (panels
-   need none). Pixel type takes a hard one-pixel outline like game text; body copy a soft halo close to the glyphs. */
+   need none). Headings and labels take a hard one-pixel outline like game text; body copy a soft halo close to the glyphs. */
 :is(.hero h1, .screen figcaption, .page-head > :is(.back, h1), .detail > .back, .detail-body > :is(.kind, h1, .open), .specs dt) {
   text-shadow: 1px 0 var(--ink), -1px 0 var(--ink), 0 1px var(--ink), 0 -1px var(--ink), 0 2px var(--shadow), 0 0 10px rgba(7, 10, 28, .7);
 }
@@ -60,12 +60,12 @@ body { position: relative; }
 }
 
 /* HUD frame: a double border with a soft blue glow, and pixel brackets on the corners. */
-.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame, .brief {
+.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame, .brief, .story {
   background-color: var(--panel); border: 2px solid var(--line);
   box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 3px var(--line-d), 0 0 0 2px var(--shadow), 0 0 26px -6px var(--glow);
 }
-.hud, .facts, .panel, .feature, .tile-card, .filters { position: relative; }
-:is(.hud, .facts, .panel, .feature, .tile-card, .filters, .screen .frame, .detail-grid > .frame)::after {
+.hud, .facts, .panel, .feature, .tile-card, .filters, .story { position: relative; }
+:is(.hud, .facts, .panel, .feature, .tile-card, .filters, .story, .screen .frame, .detail-grid > .frame)::after {
   --c: var(--line-l); --k: 12px;
   content: ''; position: absolute; inset: -6px; z-index: 2; pointer-events: none;
   background:
@@ -92,4 +92,4 @@ body { position: relative; }
   background: var(--i-spark) center / contain no-repeat; image-rendering: pixelated;
 }
 .copy::after { content: ''; display: inline-block; width: 10px; height: 10px; margin-left: 7px; vertical-align: -1px; background: var(--i-copy) center / contain no-repeat; image-rendering: pixelated; }
-.hl { color: var(--gold); }
+.hl { color: var(--gold); white-space: nowrap; } /* "16-bit" stays on one line */
