@@ -6,6 +6,33 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "vesuvius-79-pompeii",
+    tags: ["humanoid", "impact", "lightning", "day"],
+    country: "it",
+    title: "Vesuvius, 79 AD",
+    still: 240,
+    res: [160, 90],
+    loop: 12,
+    states: ["forum", "tremor", "column", "pumice", "surge", "buried", "centuries", "dig"],
+    kind: "Made with the skill",
+    note: "The ash is one height per column over the town: the surge raises it, the centuries grow grass and a village on top of it, and the dig lowers it again until the morning of the start is uncovered.",
+    prompt:
+      "Pixel art the eruption of Vesuvius over the town of Pompeii, 79 AD, 160×90, one fixed shot, 12-second " +
+      "seamless loop, 8 states. Scene: a hillside view over Pompeii: red-tiled roofs, the columns of the forum and " +
+      "a temple in the middle, a vineyard and a street with a bakery in front, the bay of Naples at the left, and " +
+      "Vesuvius, green with vines, rising at the right; the sky runs from a clear morning through black ash and a " +
+      "glowing night to centuries of stars, and back. Keep the frame readable: townsfolk small and no bodies " +
+      "anywhere; the mountain is the actor. 1. forum: on a bright morning bakers pull bread from the oven, a dog " +
+      "barks, a cart rolls and a fountain splashes. 2. tremor: the ground shakes, amphorae topple and birds burst " +
+      "out of the trees. 3. column: at noon the mountain blasts a huge column of ash that spreads like a pine tree " +
+      "across the sky. 4. pumice: pumice and ash rain down, roofs sag, and people run toward the sea with pillows " +
+      "on their heads. 5. surge: at night a glowing cloud races down the mountain and rolls over the empty town. 6. " +
+      "buried: the town lies under grey ash, lightning flickering in the dark cloud. 7. centuries: time rushes: " +
+      "grass and vines cover the ash, the stars wheel, and a village grows on top. 8. dig: diggers uncover streets " +
+      "and columns, red frescoes glow again, and the colors of the living town return to the bright morning of the " +
+      "start.",
+  },
+  {
     slug: "war-of-the-worlds-1898",
     tags: ["robot", "impact", "dusk"],
     country: "gb-eng",
@@ -1722,7 +1749,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['mn', 'Mongolia'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['mn', 'Mongolia'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['it', 'Italy'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
