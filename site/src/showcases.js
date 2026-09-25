@@ -6,6 +6,32 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "cappadocia-balloons",
+    tags: ["humanoid", "craft", "dawn"],
+    country: "tr",
+    title: "Balloons over Cappadocia",
+    still: 330,
+    res: [160, 90],
+    loop: 10,
+    states: ["predawn", "inflate", "liftoff", "sunrise", "drift", "land"],
+    kind: "Made with the skill",
+    note: "Each envelope is one teardrop test rotated up off the ground and scaled from flat to full, so the same code lays it out on the field, stands it up in the burner's glow and flies it.",
+    prompt:
+      "Pixel art hot-air balloons over Cappadocia at sunrise, 160×90, one fixed shot, 10-second seamless loop, 6 " +
+      "states. Scene: the valleys of central Turkey: tall fairy chimneys of pink and cream tuff with dark basalt " +
+      "caps and little cave windows, flat mesas on the horizon, vineyard rows and apricot trees in the valley, and " +
+      "a dusty launch field in front; the sky runs from a deep blue pre-dawn through a pink-gold sunrise to a clear " +
+      "morning, and back. Keep the frame readable: three near balloons large and detailed, many far ones as specks. " +
+      "1. predawn: in the blue hour three striped envelopes lie flat on the field beside their wicker baskets, and " +
+      "lamps glow in the cave windows. 2. inflate: fans blow them half full, then the burners roar with blue and " +
+      "orange flames and the envelopes stand upright, glowing from inside like lanterns. 3. liftoff: the balloons " +
+      "lift one by one, passengers waving from the baskets, as the sky begins to blush. 4. sunrise: the sun breaks " +
+      "over the mesas, the rocks glow pink and gold, dozens of far balloons rise from behind the land and drift " +
+      "across the sky, and long shadows sweep the valley. 5. drift: the middle balloon dips low over the apricot " +
+      "trees, brushing leaves loose, then flares its burner and climbs back up. 6. land: the balloons settle back " +
+      "onto the field and the envelopes sigh flat as the light cools back to the blue hour.",
+  },
+  {
     slug: "ragnarok-twilight-gods",
     tags: ["creature", "lightning", "breath", "impact", "dusk"],
     country: "no",
@@ -1044,7 +1070,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
