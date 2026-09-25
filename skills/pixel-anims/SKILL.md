@@ -129,6 +129,7 @@ Higher values outline the whole actor.
   - `composite()` adds the ink outline and a rim on edges facing `srcX/srcY`.
   - Render order: `bg`, `drawUnder`, `drawActor`, `composite`, `drawOver`, flash, present.
   - `checkContract()` throws at boot if tables have the wrong size, `DUR`/`EASE` are wrong, or the loop does not close.
+- **Embedding control:** while playing (not in `#t=N` QA mode), the page exposes `window.pixelAnims` for same-origin embedders: `tick`, `loop`, `paused`, `seeking`, `pause()`, `play()`, and `seek(t, rate)`, which runs `rate` ticks a frame forward to tick `t` of the loop, then plays on. It is part of ENGINE; nothing to write.
 
 ## QA
 
