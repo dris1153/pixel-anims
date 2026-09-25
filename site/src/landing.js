@@ -3,6 +3,8 @@ import './hud/hud.js';
 import { SHOWCASES, animUrl, detailUrl, stillOf } from './showcases.js';
 import { setupCopy } from './copy.js';
 import { addPlayToggle, autoplayInView, calm, featureCard, fitFrame, tile } from './cards.js';
+import { t } from './i18n/i18n.js';
+import './i18n/switcher.js';
 
 // Repo slug (dris1153/pixel-anims) is written literally in the HTML, README and .claude-plugin/*.json.
 setupTabs();
@@ -17,14 +19,14 @@ function setupHero() {
   const frame = document.querySelector('.screen .frame');
   const iframe = frame.querySelector('iframe');
   const caption = document.querySelector('.screen figcaption');
-  addPlayToggle(frame, iframe, iframe.getAttribute('src'), frame.dataset.still, 'the wizard animation', !calm);
+  addPlayToggle(frame, iframe, iframe.getAttribute('src'), frame.dataset.still, t('hero.wizard'), !calm);
   fitFrame(frame, [128, 96]);
   let current = SHOWCASES.findIndex(s => s.slug === 'wizard-spellcaster');
   const shuffle = document.createElement('button');
   shuffle.type = 'button';
   shuffle.className = 'play shuffle';
-  shuffle.textContent = 'Shuffle';
-  shuffle.setAttribute('aria-label', 'Show a random showcase');
+  shuffle.textContent = t('hero.shuffle');
+  shuffle.setAttribute('aria-label', t('hero.shuffle.label'));
   shuffle.addEventListener('click', () => {
     let i = current;
     while (i === current) i = Math.floor(Math.random() * SHOWCASES.length);
@@ -32,14 +34,14 @@ function setupHero() {
     const s = SHOWCASES[i];
     frame.querySelector('.play:not(.shuffle)').remove();
     frame.style.aspectRatio = `${s.res[0]} / ${s.res[1]}`;
-    iframe.title = `${s.title}: live pixel art animation`;
+    iframe.title = t('anim.title', { title: s.title });
     iframe.src = calm ? stillOf(animUrl(s), s.still) : animUrl(s);
     addPlayToggle(frame, iframe, animUrl(s), s.still, s.title, !calm);
     fitFrame(frame, s.res);
     const name = document.createElement('a');
     name.href = detailUrl(s);
     name.textContent = s.title;
-    caption.replaceChildren(caption.querySelector('.live'), ` ${s.res[0]}×${s.res[1]} · ${s.loop} s loop · `, name);
+    caption.replaceChildren(caption.querySelector('.live'), ` ${s.res[0]}×${s.res[1]} · ${t('meta.loop', { n: s.loop })} · `, name);
   });
   frame.append(shuffle);
 }
@@ -98,7 +100,7 @@ function setupTabs() {
   });
   select(tabs[0], false); // panels ship visible so the page reads without JS
   addEventListener('resize', () => movePill(active(), false));
-  document.fonts?.ready.then(() => movePill(active(), false)); // Silkscreen changes tab widths once loaded
+  document.fonts?.ready.then(() => movePill(active(), false)); // the display font changes tab widths once loaded
 }
 
 // Journal tabs mark whichever section crosses the middle of the viewport.

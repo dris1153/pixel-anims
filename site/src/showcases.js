@@ -4,6 +4,9 @@
 // Optional: note, still (tick shown while paused, default 60), ref (true for the engine reference), featured (true on one
 // entry: the landing's feature card, default the newest),
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
+// Shown text is English here; other languages override it by key (title.<slug>, kind.*, country.*, group.*, tag.*).
+import { t } from './i18n/i18n.js';
+
 export const SHOWCASES = [
   {
     slug: "forging-the-sampo",
@@ -1773,21 +1776,29 @@ export const SHOWCASES = [
   },
 ];
 
+for (const s of SHOWCASES) { s.title = t(`title.${s.slug}`, null, s.title); s.kind = t(s.ref ? 'kind.ref' : 'kind.skill', null, s.kind); }
+
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
 export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['mn', 'Mongolia'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ng', 'Nigeria'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['fi', 'Finland'], ['de', 'Germany'], ['es', 'Spain'], ['it', 'Italy'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
+for (const c of COUNTRIES) c[1] = t(`country.${c[0]}`, null, c[1]);
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
   { label: 'Action', tags: [['melee', 'Melee'], ['projectile', 'Projectile'], ['magic', 'Magic'], ['breath', 'Breath'], ['impact', 'Impact'], ['lightning', 'Lightning'], ['craft', 'Craft'], ['heal', 'Heal']] },
   { label: 'Setting', tags: [['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night'], ['underwater', 'Underwater'], ['interior', 'Interior'], ['space', 'Space']] },
   { label: 'Country', flags: true, tags: COUNTRIES.filter(([id]) => SHOWCASES.some(s => countryOf(s) === id)) },
-  { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(t => [t, t.replace('x', '×')]) },
+  { label: 'Resolution', tags: [...new Set(SHOWCASES.map(resTag))].sort().map(r => [r, r.replace('x', '×')]) },
 ];
+for (const g of TAG_GROUPS) {
+  if (!g.flags) g.tags = g.tags.map(([id, name]) => [id, t(`tag.${id}`, null, name)]); // countries are named above
+  g.label = t(`group.${g.label.toLowerCase()}`, null, g.label);
+}
 
 export const animUrl = s => `/anims/${s.slug}.html`;
 export const posterUrl = s => `/posters/${s.slug}.png`;
-// The ?still#t=N seek mode renders tick N once and stops, so a paused frame costs no loop.
-export const stillOf = (file, tick = 60) => `${file}?still#t=${tick}`;
+// The #t=N seek mode renders tick N once and stops, so a paused frame costs no loop. The engine reads the hash only
+// at boot, and a hash-only src change does not reload the iframe, so the tick goes in the query too.
+export const stillOf = (file, tick = 60) => `${file}?still=${tick}#t=${tick}`;
 export const detailUrl = s => `/showcase/detail/?s=${s.slug}`;
-export const metaLine = s => `${s.res[0]}×${s.res[1]} · ${s.loop} s loop · ${s.states.join(' → ')}`;
+export const metaLine = s => `${s.res[0]}×${s.res[1]} · ${t('meta.loop', { n: s.loop })} · ${s.states.join(' → ')}`;

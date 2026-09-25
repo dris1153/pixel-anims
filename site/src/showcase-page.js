@@ -5,6 +5,8 @@ import { autoplayInView, tile } from './cards.js';
 import { setupFacets } from './filter-popovers.js';
 import { setupSuggest } from './search-suggest.js';
 import { PER_PAGE, renderPager } from './pager.js';
+import { t } from './i18n/i18n.js';
+import './i18n/switcher.js';
 
 const list = document.getElementById('showcase-tiles');
 const search = document.getElementById('showcase-search');
@@ -123,7 +125,7 @@ function render() {
   play(entering, 'is-entering'); // tiles leaving just vanish: exits never wait
   facets.update();
   renderPager(pager, page, pages, goTo);
-  count.textContent = hits.length ? `Showing ${first + 1}–${first + shown.size} of ${hits.length}` : `Showing 0 of ${items.length}`;
+  count.textContent = hits.length ? t('sc.count', { from: first + 1, to: first + shown.size, total: hits.length }) : t('sc.count.none', { total: items.length });
   empty.hidden = hits.length > 0;
   active.hidden = !picked.size && !words.length;
   const parts = [];

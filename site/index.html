@@ -3,8 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>pixel-anims · 16-bit sprite animations for AI coding agents</title>
-<meta name="description" content="An Agent Skill that turns one sentence into a polished, looping 16-bit sprite animation in a single HTML file. Works with Claude Code, Codex, OpenCode and more.">
+<title data-i18n="home.title">pixel-anims · 16-bit sprite animations for AI coding agents</title>
+<style>html.i18n-pending body{visibility:hidden}</style>
+<script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('pixel-anims:lang')||((navigator.languages||[navigator.language])[0]||'').slice(0,2).toLowerCase();if(/^(vi|ko|ja|zh|th|hi|ar|es)$/.test(l)){document.documentElement.classList.add('i18n-pending');setTimeout(function(){document.documentElement.classList.remove('i18n-pending')},1500)}}catch(e){}</script>
+<meta name="description" data-i18n-attr="content:home.desc" content="An Agent Skill that turns one sentence into a polished, looping 16-bit sprite animation in a single HTML file. Works with Claude Code, Codex, OpenCode and more.">
 <meta property="og:title" content="pixel-anims">
 <meta property="og:description" content="One sentence in. A looping 16-bit sprite out. An Agent Skill for Claude Code, Codex, OpenCode and more.">
 <meta property="og:type" content="website">
@@ -15,7 +17,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Silkscreen:wght@700&display=swap">
 <link rel="stylesheet" href="/src/styles.css">
 <link rel="stylesheet" href="/src/showcase.css">
 <link rel="stylesheet" href="/src/motion.css">
@@ -25,153 +27,153 @@
 <body>
 <div class="sky" aria-hidden="true"><i style="--x:-150;--y:14;--d:0"></i><i style="--x:-118;--y:48;--d:3"></i><i style="--x:-72;--y:8;--d:1"></i><i style="--x:-34;--y:36;--d:4"></i><i style="--x:8;--y:20;--d:2"></i><i style="--x:46;--y:54;--d:5"></i><i style="--x:84;--y:6;--d:1"></i><i style="--x:128;--y:50;--d:3"></i><i style="--x:-96;--y:26;--d:5"></i><i style="--x:20;--y:44;--d:0"></i><b style="--x:-152;--y:82;--d:0"></b><b style="--x:139;--y:101;--d:1"></b></div>
 <div class="cliffs" aria-hidden="true"></div>
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
 <header class="bar">
   <a class="logo" href="#top">pixel-anims</a>
-  <nav aria-label="Site">
-    <a href="/" aria-current="page">Home</a><a href="/showcase/">Showcase</a>
-    <a href="https://github.com/dris1153/pixel-anims">GitHub</a>
+  <nav aria-label="Site" data-i18n-attr="aria-label:nav.label">
+    <a href="/" aria-current="page" data-i18n="nav.home">Home</a><a href="/showcase/" data-i18n="nav.showcase">Showcase</a>
+    <a href="https://github.com/dris1153/pixel-anims" data-i18n="nav.github">GitHub</a>
   </nav>
 </header>
-<nav class="journal" aria-label="On this page">
-  <a href="#top">Intro</a><a href="#what">What</a><a href="#install">Install</a><a href="#use">Use</a><a href="#cases">Fits</a><a href="#showcase">Showcase</a><a href="#how">How</a>
+<nav class="journal" aria-label="On this page" data-i18n-attr="aria-label:journal.label">
+  <a href="#top" data-i18n="journal.top">Intro</a><a href="#what" data-i18n="journal.what">What</a><a href="#install" data-i18n="journal.install">Install</a><a href="#use" data-i18n="journal.use">Use</a><a href="#cases" data-i18n="journal.cases">Fits</a><a href="#showcase" data-i18n="journal.showcase">Showcase</a><a href="#how" data-i18n="journal.how">How</a>
 </nav>
 
 <main id="main">
 <section class="hero" id="top">
   <div class="hero-copy">
-    <p class="eyebrow">An Agent Skill for Claude Code, Codex, OpenCode and more</p>
-    <h1>One sentence in. A looping <span class="hl">16-bit</span> sprite out.</h1>
-    <p class="lede">Describe a character and what it does, like “knight, sword slash, castle at dusk”. pixel-anims has your agent build it as a single HTML file: palette-locked, integer-scaled, running on a 60&nbsp;Hz fixed step, and checked frame by frame before you see it.</p>
-    <div class="cmd cmd-hero"><span class="prompt-glyph" aria-hidden="true">&gt;</span><code>npx skills add dris1153/pixel-anims</code><button class="copy" type="button">Copy</button></div>
-    <p class="hero-then">then pick your agents. On Claude Code you can also use the <a href="#install">plugin</a>.</p>
-    <p class="hero-links"><a href="#install">All install options</a><a href="#showcase">See the showcase</a></p>
+    <p class="eyebrow" data-i18n="hero.eyebrow">An Agent Skill for Claude Code, Codex, OpenCode and more</p>
+    <h1 data-i18n-html="hero.h1">One sentence in. A looping <span class="hl">16-bit</span> sprite out.</h1>
+    <p class="lede" data-i18n="hero.lede">Describe a character and what it does, like “knight, sword slash, castle at dusk”. pixel-anims has your agent build it as a single HTML file: palette-locked, integer-scaled, running on a 60&nbsp;Hz fixed step, and checked frame by frame before you see it.</p>
+    <div class="cmd cmd-hero"><span class="prompt-glyph" aria-hidden="true">&gt;</span><code>npx skills add dris1153/pixel-anims</code><button class="copy" type="button" data-i18n="copy">Copy</button></div>
+    <p class="hero-then" data-i18n-html="hero.then">then pick your agents. On Claude Code you can also use the <a href="#install">plugin</a>.</p>
+    <p class="hero-links"><a href="#install" data-i18n="hero.links.install">All install options</a><a href="#showcase" data-i18n="hero.links.showcase">See the showcase</a></p>
   </div>
   <figure class="screen">
     <div class="frame" style="aspect-ratio: 128 / 96" data-still="236">
-      <iframe tabindex="-1" src="/anims/wizard-spellcaster.html" title="Live pixel art wizard casting a spell"></iframe>
+      <iframe tabindex="-1" src="/anims/wizard-spellcaster.html" title="Live pixel art wizard casting a spell" data-i18n-attr="title:hero.frame"></iframe>
     </div>
-    <figcaption><span class="live">Live</span> 128×96 · 5.8 s loop · the engine reference</figcaption>
+    <figcaption data-i18n-html="hero.caption"><span class="live">Live</span> 128×96 · 5.8 s loop · the engine reference</figcaption>
   </figure>
 </section>
 
 <section id="what">
-  <h2>What it does</h2>
-  <p class="section-lede">Ask your agent for a character doing something. You get one HTML file that plays it as a polished loop.</p>
+  <h2 data-i18n="what.h2">What it does</h2>
+  <p class="section-lede" data-i18n="what.lede">Ask your agent for a character doing something. You get one HTML file that plays it as a polished loop.</p>
   <ul class="facts">
-    <li><h3>One file, nothing else</h3><p>Vanilla JS and Canvas 2D. No assets, libraries or network requests. Open it anywhere or drop it into an iframe.</p></li>
-    <li><h3>Real 16-bit rules</h3><p>An indexed framebuffer, a fixed palette of about 24 colors and integer scaling. Poses are sampled at 10 fps over a 60 Hz fixed step, so motion reads as hand-animated, and nothing is allocated in the loop.</p></li>
-    <li><h3>Any character, any action</h3><p>An idle → build-up → strike → recover state machine with anticipation frames, springs for cloth and hair, pooled particles, rim light and a 1–2 px screen shake.</p></li>
-    <li><h3>Your agent checks its own work</h3><p>It renders chosen ticks to PNG, reads them and fixes what it sees. The engine rejects broken setups and verifies that the loop seam is pixel-exact.</p></li>
+    <li><h3 data-i18n="what.1.h">One file, nothing else</h3><p data-i18n="what.1.p">Vanilla JS and Canvas 2D. No assets, libraries or network requests. Open it anywhere or drop it into an iframe.</p></li>
+    <li><h3 data-i18n="what.2.h">Real 16-bit rules</h3><p data-i18n="what.2.p">An indexed framebuffer, a fixed palette of about 24 colors and integer scaling. Poses are sampled at 10 fps over a 60 Hz fixed step, so motion reads as hand-animated, and nothing is allocated in the loop.</p></li>
+    <li><h3 data-i18n="what.3.h">Any character, any action</h3><p data-i18n="what.3.p">An idle → build-up → strike → recover state machine with anticipation frames, springs for cloth and hair, pooled particles, rim light and a 1–2 px screen shake.</p></li>
+    <li><h3 data-i18n="what.4.h">Your agent checks its own work</h3><p data-i18n="what.4.p">It renders chosen ticks to PNG, reads them and fixes what it sees. The engine rejects broken setups and verifies that the loop seam is pixel-exact.</p></li>
   </ul>
 </section>
 
 <section id="install">
-  <h2>Install</h2>
-  <p class="section-lede">pixel-anims is an <a href="https://agentskills.io/">Agent Skill</a>: one folder with a <code>SKILL.md</code>, so any agent that reads the format can use it.</p>
-  <div class="tabs" role="tablist" aria-label="Agent">
+  <h2 data-i18n="install.h2">Install</h2>
+  <p class="section-lede" data-i18n-html="install.lede">pixel-anims is an <a href="https://agentskills.io/">Agent Skill</a>: one folder with a <code>SKILL.md</code>, so any agent that reads the format can use it.</p>
+  <div class="tabs" role="tablist" aria-label="Agent" data-i18n-attr="aria-label:install.tabs">
     <span class="tabs-pill" aria-hidden="true"></span>
-    <button type="button" role="tab" id="tab-claude" aria-controls="panel-claude" aria-selected="true">Claude<span class="tab-long"> Code</span></button>
+    <button type="button" role="tab" id="tab-claude" aria-controls="panel-claude" aria-selected="true" data-i18n-html="tab.claude">Claude<span class="tab-long"> Code</span></button>
     <button type="button" role="tab" id="tab-codex" aria-controls="panel-codex" aria-selected="false" tabindex="-1">Codex</button>
     <button type="button" role="tab" id="tab-opencode" aria-controls="panel-opencode" aria-selected="false" tabindex="-1">OpenCode</button>
-    <button type="button" role="tab" id="tab-other" aria-controls="panel-other" aria-selected="false" tabindex="-1">Other<span class="tab-long"> agents</span></button>
-    <button type="button" role="tab" id="tab-manual" aria-controls="panel-manual" aria-selected="false" tabindex="-1">Manual</button>
+    <button type="button" role="tab" id="tab-other" aria-controls="panel-other" aria-selected="false" tabindex="-1" data-i18n-html="tab.other">Other<span class="tab-long"> agents</span></button>
+    <button type="button" role="tab" id="tab-manual" aria-controls="panel-manual" aria-selected="false" tabindex="-1" data-i18n="tab.manual">Manual</button>
   </div>
   <div class="panel" role="tabpanel" id="panel-claude" aria-labelledby="tab-claude">
     <ol class="steps">
-      <li>Add the marketplace inside Claude Code<div class="cmd"><code>/plugin marketplace add dris1153/pixel-anims</code><button class="copy" type="button">Copy</button></div></li>
-      <li>Install the plugin<div class="cmd"><code>/plugin install pixel-anims@pixel-anims</code><button class="copy" type="button">Copy</button></div></li>
+      <li><span data-i18n="claude.1">Add the marketplace inside Claude Code</span><div class="cmd"><code>/plugin marketplace add dris1153/pixel-anims</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
+      <li><span data-i18n="claude.2">Install the plugin</span><div class="cmd"><code>/plugin install pixel-anims@pixel-anims</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
     </ol>
-    <p class="note">Invoke it with <code>/pixel-anims:pixel-anims</code>, or just describe the animation you want. Without the plugin system, run <code>npx skills add dris1153/pixel-anims -a claude-code</code> and invoke it with <code>/pixel-anims</code>.</p>
+    <p class="note" data-i18n-html="claude.note">Invoke it with <code>/pixel-anims:pixel-anims</code>, or just describe the animation you want. Without the plugin system, run <code>npx skills add dris1153/pixel-anims -a claude-code</code> and invoke it with <code>/pixel-anims</code>.</p>
   </div>
   <div class="panel" role="tabpanel" id="panel-codex" aria-labelledby="tab-codex">
     <ol class="steps">
-      <li>Run in your project; it installs to <code>.agents/skills/</code><div class="cmd"><code>npx skills add dris1153/pixel-anims -a codex</code><button class="copy" type="button">Copy</button></div></li>
-      <li>For every project, copy it into <code>~/.agents/skills/</code> instead (see Manual).</li>
+      <li><span data-i18n-html="codex.1">Run in your project; it installs to <code>.agents/skills/</code></span><div class="cmd"><code>npx skills add dris1153/pixel-anims -a codex</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
+      <li data-i18n-html="codex.2">For every project, copy it into <code>~/.agents/skills/</code> instead (see Manual).</li>
     </ol>
-    <p class="note">Mention it with <code>$pixel-anims</code>, pick it from <code>/skills</code>, or just describe the animation you want.</p>
+    <p class="note" data-i18n-html="codex.note">Mention it with <code>$pixel-anims</code>, pick it from <code>/skills</code>, or just describe the animation you want.</p>
   </div>
   <div class="panel" role="tabpanel" id="panel-opencode" aria-labelledby="tab-opencode">
     <ol class="steps">
-      <li>Run in your project, or add <code>-g</code> to install for every project<div class="cmd"><code>npx skills add dris1153/pixel-anims -a opencode</code><button class="copy" type="button">Copy</button></div></li>
+      <li><span data-i18n-html="opencode.1">Run in your project, or add <code>-g</code> to install for every project</span><div class="cmd"><code>npx skills add dris1153/pixel-anims -a opencode</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
     </ol>
-    <p class="note">Just describe the animation you want: OpenCode loads the skill when a request matches. It also finds skills already in <code>~/.claude/skills</code> or <code>~/.agents/skills</code>.</p>
+    <p class="note" data-i18n-html="opencode.note">Just describe the animation you want: OpenCode loads the skill when a request matches. It also finds skills already in <code>~/.claude/skills</code> or <code>~/.agents/skills</code>.</p>
   </div>
   <div class="panel" role="tabpanel" id="panel-other" aria-labelledby="tab-other">
     <ol class="steps">
-      <li>Name your agent with <code>-a</code>, or leave it out to pick from a list<div class="cmd"><code>npx skills add dris1153/pixel-anims -a cursor</code><button class="copy" type="button">Copy</button></div></li>
+      <li><span data-i18n-html="other.1">Name your agent with <code>-a</code>, or leave it out to pick from a list</span><div class="cmd"><code>npx skills add dris1153/pixel-anims -a cursor</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
     </ol>
-    <p class="note">The same works with <code>gemini-cli</code>, <code>github-copilot</code>, <code>windsurf</code>, <code>cline</code>, <code>kiro-cli</code>, <code>qwen-code</code> and <a href="https://github.com/vercel-labs/skills#supported-agents">70+ more agents</a>. Add <code>-g</code> to install for every project.</p>
+    <p class="note" data-i18n-html="other.note">The same works with <code>gemini-cli</code>, <code>github-copilot</code>, <code>windsurf</code>, <code>cline</code>, <code>kiro-cli</code>, <code>qwen-code</code> and <a href="https://github.com/vercel-labs/skills#supported-agents">70+ more agents</a>. Add <code>-g</code> to install for every project.</p>
   </div>
   <div class="panel" role="tabpanel" id="panel-manual" aria-labelledby="tab-manual">
     <ol class="steps">
-      <li>Clone the repo<div class="cmd"><code>git clone https://github.com/dris1153/pixel-anims</code><button class="copy" type="button">Copy</button></div></li>
-      <li>Copy the skill into your agent's skills folder: <code>~/.agents/skills</code> for Codex, OpenCode and most others, <code>~/.claude/skills</code> for Claude Code<div class="cmd"><code>mkdir -p ~/.agents/skills &amp;&amp; cp -r pixel-anims/skills/pixel-anims ~/.agents/skills/</code><button class="copy" type="button">Copy</button></div></li>
-      <li>Windows PowerShell: link it instead, so <code>git pull</code> updates it<div class="cmd"><code>New-Item -ItemType Directory -Force "$env:USERPROFILE\.agents\skills" | Out-Null; New-Item -ItemType Junction -Path "$env:USERPROFILE\.agents\skills\pixel-anims" -Target (Resolve-Path pixel-anims\skills\pixel-anims)</code><button class="copy" type="button">Copy</button></div></li>
+      <li><span data-i18n="manual.1">Clone the repo</span><div class="cmd"><code>git clone https://github.com/dris1153/pixel-anims</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
+      <li><span data-i18n-html="manual.2">Copy the skill into your agent's skills folder: <code>~/.agents/skills</code> for Codex, OpenCode and most others, <code>~/.claude/skills</code> for Claude Code</span><div class="cmd"><code>mkdir -p ~/.agents/skills &amp;&amp; cp -r pixel-anims/skills/pixel-anims ~/.agents/skills/</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
+      <li><span data-i18n-html="manual.3">Windows PowerShell: link it instead, so <code>git pull</code> updates it</span><div class="cmd"><code>New-Item -ItemType Directory -Force "$env:USERPROFILE\.agents\skills" | Out-Null; New-Item -ItemType Junction -Path "$env:USERPROFILE\.agents\skills\pixel-anims" -Target (Resolve-Path pixel-anims\skills\pixel-anims)</code><button class="copy" type="button" data-i18n="copy">Copy</button></div></li>
     </ol>
   </div>
-  <p class="req">The QA step needs Node 18+, Chrome, Edge or Chromium, and a model that can read images.</p>
+  <p class="req" data-i18n="install.req">The QA step needs Node 18+, Chrome, Edge or Chromium, and a model that can read images.</p>
 </section>
 
 <section id="use">
-  <h2>Use it</h2>
+  <h2 data-i18n="use.h2">Use it</h2>
   <div class="use-grid">
     <div>
-      <h3>Write a brief</h3>
-      <p>Name the character, the beats of its action and the scene. Resolution is optional: 128×96 by default, 160×90 for wide action.</p>
+      <h3 data-i18n="use.brief.h">Write a brief</h3>
+      <p data-i18n="use.brief.p">Name the character, the beats of its action and the scene. Resolution is optional: 128×96 by default, 160×90 for wide action.</p>
       <ul class="briefs">
-        <li class="prompt"><p>Pixel art fox mage: idle tail swish, channel a green orb, fire it at a scarecrow, recover. Autumn field at sunset.</p><button class="copy" type="button">Copy</button></li>
-        <li class="prompt"><p>Pixel art robot: idle hum, charge the arm cannon, blast with recoil and smoke, cool down. Neon alley in the rain, 160×90.</p><button class="copy" type="button">Copy</button></li>
-        <li class="prompt"><p>Pixel art archer: idle, draw the bow, release an arrow across the screen, recover. Misty forest at dawn.</p><button class="copy" type="button">Copy</button></li>
+        <li class="prompt"><p>Pixel art fox mage: idle tail swish, channel a green orb, fire it at a scarecrow, recover. Autumn field at sunset.</p><button class="copy" type="button" data-i18n="copy">Copy</button></li>
+        <li class="prompt"><p>Pixel art robot: idle hum, charge the arm cannon, blast with recoil and smoke, cool down. Neon alley in the rain, 160×90.</p><button class="copy" type="button" data-i18n="copy">Copy</button></li>
+        <li class="prompt"><p>Pixel art archer: idle, draw the bow, release an arrow across the screen, recover. Misty forest at dawn.</p><button class="copy" type="button" data-i18n="copy">Copy</button></li>
       </ul>
     </div>
     <div>
-      <h3>What you get</h3>
+      <h3 data-i18n="use.get.h">What you get</h3>
       <ul class="ticks">
-        <li>A single <code>.html</code> file in your working directory.</li>
-        <li>A short design note: palette ramps, states and timings, the key event and its effects.</li>
-        <li>QA snapshots of every state in <code>snapshots/</code> next to the file.</li>
+        <li data-i18n-html="use.get.1">A single <code>.html</code> file in your working directory.</li>
+        <li data-i18n="use.get.2">A short design note: palette ramps, states and timings, the key event and its effects.</li>
+        <li data-i18n-html="use.get.3">QA snapshots of every state in <code>snapshots/</code> next to the file.</li>
       </ul>
-      <h3>Iterate</h3>
-      <p>Keep talking to your agent: “make the slash snappier”, “switch to 160×90 and add rain”, “give the cape more follow-through”.</p>
+      <h3 data-i18n="use.iter.h">Iterate</h3>
+      <p data-i18n="use.iter.p">Keep talking to your agent: “make the slash snappier”, “switch to 160×90 and add rain”, “give the cape more follow-through”.</p>
     </div>
   </div>
 </section>
 
 <section id="cases">
-  <h2>Where it fits</h2>
+  <h2 data-i18n="cases.h2">Where it fits</h2>
   <ul class="cases">
-    <li><strong>Game prototypes</strong><span>Put a hero and an attack loop on screen in minutes, and feel the game juice before you commit to final art.</span></li>
-    <li><strong>Loading and 404 screens</strong><span>One file to embed in an iframe, with nothing to bundle.</span></li>
-    <li><strong>Landing and portfolio heroes</strong><span>Crisp at any size thanks to integer scaling, and only about 30 KB.</span></li>
-    <li><strong>Stream overlays and posts</strong><span>Loops seamlessly, so it can run all night or be recorded into a clip.</span></li>
-    <li><strong>Sprite concepting and teaching</strong><span>A readable engine with springs, particles and palette ramps to study and remix.</span></li>
+    <li><strong data-i18n="cases.1.t">Game prototypes</strong><span data-i18n="cases.1.d">Put a hero and an attack loop on screen in minutes, and feel the game juice before you commit to final art.</span></li>
+    <li><strong data-i18n="cases.2.t">Loading and 404 screens</strong><span data-i18n="cases.2.d">One file to embed in an iframe, with nothing to bundle.</span></li>
+    <li><strong data-i18n="cases.3.t">Landing and portfolio heroes</strong><span data-i18n="cases.3.d">Crisp at any size thanks to integer scaling, and only about 30 KB.</span></li>
+    <li><strong data-i18n="cases.4.t">Stream overlays and posts</strong><span data-i18n="cases.4.d">Loops seamlessly, so it can run all night or be recorded into a clip.</span></li>
+    <li><strong data-i18n="cases.5.t">Sprite concepting and teaching</strong><span data-i18n="cases.5.d">A readable engine with springs, particles and palette ramps to study and remix.</span></li>
   </ul>
 </section>
 
 <section id="showcase">
-  <h2>Showcase</h2>
-  <p class="section-lede">Every piece is a live, unedited HTML file. All but the engine reference were made by the skill. Open one to see the exact brief behind it.</p>
+  <h2 data-i18n="home.showcase.h2">Showcase</h2>
+  <p class="section-lede" data-i18n="home.showcase.lede">Every piece is a live, unedited HTML file. All but the engine reference were made by the skill. Open one to see the exact brief behind it.</p>
   <div id="showcase-feature"></div>
   <ul class="tiles" id="showcase-tiles"></ul>
-  <p class="see-all"><a class="btn" id="showcase-all" href="/showcase/">See all showcases</a></p>
+  <p class="see-all"><a class="btn" id="showcase-all" href="/showcase/" data-i18n="home.showcase.all">See all showcases</a></p>
 </section>
 
 <section id="how">
-  <h2>How it works</h2>
+  <h2 data-i18n="how.h2">How it works</h2>
   <ol class="flow">
-    <li><b>Design note</b><span>Palette ramps, states with tick timings, pose params, the key event and its effects.</span></li>
-    <li><b>Scaffold</b><span><code>new-scene.mjs</code> copies the engine and empties every scene region.</span></li>
-    <li><b>Write the scene</b><span>Backdrop, actor, poses and particles. The engine owns the loop, scaling, outline and rim light.</span></li>
-    <li><b>Snapshot QA</b><span><code>snapshot.mjs</code> renders chosen ticks to PNG, and the agent fixes what it sees, for up to 3 rounds. Exit codes flag page errors, loop-seam breaks and edited engine code.</span></li>
-    <li><b>Deliver</b><span>The file, its states and timings, and the ticks that were checked.</span></li>
+    <li><b data-i18n="how.1.t">Design note</b><span data-i18n="how.1.d">Palette ramps, states with tick timings, pose params, the key event and its effects.</span></li>
+    <li><b data-i18n="how.2.t">Scaffold</b><span data-i18n-html="how.2.d"><code>new-scene.mjs</code> copies the engine and empties every scene region.</span></li>
+    <li><b data-i18n="how.3.t">Write the scene</b><span data-i18n="how.3.d">Backdrop, actor, poses and particles. The engine owns the loop, scaling, outline and rim light.</span></li>
+    <li><b data-i18n="how.4.t">Snapshot QA</b><span data-i18n-html="how.4.d"><code>snapshot.mjs</code> renders chosen ticks to PNG, and the agent fixes what it sees, for up to 3 rounds. Exit codes flag page errors, loop-seam breaks and edited engine code.</span></li>
+    <li><b data-i18n="how.5.t">Deliver</b><span data-i18n="how.5.d">The file, its states and timings, and the ticks that were checked.</span></li>
   </ol>
 </section>
 </main>
 
 <footer class="foot">
-  <p><span class="logo">pixel-anims</span> · MIT licensed · <a href="https://github.com/dris1153/pixel-anims">Source on GitHub</a></p>
-  <p>Works with any agent that reads Agent Skills. Every sprite on this page is a single HTML file.</p>
+  <p data-i18n-html="foot.license"><span class="logo">pixel-anims</span> · MIT licensed · <a href="https://github.com/dris1153/pixel-anims">Source on GitHub</a></p>
+  <p data-i18n="foot.works">Works with any agent that reads Agent Skills. Every sprite on this page is a single HTML file.</p>
 </footer>
 <p class="sr-only" role="status" id="copy-status"></p>
 <script type="module" src="/src/landing.js"></script>

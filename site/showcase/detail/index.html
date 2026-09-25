@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Showcase · pixel-anims</title>
+<style>html.i18n-pending body{visibility:hidden}</style>
+<script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('pixel-anims:lang')||((navigator.languages||[navigator.language])[0]||'').slice(0,2).toLowerCase();if(/^(vi|ko|ja|zh|th|hi|ar|es)$/.test(l)){document.documentElement.classList.add('i18n-pending');setTimeout(function(){document.documentElement.classList.remove('i18n-pending')},1500)}}catch(e){}</script>
 <meta name="description" content="A pixel-anims showcase: a live 16-bit sprite animation, the brief that made it, and its timings.">
 <meta property="og:title" content="pixel-anims showcase">
 <meta property="og:description" content="Live, looping 16-bit sprite animations made with the pixel-anims Agent Skill.">
@@ -13,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%230b0913'/%3E%3Crect x='3' y='1' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='2' y='3' width='4' height='4' fill='%23c4473a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Silkscreen:wght@700&display=swap">
 <link rel="stylesheet" href="/src/styles.css">
 <link rel="stylesheet" href="/src/showcase.css">
 <link rel="stylesheet" href="/src/motion.css">
@@ -22,54 +24,55 @@
 <body>
 <div class="sky" aria-hidden="true"><i style="--x:-150;--y:14;--d:0"></i><i style="--x:-118;--y:48;--d:3"></i><i style="--x:-72;--y:8;--d:1"></i><i style="--x:-34;--y:36;--d:4"></i><i style="--x:8;--y:20;--d:2"></i><i style="--x:46;--y:54;--d:5"></i><i style="--x:84;--y:6;--d:1"></i><i style="--x:128;--y:50;--d:3"></i><i style="--x:-96;--y:26;--d:5"></i><i style="--x:20;--y:44;--d:0"></i><b style="--x:-152;--y:82;--d:0"></b><b style="--x:139;--y:101;--d:1"></b></div>
 <div class="cliffs" aria-hidden="true"></div>
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
 <header class="bar">
   <a class="logo" href="/">pixel-anims</a>
-  <nav aria-label="Site">
-    <a href="/">Home</a><a href="/showcase/">Showcase</a>
-    <a href="https://github.com/dris1153/pixel-anims">GitHub</a>
+  <nav aria-label="Site" data-i18n-attr="aria-label:nav.label">
+    <a href="/" data-i18n="nav.home">Home</a><a href="/showcase/" data-i18n="nav.showcase">Showcase</a>
+    <a href="https://github.com/dris1153/pixel-anims" data-i18n="nav.github">GitHub</a>
   </nav>
 </header>
 
 <main id="main">
 <section class="detail" id="detail" hidden>
-  <p class="back"><a href="/showcase/"><span class="nudge nudge-l" aria-hidden="true">←</span> All showcases</a></p>
+  <p class="back"><a href="/showcase/"><span class="nudge nudge-l" aria-hidden="true">←</span> <span data-i18n="dt.all">All showcases</span></a></p>
   <div class="detail-grid">
     <div class="frame"><iframe tabindex="-1"></iframe></div>
     <div class="detail-body">
       <p class="kind"></p>
       <h1></h1>
       <dl class="specs">
-        <div><dt>Resolution</dt><dd data-spec="res"></dd></div>
-        <div><dt>Loop</dt><dd data-spec="loop"></dd></div>
-        <div><dt>States</dt><dd data-spec="states"></dd></div>
-        <div><dt>Country</dt><dd class="tags" data-spec="country"></dd></div>
-        <div><dt>Tags</dt><dd class="tags" data-spec="tags"></dd></div>
+        <div><dt data-i18n="dt.res">Resolution</dt><dd data-spec="res"></dd></div>
+        <div><dt data-i18n="dt.loop">Loop</dt><dd data-spec="loop"></dd></div>
+        <div><dt data-i18n="dt.states">States</dt><dd data-spec="states"></dd></div>
+        <div><dt data-i18n="dt.country">Country</dt><dd class="tags" data-spec="country"></dd></div>
+        <div><dt data-i18n="dt.tags">Tags</dt><dd class="tags" data-spec="tags"></dd></div>
       </dl>
       <p class="note"></p>
-      <a class="open" target="_blank" rel="noopener">Open full screen <span class="nudge nudge-ne" aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>
+      <a class="open" target="_blank" rel="noopener"><span data-i18n="dt.open">Open full screen</span> <span class="nudge nudge-ne" aria-hidden="true">↗</span><span class="sr-only" data-i18n="dt.open.sr"> (opens in a new tab)</span></a>
     </div>
   </div>
+  <section class="story" hidden aria-labelledby="story-h"></section>
   <div class="prompt brief">
-    <h2 class="brief-label">Brief</h2>
+    <h2 class="brief-label" data-i18n="dt.brief">Brief</h2>
     <p></p>
-    <button class="copy" type="button">Copy brief</button>
+    <button class="copy" type="button" data-i18n="copy.brief">Copy brief</button>
   </div>
-  <nav class="pager" aria-label="More showcases">
-    <a rel="prev"><span class="pager-dir"><span class="nudge nudge-l" aria-hidden="true">←</span> Previous</span><span class="pager-name"></span></a>
-    <a rel="next"><span class="pager-dir">Next <span class="nudge nudge-r" aria-hidden="true">→</span></span><span class="pager-name"></span></a>
+  <nav class="pager" aria-label="More showcases" data-i18n-attr="aria-label:dt.more">
+    <a rel="prev"><span class="pager-dir"><span class="nudge nudge-l" aria-hidden="true">←</span> <span data-i18n="dt.prev">Previous</span></span><span class="pager-name"></span></a>
+    <a rel="next"><span class="pager-dir"><span data-i18n="dt.next">Next</span> <span class="nudge nudge-r" aria-hidden="true">→</span></span><span class="pager-name"></span></a>
   </nav>
 </section>
 <section class="page-head" id="not-found" hidden>
-  <h1>Showcase not found</h1>
-  <p class="section-lede">That link doesn't match any showcase. It may have been renamed.</p>
-  <a class="btn" href="/showcase/">See all showcases</a>
+  <h1 data-i18n="dt.nf.h1">Showcase not found</h1>
+  <p class="section-lede" data-i18n="dt.nf.lede">That link doesn't match any showcase. It may have been renamed.</p>
+  <a class="btn" href="/showcase/" data-i18n="home.showcase.all">See all showcases</a>
 </section>
 </main>
 
 <footer class="foot">
-  <p><span class="logo">pixel-anims</span> · MIT licensed · <a href="https://github.com/dris1153/pixel-anims">Source on GitHub</a></p>
-  <p>Works with any agent that reads Agent Skills. Every sprite on this page is a single HTML file.</p>
+  <p data-i18n-html="foot.license"><span class="logo">pixel-anims</span> · MIT licensed · <a href="https://github.com/dris1153/pixel-anims">Source on GitHub</a></p>
+  <p data-i18n="foot.works">Works with any agent that reads Agent Skills. Every sprite on this page is a single HTML file.</p>
 </footer>
 <p class="sr-only" role="status" id="copy-status"></p>
 <script type="module" src="/src/detail-page.js"></script>

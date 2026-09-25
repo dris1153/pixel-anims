@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Showcase · pixel-anims</title>
+<title data-i18n="sc.title">Showcase · pixel-anims</title>
+<style>html.i18n-pending body{visibility:hidden}</style>
+<script>try{var l=new URLSearchParams(location.search).get('lang')||localStorage.getItem('pixel-anims:lang')||((navigator.languages||[navigator.language])[0]||'').slice(0,2).toLowerCase();if(/^(vi|ko|ja|zh|th|hi|ar|es)$/.test(l)){document.documentElement.classList.add('i18n-pending');setTimeout(function(){document.documentElement.classList.remove('i18n-pending')},1500)}}catch(e){}</script>
 <meta name="description" content="Every pixel-anims showcase: live, looping 16-bit sprite animations, each a single HTML file.">
 <meta property="og:title" content="pixel-anims showcase">
 <meta property="og:description" content="Live, looping 16-bit sprite animations made with the pixel-anims Agent Skill.">
@@ -13,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%230b0913'/%3E%3Crect x='3' y='1' width='2' height='2' fill='%233fd0f0'/%3E%3Crect x='2' y='3' width='4' height='4' fill='%23c4473a'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Silkscreen:wght@700&display=swap">
 <link rel="stylesheet" href="/src/styles.css">
 <link rel="stylesheet" href="/src/showcase.css">
 <link rel="stylesheet" href="/src/motion.css">
@@ -24,55 +26,55 @@
 <body>
 <div class="sky" aria-hidden="true"><i style="--x:-150;--y:14;--d:0"></i><i style="--x:-118;--y:48;--d:3"></i><i style="--x:-72;--y:8;--d:1"></i><i style="--x:-34;--y:36;--d:4"></i><i style="--x:8;--y:20;--d:2"></i><i style="--x:46;--y:54;--d:5"></i><i style="--x:84;--y:6;--d:1"></i><i style="--x:128;--y:50;--d:3"></i><i style="--x:-96;--y:26;--d:5"></i><i style="--x:20;--y:44;--d:0"></i><b style="--x:-152;--y:82;--d:0"></b><b style="--x:139;--y:101;--d:1"></b></div>
 <div class="cliffs" aria-hidden="true"></div>
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
 <header class="bar">
   <a class="logo" href="/">pixel-anims</a>
-  <nav aria-label="Site">
-    <a href="/">Home</a><a href="/showcase/" aria-current="page">Showcase</a>
-    <a href="https://github.com/dris1153/pixel-anims">GitHub</a>
+  <nav aria-label="Site" data-i18n-attr="aria-label:nav.label">
+    <a href="/" data-i18n="nav.home">Home</a><a href="/showcase/" aria-current="page" data-i18n="nav.showcase">Showcase</a>
+    <a href="https://github.com/dris1153/pixel-anims" data-i18n="nav.github">GitHub</a>
   </nav>
 </header>
 
 <main id="main">
 <section class="page-head">
-  <p class="back"><a href="/"><span class="nudge nudge-l" aria-hidden="true">←</span> Home</a></p>
-  <h1>Showcase</h1>
-  <p class="section-lede">Every piece is a live, unedited HTML file. All but the engine reference were made by the skill. Open one for its brief, timings and a full-screen view.</p>
-  <div class="filters" role="search" aria-label="Filter showcases">
+  <p class="back"><a href="/"><span class="nudge nudge-l" aria-hidden="true">←</span> <span data-i18n="nav.home">Home</span></a></p>
+  <h1 data-i18n="sc.h1">Showcase</h1>
+  <p class="section-lede" data-i18n="sc.lede">Every piece is a live, unedited HTML file. All but the engine reference were made by the skill. Open one for its brief, timings and a full-screen view.</p>
+  <div class="filters" role="search" aria-label="Filter showcases" data-i18n-attr="aria-label:sc.filters">
     <div class="filter-top">
       <div class="suggest">
-        <label class="sr-only" for="showcase-search">Search showcases</label>
-        <input class="filter-search" id="showcase-search" type="search" placeholder="Search title, brief or tag" autocomplete="off"
+        <label class="sr-only" for="showcase-search" data-i18n="sc.search">Search showcases</label>
+        <input class="filter-search" id="showcase-search" type="search" placeholder="Search title, brief or tag" data-i18n-attr="placeholder:sc.search.ph" autocomplete="off"
           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="showcase-suggest">
-        <ul class="suggest-list" id="showcase-suggest" role="listbox" aria-label="Suggestions" hidden></ul>
+        <ul class="suggest-list" id="showcase-suggest" role="listbox" aria-label="Suggestions" data-i18n-attr="aria-label:sc.suggest" hidden></ul>
       </div>
       <p class="filter-count" id="showcase-count" role="status"></p>
       <label class="filter-sort">
-        <span class="sr-only">Sort showcases</span>
+        <span class="sr-only" data-i18n="sc.sort">Sort showcases</span>
         <select id="showcase-sort">
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
+          <option value="newest" data-i18n="sc.sort.newest">Newest first</option>
+          <option value="oldest" data-i18n="sc.sort.oldest">Oldest first</option>
         </select>
       </label>
     </div>
     <div class="facets" id="showcase-facets"></div>
     <div class="active-filters" id="showcase-active" hidden>
       <div class="active-chips"></div>
-      <button class="filter-clear" type="button" data-clear>Clear all</button>
+      <button class="filter-clear" type="button" data-clear data-i18n="sc.clear.all">Clear all</button>
     </div>
   </div>
   <ul class="tiles tiles-all" id="showcase-tiles"></ul>
-  <nav class="pagination" id="showcase-pager" aria-label="Showcase pages" hidden></nav>
+  <nav class="pagination" id="showcase-pager" aria-label="Showcase pages" data-i18n-attr="aria-label:sc.pages" hidden></nav>
   <div class="filter-empty" id="showcase-empty" hidden>
-    <p>No showcase matches these filters.</p>
-    <button class="btn" type="button" data-clear>Clear filters</button>
+    <p data-i18n="sc.empty">No showcase matches these filters.</p>
+    <button class="btn" type="button" data-clear data-i18n="sc.empty.clear">Clear filters</button>
   </div>
 </section>
 </main>
 
 <footer class="foot">
-  <p><span class="logo">pixel-anims</span> · MIT licensed · <a href="https://github.com/dris1153/pixel-anims">Source on GitHub</a></p>
-  <p>Works with any agent that reads Agent Skills. Every sprite on this page is a single HTML file.</p>
+  <p data-i18n-html="foot.license"><span class="logo">pixel-anims</span> · MIT licensed · <a href="https://github.com/dris1153/pixel-anims">Source on GitHub</a></p>
+  <p data-i18n="foot.works">Works with any agent that reads Agent Skills. Every sprite on this page is a single HTML file.</p>
 </footer>
 <script type="module" src="/src/showcase-page.js"></script>
 </body>
