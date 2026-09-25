@@ -6,6 +6,32 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "nebula-run",
+    tags: ["projectile", "impact", "space"],
+    title: "Nebula Run",
+    still: 300,
+    res: [160, 90],
+    loop: 12,
+    states: ["cruise", "field", "pirates", "shield", "turret", "charge", "jump", "arrive"],
+    kind: "Made with the skill",
+    note: "The stars scroll in three layers at speeds that wrap exactly one, three and nine times a loop, and the jump drive only stretches each star into a line, so the field never jumps at the seam.",
+    prompt:
+      "Pixel art a space opera chase: a freighter's run through an asteroid field, 160×90, one fixed shot, " +
+      "12-second seamless loop, 8 states. Scene: deep space with a violet and teal nebula across the back, a ringed " +
+      "gas giant at the upper left, and layers of stars scrolling right to left at three speeds to show motion; an " +
+      "original rust-orange cargo freighter with stacked containers, a round cockpit and twin blue engines holds " +
+      "its place at the left third of the frame. Keep the frame readable: the freighter plus at most three enemies " +
+      "or a few big rocks at a time. 1. cruise: the freighter cruises past the gas giant, engines glowing, a beacon " +
+      "blinking. 2. field: tumbling asteroids stream in from the right; the freighter rolls and dodges as small " +
+      "rocks shatter on its hull. 3. pirates: three spiky pirate fighters swoop in from behind with red engine " +
+      "trails. 4. shield: their blasts hit a hexagonal shield bubble around the freighter that flickers blue with " +
+      "each hit. 5. turret: the freighter's top turret swings and fires back; one pirate bursts into a flower of " +
+      "sparks and the others peel away. 6. charge: the jump drive charges, the engines glow white-cyan, and the " +
+      "stars stretch into lines. 7. jump: the freighter vanishes into a flash of light and a streak. 8. arrive: it " +
+      "reappears beside a ring-shaped space station with blinking docking lights, docks, then pulls away and " +
+      "cruises on as the station scrolls out of frame.",
+  },
+  {
     slug: "obatala-shapes-the-world",
     tags: ["humanoid", "creature", "magic", "dawn"],
     country: "ng",
