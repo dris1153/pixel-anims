@@ -1,4 +1,5 @@
 import './sky/backdrop.js';
+import './hud/hud.js';
 import { SHOWCASES, animUrl, detailUrl, stillOf } from './showcases.js';
 import { setupCopy } from './copy.js';
 import { addPlayToggle, autoplayInView, calm, featureCard, fitFrame, tile } from './cards.js';

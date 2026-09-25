@@ -18,7 +18,7 @@
   --blur-small: 2px; --blur-medium: 3px;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+html { scroll-behavior: smooth; scroll-padding-top: 94px; }
 body { margin: 0; background: var(--ink); color: var(--text); font: 400 1.0625rem/1.65 var(--body); }
 a { color: var(--cyan); text-underline-offset: 3px; transition: color var(--duration-quick) var(--ease-smooth-out); }
 a:hover { color: var(--cyan-l); }

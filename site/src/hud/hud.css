@@ -1,0 +1,43 @@
+/* The header HUD extras: a title-screen logo, an arcade score board, a sliding menu cursor and the cat. */
+
+/* Logo: three hard color bands clipped to the letters, a dark outline and drop as filters (a text-shadow would paint
+   over the clipped letters), and a glint that sweeps across in steps every five seconds. */
+.bar .logo {
+  color: transparent; -webkit-background-clip: text; background-clip: text; background-repeat: no-repeat;
+  background-image: linear-gradient(115deg, transparent 40%, #fff8e0 40% 46%, transparent 46%), linear-gradient(#ffe29a 0 38%, #f2b84b 38% 68%, #e8862e 68%);
+  background-size: 300% 100%, 100% 100%; background-position: 120% 0, 0 0;
+  text-shadow: none;
+  filter: drop-shadow(1px 0 0 #3a1d08) drop-shadow(-1px 0 0 #3a1d08) drop-shadow(0 1px 0 #3a1d08) drop-shadow(0 -1px 0 #3a1d08) drop-shadow(2px 2px 0 #7a3e12);
+  animation: glint 5s steps(8) infinite;
+}
+@keyframes glint { 0%, 80% { background-position: 120% 0, 0 0; } 100% { background-position: -20% 0, 0 0; } }
+
+/* Score board: a small LCD panel between the logo and the menu, only where the bar has room. */
+.hud-score {
+  display: none; align-items: center; gap: 8px; margin: 0 auto; padding: 5px 12px;
+  font: 400 .7rem var(--display); color: var(--muted); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+  background: var(--ink); border: 2px solid var(--line); box-shadow: inset 2px 2px 0 var(--shadow), 0 0 12px -6px var(--glow);
+}
+.hud-score b { font-weight: 700; color: var(--gold); text-shadow: 0 0 8px rgba(242, 184, 75, .45); }
+.hud-score i { width: 9px; height: 9px; margin: 0 4px; background: var(--i-spark) center / contain no-repeat; image-rendering: pixelated; }
+@media (min-width: 1100px) { .hud-score { display: inline-flex; } }
+
+/* Menu cursor: JS moves one cursor in pixel steps; every link keeps room for it. */
+.bar nav.has-cursor { position: relative; }
+.bar nav.has-cursor a { padding-left: 22px; }
+.bar nav.has-cursor a:hover { translate: none; } /* the cursor and the cat sit on the links: they must not sink */
+.bar nav.has-cursor a[aria-current="page"]::before { display: none; }
+.hud-cursor {
+  position: absolute; left: 0; top: 0; width: 6px; height: 10px; pointer-events: none;
+  margin-left: 9px; background: var(--i-cursor) center / contain no-repeat; image-rendering: pixelated;
+  animation: cursor 1s steps(1) infinite;
+}
+.hud-cursor.ready { transition: translate 140ms steps(4, end); }
+.hud-cursor.blip { animation: blip .3s steps(3), cursor 1s steps(1) .3s infinite; } /* the page may stay: keep blinking after */
+@keyframes blip { 0% { scale: 1.8; filter: brightness(1.8); } 100% { scale: 1; filter: none; } }
+
+/* The cat: a 14x11 sprite (rim included) at 2x sitting on top of a menu button. */
+.hud-cat { position: absolute; left: 0; top: 0; width: 28px; height: 22px; pointer-events: none; image-rendering: pixelated; }
+@media (min-width: 701px) { header.bar { padding-top: 24px; } } /* headroom for the cat */
+@media (max-width: 700px) { .hud-cat { display: none; } } /* narrow bars wrap the menu: no cat there */
+@media (max-width: 480px) { .bar nav.has-cursor a { padding-left: 16px; } .hud-cursor { margin-left: 6px; } }
