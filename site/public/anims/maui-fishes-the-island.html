@@ -1,0 +1,724 @@
+<title>Maui Fishes Up the Island</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #080a14; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #080a14; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art of the Maori legend of Maui fishing up the North Island of New Zealand from his carved waka with a magic hook, as the great fish becomes a forested island under the Matariki stars"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // spray, chips and bubbles are culled at their own ground in step()
+const POSE_STEP = 6;               // 10 fps pose frames
+const HZ = 44;                     // the horizon at the edge of the world
+const BASE = 50;                   // where the great fish breaks the surface
+const WY = 66;                     // the waka's waterline
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#080a14',
+  '#2a6ad8', '#6aaaf0', '#bfe4f8',
+  '#4a3a7a', '#f08a6a', '#fcd0a0',
+  '#5a2a4a', '#e0702a', '#f8c050',
+  '#060a22', '#142048',
+  '#0a2a5a', '#1a5a9a', '#5aa8d8',
+  '#f8fcff', '#e0c890',
+  '#1a3a22', '#2e6a32', '#6aa840',
+  '#c8202a', '#6a1a1a', '#5a3a22', '#c8a060', '#a0603a', '#2a1810',
+  '#3a3440', '#6a6070', '#a09aa8',
+  '#3a8a8a', '#9ad8c8', '#f8d040',
+];
+const INK = 0, SKY_A = 1, SKY_B = 2, SKY_C = 3, DWN_A = 4, DWN_B = 5, DWN_C = 6, DSK_A = 7, DSK_B = 8, DSK_C = 9,
+  NIT_A = 10, NIT_B = 11, SEA_D = 12, SEA_M = 13, SEA_L = 14, WHITE = 15, SAND = 16, GRN_D = 17, GRN_M = 18, GRN_L = 19,
+  RED = 20, RED_D = 21, EARTH = 22, TAN = 23, SKIN = 24, HAIR = 25, ROCK_D = 26, ROCK = 27, ROCK_L = 28, FISH_M = 29, FISH_L = 30, GOLD = 31;
+
+// One step brighter per ramp; the pearly hook and the sun are the brightest things at sea.
+const LIGHTEN = Uint8Array.of(
+  HAIR,
+  SKY_B, SKY_C, WHITE,
+  DWN_B, DWN_C, WHITE,
+  DSK_B, DSK_C, GOLD,
+  NIT_B, SEA_D,
+  SEA_M, SEA_L, SKY_C, WHITE, WHITE,
+  GRN_M, GRN_L, GOLD,
+  DWN_B, RED, TAN, SAND, TAN, EARTH,
+  ROCK, ROCK_L, WHITE,
+  FISH_L, WHITE, WHITE);
+const RAMP_SPRAY = Uint8Array.of(WHITE, SKY_C, SEA_L, SEA_M);
+const RAMP_PEARL = Uint8Array.of(WHITE, SKY_C, FISH_L, FISH_M);
+const RAMP_CHIP = Uint8Array.of(ROCK_L, ROCK, ROCK_D, HAIR);
+const RAMP_STEAM = Uint8Array.of(WHITE, ROCK_L, ROCK, ROCK_D);
+const RAMP_BLOOD = Uint8Array.of(GOLD, DSK_B, RED, RED_D);
+const RAMP_LEAF = Uint8Array.of(GOLD, GRN_L, GRN_M, GRN_D);
+const RAMPS = [RAMP_SPRAY, RAMP_PEARL, RAMP_CHIP, RAMP_STEAM, RAMP_BLOOD, RAMP_LEAF];
+const RIM = Uint8Array.of(SKY_C, WHITE, WHITE);
+const RIM_BANDS = Uint16Array.of(14, 28, 44);
+const LIGHT = Float32Array.of(0.3, -0.95);        // the sun over the open Pacific
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[INK] = RIM_OK[WHITE] = RIM_OK[GOLD] = RIM_OK[SKY_C] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[SKY_A] = AIR[SKY_B] = AIR[SKY_C] = AIR[DWN_A] = AIR[DWN_B] = AIR[DWN_C] = AIR[DSK_A] = AIR[DSK_B] = AIR[DSK_C] = AIR[NIT_A] = AIR[NIT_B] = 1;
+
+const SHORE = 0, REVEAL = 1, HOOK = 2, BAIT = 3, BITE = 4, HAUL = 5, ISLAND = 6, CARVE = 7, GREEN = 8, RETURN = 9;
+const DUR = Uint16Array.of(96, 96, 96, 96, 96, 96, 96, 96, 96, 96); // L = 960: swell 120, waterfalls 48
+const EASE = Uint16Array.of(6, 6, 6, 6, 6, 6, 6, 6, 6, 6);
+const EASE_OUT = Uint8Array.of(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = [REST, REST, REST, REST, REST, REST, REST, REST, REST, REST];
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables
+const TWO_PI = Math.PI * 2;
+const SKYM = new Uint8Array(N), SEAM = new Uint8Array(N);
+const HUMP = new Float32Array(W), CARV = new Float32Array(W);   // the fish's back, and the island's carved skyline
+const DAWNM = 0, NOONM = 1, DUSKM = 2, NIGHTM = 3;
+const MAPS = [0, 1, 2, 3].map(() => new Uint8Array(PAL.length));
+const lay = new Uint8Array(N), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let grp = 0, pid = 0, lx0 = 0, ly0 = 0, lx1 = -1, ly1 = -1, bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+const pWL = new Float32Array(MAXP);
+const NSTAR = 30, STX = new Uint8Array(NSTAR), STY = new Uint8Array(NSTAR);
+const MTX = Int8Array.of(0, 3, -3, 1, 5, -2, 2, -5, 4), MTY = Int8Array.of(0, 1, 2, -2, -1, -3, 3, 1, 3);   // Matariki, the cluster of stars
+const LAKEX = Uint8Array.of(84, 116, 136), LAKEY = Uint8Array.of(42, 40, 45);
+const HACKX = Uint8Array.of(86, 110, 132);
+const LINEX = 146;                                  // where Maui's line enters the sea
+// Maui's poses
+const M_HIDE = 0, M_STAND = 1, M_HOLD = 2, M_CAST = 3, M_HAUL = 4;
+let pfr = 0, flick = 0, modeA = DAWNM, modeB = DAWNM, modeE = 0, sunX = 150, sunY = 99,
+  wkX = 40, wkF = 1, tilt = 0, crewA = 1, crew = 0, crewShake = 0, shoreA = 1, push = 0, mauiP = 0, mauiA = 1, popY = 0,
+  hookGlow = 0, spark = 0, lineOn = 0, lineEX = 0, lineEY = 0, hookY = -1, swirl = -1,
+  rise = 0, rockA = 0, carveA = 0, greenX = 0, falls = 0, hackA = 0, birds = -1, stars = 0, mistA = 0;
+
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return a + (b - a) * e;
+}
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+}
+function land(x, y, c) {
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  bg[y * W + x] = c; SKYM[y * W + x] = 0; SEAM[y * W + x] = 0;
+}
+function tiltY(dx) {
+  return Math.round(tilt * dx * 0.12);
+}
+
+function buildBackground() {
+  let seed = 9133;
+  const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let c = y < 16 ? SKY_A : y < 32 ? SKY_B : SKY_C;
+    if ((y === 15 || y === 31) && dith(x, y, 0.5)) c++;
+    if (y >= HZ) { c = y < 48 ? (dith(x, y, (48 - y) / 5) ? SEA_L : SEA_M) : y > 76 && dith(x, y, (y - 76) / 14) ? SEA_D : SEA_M; SEAM[y * W + x] = 1; }
+    bg[y * W + x] = c; SKYM[y * W + x] = y < HZ ? 1 : 0;
+  }
+  for (let x = 0; x < 50; x++) { // the low headland and its beach
+    const top = Math.round(42 + (x / 50) ** 2 * 12 + Math.sin(x * 0.4) * 1);
+    for (let y = top; y < 60; y++) land(x, y, y === top ? GRN_L : (x * 3 + y) % 7 === 0 ? GRN_D : GRN_M);
+  }
+  for (let y = 56; y < H; y++) for (let x = 0; x < W; x++) if (x < 8 + (y - 56) * 1.5) land(x, y, (x + y * 3) % 11 === 0 ? TAN : y > 58 && x > 8 + (y - 56) * 1.5 - 3 ? WHITE : SAND);
+  for (const [tx, ty] of [[8, 46], [24, 44], [40, 49]]) { // pohutukawa trees in crimson bloom
+    for (let k = 0; k < 6; k++) land(tx + (k > 3 ? 1 : 0), ty + 4 - k, EARTH);
+    for (let dy = -6; dy <= 1; dy++) for (let dx = -9; dx <= 9; dx++) { if ((dx / 9) ** 2 + (dy / 5) ** 2 > 1) continue; const x = tx + dx, y = ty - 3 + dy; land(x, y, (x * 5 + y * 3) % 4 === 0 ? RED : dy < -3 ? GRN_L : dx > 5 || dy > 0 ? GRN_D : GRN_M); }
+  }
+  for (let x = 0; x < W; x++) { // the great fish's back, and the skyline the brothers carve into it
+    const u = (x - 108) / 58;
+    HUMP[x] = Math.abs(u) < 1 ? BASE - 24 * Math.sqrt(1 - u * u) : BASE + 6;
+    if (x > 44 && x < 58) HUMP[x] = BASE - 10 + Math.abs(x - 51) * 1.4;                           // the tail
+    let c = HUMP[x] + 4;
+    const PX = [76, 98, 122, 142], PT = [20, 12, 18, 26];
+    for (let k = 0; k < 4; k++) c = Math.min(c, PT[k] + Math.abs(x - PX[k]) * 1.1);
+    CARV[x] = Math.abs(u) < 1 ? c : BASE + 6;
+  }
+  for (let k = 0; k < NSTAR; k++) { STX[k] = r() * W | 0; STY[k] = r() * 38 | 0; }
+  for (let m = 0; m < 4; m++) for (let c = 0; c < PAL.length; c++) MAPS[m][c] = c;
+  const map = (m, a) => { for (let k = 0; k < a.length; k += 2) MAPS[m][a[k]] = a[k + 1]; };
+  map(DAWNM, [SKY_A, DWN_A, SKY_B, DWN_B, SKY_C, DWN_C, SEA_L, DWN_B]);
+  map(DUSKM, [SKY_A, DSK_A, SKY_B, DSK_B, SKY_C, DSK_C, SEA_L, DSK_C, GRN_L, GRN_M, FISH_L, DSK_C]);
+  map(NIGHTM, [SKY_A, NIT_A, SKY_B, NIT_A, SKY_C, NIT_B, SEA_L, SEA_M, SEA_M, SEA_D, SEA_D, NIT_A, SAND, ROCK, TAN, EARTH, GRN_L, GRN_M, GRN_M, GRN_D,
+    RED, RED_D, ROCK_L, ROCK, ROCK, ROCK_D, FISH_L, FISH_M, WHITE, ROCK_L]);
+  lay.fill(EMPTY);
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
+function sample() {
+  snap.set(pose);
+  const T = state, t = stT;
+  pfr = tick / POSE_STEP | 0; flick = (tick >> 3) & 1;
+  modeA = modeB = NOONM; modeE = 0;
+  if (T === SHORE) modeA = modeB = DAWNM;
+  else if (T === REVEAL) { modeA = DAWNM; modeE = ease((t - 20) / 60); }
+  else if (T === ISLAND) { modeB = DUSKM; modeE = ease(t / 40); }
+  else if (T === CARVE) modeA = modeB = DUSKM;
+  else if (T === GREEN) { modeA = DUSKM; modeB = NIGHTM; modeE = ease(t / 30); }
+  else if (T === RETURN) { modeA = NIGHTM; modeB = DAWNM; modeE = ease((t - 10) / 40); }
+  const dayU = tick / 672;
+  if (dayU < 1) { sunX = 150 - dayU * 130; sunY = 48 - Math.sin(dayU * Math.PI) * 42; } else sunY = 99;
+  // the waka and its crew
+  wkF = 1; crew = 1; crewA = 1; crewShake = 0; shoreA = 0; push = 0; tilt = 0; mauiP = M_HIDE; mauiA = 1; popY = 0;
+  hookGlow = 0; spark = 0; lineOn = 0; hookY = -1; swirl = -1; birds = -1; stars = 0; mistA = 0;
+  rise = 0; rockA = 0; carveA = 0; greenX = 0; falls = 0; hackA = 0; wkX = 88;
+  if (T === SHORE) {
+    if (t < 30) { wkX = mix(40, 43, t / 30); crew = 0; shoreA = 1; push = 1; }
+    else if (t < 50) { wkX = mix(43, 56, ease((t - 30) / 20)); crew = t >= 44 ? 1 : 0; shoreA = t < 44 ? 1 : 0; push = 1; }
+    else wkX = mix(56, 66, (t - 50) / 46);
+  } else if (T === REVEAL) {
+    wkX = t < 40 ? mix(66, 88, t / 40) : 88;
+    if (t >= 40) { mauiP = M_STAND; popY = Math.round((1 - ease((t - 40) / 8)) * 10); }
+    crewShake = t >= 46 ? 1 : 0;
+  } else if (T === HOOK) { mauiP = t >= 8 ? M_HOLD : M_STAND; hookGlow = t >= 8 ? ease((t - 8) / 20) : 0; }
+  else if (T === BAIT) {
+    mauiP = t < 24 ? M_HOLD : M_CAST; hookGlow = t < 24 ? 1 : 0; spark = t >= 10 && t < 24 ? 1 : 0;
+    if (t >= 30) { lineOn = 1; lineEX = LINEX; lineEY = HZ + 14; hookY = t >= 40 ? Math.round(mix(HZ + 16, 86, ease((t - 40) / 50))) : -1; }
+  } else if (T === BITE) {
+    mauiP = t < 10 ? M_CAST : M_HAUL; lineOn = 1; lineEX = LINEX; lineEY = HZ + 14; hookY = 86;
+    tilt = t < 10 ? 0 : (0.7 + 0.35 * Math.sin(t * TWO_PI / 24)) * ease((t - 10) / 12); swirl = t >= 10 ? t - 10 : -1;
+  } else if (T === HAUL) {
+    mauiP = M_HAUL; rise = ease((t - 8) / 72); tilt = 0.6 * (1 - ease((t - 60) / 30)); lineOn = 1;
+    lineEX = 156; lineEY = Math.round(mix(HZ + 14, 44, rise));
+  } else if (T === ISLAND) { mauiP = M_STAND; rise = 1; rockA = ease(t / 30); falls = t >= 10 ? 1 : 0; }
+  else if (T === CARVE) {
+    rise = 1; rockA = 1; carveA = ease((t - 10) / 70); falls = t < 30 ? 1 : 0; mauiA = 1 - ease(t / 10); mauiP = M_STAND;
+    crewA = t < 12 ? 1 - ease((t - 4) / 8) : ease((t - 84) / 10); hackA = t >= 10 && t < 88 ? Math.min(ease((t - 10) / 6), 1 - ease((t - 82) / 6)) : 0;
+  } else if (T === GREEN) {
+    rise = 1; rockA = 1; carveA = 1; greenX = mix(52, 166, ease((t - 8) / 60)); mauiP = M_STAND; mauiA = ease(t / 12);
+    birds = t >= 30 ? t - 30 : -1; stars = ease(t / 30);
+  } else if (T === RETURN) {
+    rise = 1 - ease((t - 20) / 50); rockA = 1; carveA = 1; greenX = 166; stars = 1 - ease((t - 10) / 30); mistA = ease((t - 6) / 16) * (1 - ease((t - 72) / 20));
+    wkX = t < 30 ? 88 : mix(88, 40, ease((t - 30) / 54)); mauiP = M_STAND; mauiA = 1 - ease((t - 70) / 12);
+    wkF = t >= 28 && t < 84 ? -1 : 1;                                                         // home prow-first, then turned seaward on the beach
+    if (t >= 86) { crew = 0; shoreA = 1; push = 1; }
+  }
+  wkX = Math.round(wkX);
+  srcX = Math.round(sunX); srcY = Math.round(Math.min(sunY, 50)); rim = 1;
+  if (hookGlow > 0.5) { srcX = wkX + 16; srcY = WY - 24; rim = 3; }
+  if (spark) rim = 4;
+}
+
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function step() {
+  if (tick % POSE_STEP === 0) sample();
+  const T = state, t = stT;
+  if (T === SHORE && t >= 30 && t < 50 && tick % 2 === 0) sp(BURST, 12 + rand() * 8, wkX - 20 + rand() * 10, WY, (rand() - 0.5) * 1.2, -0.6 - rand() * 0.8, 0, WY + 1);
+  if (crew && !push && tick % 12 === 0) for (let k = 0; k < 3; k++) sp(BURST, 10 + rand() * 6, wkX + wkF * (-16 + k * 8 + 3), WY + 1, wkF * (0.6 + rand() * 0.6), -0.3 - rand() * 0.4, 0, WY + 2);
+  if (T === RETURN && t === 84) for (let k = 0; k < 20; k++) sp(BURST, 12 + rand() * 10, wkX + (rand() - 0.5) * 50, WY, (rand() - 0.5) * 1.6, -0.6 - rand() * 1.2, 0, WY + 1);
+  if (T === REVEAL && t === 40) for (let k = 0; k < 14; k++) sp(BURST, 12 + rand() * 8, wkX + 12, WY - 4, (rand() - 0.5) * 1.6, -0.6 - rand(), 2, WY);
+  if (hookGlow > 0.5 && tick % 3 === 0) sp(MOTE, 14 + rand() * 10, wkX + 16 + (rand() - 0.5) * 8, WY - 26 + (rand() - 0.5) * 8, 0, -0.2, 1, 99);
+  if (spark && tick % 2 === 0) sp(BURST, 10 + rand() * 6, wkX + 16, WY - 27, (rand() - 0.5) * 1.2, -0.4 - rand() * 0.5, 4, 99);
+  if (hookY > 0 && tick % 4 === 0) sp(MOTE, 16 + rand() * 10, LINEX + (rand() - 0.5) * 3, hookY, 0, -0.35, 1, 99);
+  if (swirl >= 0 && tick % 2 === 0) sp(BURST, 10 + rand() * 8, LINEX + (rand() - 0.5) * 20, HZ + 14, (rand() - 0.5) * 0.8, -0.5 - rand() * 0.8, 0, HZ + 15);
+  if (T === HAUL && tick % 2 === 0 && rise > 0.05) sp(BURST, 16 + rand() * 10, 56 + rand() * 104, BASE - 1, (rand() - 0.5) * 1.2, -0.8 - rand() * 1.2, 0, BASE);
+  if (hackA > 0.5 && tick % 3 === 0) { const k = (tick / 3 | 0) % 3; sp(BURST, 10 + rand() * 8, HACKX[k] + 3, Math.round(mix(HUMP[HACKX[k]], CARV[HACKX[k]], carveA)) - 1, (rand() - 0.5) * 1.6, -0.5 - rand(), 2, BASE); }
+  if (carveA > 0.3 && T !== RETURN && tick % 4 === 0) sp(MOTE, 40 + rand() * 20, 98 + (rand() - 0.5) * 2, Math.round(mix(HUMP[98], CARV[98], carveA)) - 1, 0.15, -0.3, 3, 99);  // the volcano steams
+  if (T === GREEN && t > 8 && t < 70 && tick % 2 === 0) sp(MOTE, 16 + rand() * 12, greenX - rand() * 10, 30 + rand() * 18, 0, -0.2, 5, 99);
+  if (T === RETURN && rise > 0 && rise < 1 && tick % 2 === 0) sp(BURST, 14 + rand() * 10, 56 + rand() * 104, BASE - 1, (rand() - 0.5), -0.5 - rand(), 0, BASE);
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === BURST && pvy[i] > 0 && py[i] > pWL[i]) pKind[i] = 0;
+}
+
+function hint(x0, y0, x1, y1) {
+  bx0 = Math.max(0, x0 | 0); by0 = Math.max(0, y0 | 0); bx1 = Math.min(W - 1, x1 | 0); by1 = Math.min(H - 1, y1 | 0);
+}
+function layBox() {
+  lx0 = W; ly0 = H; lx1 = -1; ly1 = -1;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    if (lay[y * W + x] === EMPTY) continue;
+    if (x < lx0) lx0 = x;
+    if (x > lx1) lx1 = x;
+    if (y < ly0) ly0 = y;
+    ly1 = y;
+  }
+}
+function layFade(amt) { // dissolve the current part in or out
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) if (amt * 16 <= BAYER[(y & 3) * 4 + (x & 3)]) lay[y * W + x] = EMPTY;
+}
+function layEnd(clipY = H - 1) { // copy the part into spr down to clipY, then ink the other actors' parts it borders
+  layBox();
+  GRP[++pid] = grp;
+  for (let y = ly0; y <= Math.min(ly1, clipY); y++) for (let x = lx0; x <= lx1; x++) {
+    const i = y * W + x;
+    if (lay[i] !== EMPTY) { spr[i] = lay[i]; own[i] = pid; }
+  }
+  for (let y = Math.max(1, ly0 - 1); y <= Math.min(H - 2, ly1 + 1); y++) for (let x = Math.max(1, lx0 - 1); x <= Math.min(W - 2, lx1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
+  }
+  for (let y = by0; y <= by1; y++) lay.fill(EMPTY, y * W + bx0, y * W + bx1 + 1);
+  hint(0, 0, W - 1, H - 1);
+}
+
+function drawWaka() { // a great carved waka: red hull, white koru, a spiral prow and a tall stern post
+  grp = 1;
+  const cx = wkX, f = wkF;
+  for (let dx = -26; dx <= 26; dx++) {
+    const x = cx + dx * f, end = Math.max(0, Math.abs(dx) - 20), top = WY - 3 - end + tiltY(dx), bot = WY + 3 + tiltY(dx) - (end >> 1);
+    for (let y = top; y <= bot; y++) plot(lay, x, y, y === top ? RED : y === top + 2 ? HAIR : y === top + 3 && (dx & 3) === 0 ? WHITE : RED_D);
+  }
+  const px = cx + 27 * f, py = WY - 8 + tiltY(27);                                                 // the tauihu
+  line(lay, px - f, py + 6, px + 2 * f, py, RED); line(lay, px, py + 6, px + 3 * f, py, RED); plot(lay, px + 3 * f, py - 1, RED); plot(lay, px + f, py + 3, WHITE); plot(lay, px + 2 * f, py + 1, WHITE); plot(lay, px + 4 * f, py - 2, RED);
+  const sx = cx - 27 * f, sy = WY - 4 + tiltY(-27);                                                // the taurapa
+  for (let k = 0; k < 14; k++) { plot(lay, sx - f * (k >> 3), sy - k, k % 4 === 1 ? WHITE : RED); plot(lay, sx - f * (1 + (k >> 3)), sy - k, RED_D); }
+  plot(lay, sx - 3 * f, sy - 13, HAIR); plot(lay, sx - 4 * f, sy - 12, WHITE); plot(lay, sx - 4 * f, sy - 11, HAIR);
+  if (crew && crewA > 0.5) for (let k = 0; k < 3; k++) { // the brothers paddling, or shaking their paddles at Maui
+    const x = cx + f * (-16 + k * 8), y = WY - 3 + tiltY(x - cx), s = (pfr + k) & 1, shake = crewShake, pull = mauiP === M_HAUL;
+    for (let yy = y - 5; yy < y; yy++) hline(lay, x - 1, x + 1, yy, SKIN);
+    disc(x, y - 7, 1.5, SKIN, lay); plot(lay, x, y - 9, HAIR); plot(lay, x - f, y - 9, HAIR); plot(lay, x, y - 10, HAIR);
+    if (shake) { line(lay, x + f, y - 4, x + 2 * f, y - 10 - s, SKIN); line(lay, x + 2 * f, y - 9 - s, x + (1 + s) * f, y - 16, EARTH); }
+    else if (pull) { line(lay, x + f, y - 4, x + 4 * f, y - 6, SKIN); line(lay, x - f, y - 4, x + 3 * f, y - 5, SKIN); }
+    else { line(lay, x + f, y - 4, x + 3 * f, y - 2, SKIN); line(lay, x + (3 - s * 2) * f, y - 6, x + (5 + s * 2) * f, y + 4, EARTH); }
+  }
+  hint(cx - 32, WY - 24, cx + 32, WY + 6);
+  layEnd(WY + 1);
+}
+function drawMaui() { // Maui: a topknot, moko, a flax piupiu; the magic hook of his grandmother's jawbone
+  grp = 2;
+  const f = wkF, x = wkX + 12 * f, y = WY - 3 + tiltY(12) + popY, p = mauiP;
+  for (let yy = y - 6; yy < y; yy++) for (let xx = x - 2; xx <= x + 2; xx++) plot(lay, xx, yy, (xx + yy) & 1 ? TAN : EARTH);
+  const lean = (p === M_HAUL ? -2 : 0) * f;
+  for (let yy = y - 12; yy < y - 6; yy++) hline(lay, x - 2 + (lean >> 1), x + 2 + (lean >> 1), yy, SKIN);
+  disc(x + f + lean, y - 15, 2.2, SKIN, lay); plot(lay, x + lean, y - 18, HAIR); plot(lay, x + f + lean, y - 18, HAIR); plot(lay, x + lean, y - 19, HAIR); plot(lay, x - f + lean, y - 16, HAIR);
+  plot(lay, x + 2 * f + lean, y - 15, INK); plot(lay, x + 2 * f + lean, y - 14, HAIR); plot(lay, x + f + lean, y - 13, HAIR);
+  if (p === M_HOLD) { line(lay, x + 2 * f, y - 11, x + 4 * f, y - 20, SKIN); line(lay, x - 2 * f, y - 11, x - 3 * f, y - 7, SKIN); hook(x + 4 * f, y - 23); }
+  else if (p === M_CAST) { line(lay, x + 2 * f, y - 11, x + 7 * f, y - 13, SKIN); line(lay, x - 2 * f, y - 11, x - 3 * f, y - 7, SKIN); }
+  else if (p === M_HAUL) { line(lay, x + lean, y - 11, x + 5 * f, y - 10, SKIN); line(lay, x - f + lean, y - 10, x + 4 * f, y - 8, SKIN); }
+  else { line(lay, x + 2 * f, y - 11, x + 3 * f, y - 7, SKIN); line(lay, x - 2 * f, y - 11, x - 3 * f, y - 7, SKIN); }
+  hint(x - 10, y - 28, x + 10, y + 1);
+  if (mauiA < 1) layFade(mauiA);
+  layEnd(WY - 3 + tiltY(12));
+}
+function hook(x, y) { // the jawbone hook: a pearly curve with a barb
+  line(lay, x, y - 3, x, y + 2, WHITE); line(lay, x, y + 2, x + 3, y + 2, SKY_C); line(lay, x + 3, y + 2, x + 3, y - 1, WHITE); plot(lay, x + 2, y - 1, SKY_C); plot(lay, x - 1, y - 3, RED);
+}
+function drawShoreCrew() { // the brothers pushing the waka off the beach
+  for (let k = 0; k < 3; k++) {
+    grp = 3 + k;
+    const x = wkX - 34 + k * 5, y = 72 + k * 2;
+    line(lay, x - 1, y - 4, x - 2, y, SKIN); line(lay, x + 1, y - 4, x + 1, y, SKIN);
+    for (let yy = y - 6; yy <= y - 4; yy++) hline(lay, x - 1, x + 1, yy, (yy + k) & 1 ? TAN : EARTH);
+    for (let yy = y - 10; yy < y - 6; yy++) hline(lay, x, x + 2, yy, SKIN);
+    disc(x + 2, y - 12, 1.5, SKIN, lay); plot(lay, x + 1, y - 14, HAIR); plot(lay, x + 2, y - 14, HAIR); plot(lay, x + 1, y - 15, HAIR);
+    line(lay, x + 3, y - 9, x + 7, y - 8, SKIN);
+    hint(x - 6, y - 18, x + 9, y + 1);
+    if (shoreA < 1) layFade(shoreA);
+    layEnd();
+  }
+}
+function drawActor() {
+  own.fill(0); pid = 0;
+  drawWaka();
+  if (mauiP !== M_HIDE && mauiA > 0) drawMaui();
+  if (shoreA > 0 && push) drawShoreCrew();
+}
+
+function drawUnder() {
+  if (rise > 0) { // the great fish, then the island Te Ika-a-Maui
+    for (let x = 44; x < W; x++) {
+      const prof = mix(HUMP[x], CARV[x], carveA), top = Math.round(mix(BASE + 6, prof, rise));
+      for (let y = Math.max(0, top); y < BASE; y++) {
+        const i = y * W + x, d = y - top;
+        let c = d < 1 ? FISH_L : (x + ((y >> 1) & 1) * 2) % 4 === 0 && (y & 1) ? FISH_L : y > BASE - 5 ? SEA_D : FISH_M;
+        if (x > 150 && x < 154 && y === top + 5) c = INK;                                             // the fish's eye
+        if (rockA > 0 && dith(x, y, rockA)) c = d < 1 ? ROCK_L : (y + (x >> 2)) % 6 === 0 ? ROCK_D : x > 118 && (x + y) & 1 ? ROCK_D : ROCK;
+        if (carveA > 0) {
+          for (let k = 0; k < 3; k++) if (((x - LAKEX[k]) / 5) ** 2 + ((y - LAKEY[k]) / 1.6) ** 2 <= carveA) c = (x + y) & 1 ? SEA_L : SEA_M;
+          if (Math.abs(x - 98) < 2 && d < 2 && carveA > 0.5) c = flick ? DSK_B : RED;                      // the volcano's crater
+          if ((x - y * 0.6 + 200) % 23 === 0 && d > 3 && carveA > 0.4) c = ROCK_D;                       // carved valleys
+        }
+        if (x < greenX && d >= 0) c = (x * 7 + y * 3) % 5 === 0 ? GRN_L : (x + y * 2) % 7 === 0 ? GRN_D : (x * 3 + y) % 13 === 0 ? RED : GRN_M;
+        if (x < greenX && carveA > 0) for (let k = 0; k < 3; k++) if (((x - LAKEX[k]) / 5) ** 2 + ((y - LAKEY[k]) / 1.6) ** 2 <= 1) c = SEA_L;
+        buf[i] = c;
+      }
+      if (rise > 0.6 && carveA < 0.3 && rockA < 0.5 && x > 70 && x < 146 && x % 7 === 0) for (let k = 1; k <= 3; k++) plot(buf, x, top - k, FISH_M); // dorsal spines
+      if (falls && x % 13 === 5 && top < BASE - 4) for (let y = top + 1; y < BASE; y++) if ((y + (tick >> 1)) % 4) plot(buf, x, y, (y + (tick >> 1)) % 4 === 1 ? SKY_C : WHITE); // waterfalls, a 48-tick fall
+    }
+  }
+  const MA = MAPS[modeA], MB = MAPS[modeB], wv = (tick / 12 | 0) % 10;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    let c = buf[i];
+    if (SEAM[i] && y > BASE && c === SEA_M && ((x >> 2) * 5 + y * 7 + wv * 3) % 23 === 0) c = SEA_L;                                  // the swell, a 120-tick cycle
+    buf[i] = modeE > 0 && dith(x, y, modeE) ? MB[c] : MA[c];
+  }
+  for (let k = 0; k < NSTAR; k++) { const i = STY[k] * W + STX[k]; if (SKYM[i] && (buf[i] === NIT_A || buf[i] === NIT_B) && (pfr + k) % 5) buf[i] = k % 3 ? SKY_C : WHITE; }
+  if (stars > 0) for (let k = 0; k < 9; k++) { const x = 34 + MTX[k] * 2, y = 12 + MTY[k] * 2; if (dith(x, y, stars)) { plot(buf, x, y, WHITE); if (k < 4 && (pfr + k) & 1) { plot(buf, x - 1, y, SKY_C); plot(buf, x + 1, y, SKY_C); } } }
+  if (sunY < HZ + 2) { // the sun crossing from the east to the west
+    const sx = Math.round(sunX), sy = Math.round(sunY);
+    halo(sx, sy, 11, modeA === DUSKM || modeB === DUSKM ? DSK_C : WHITE, modeA === DAWNM ? DWN_C : SKY_C);
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) { const x = sx + dx, y = sy + dy; if (dx * dx + dy * dy > 17 || x < 0 || x >= W || y < 0 || y >= H || !SKYM[y * W + x]) continue; buf[y * W + x] = dx * dx + dy * dy > 10 ? GOLD : WHITE; }
+  }
+  if (lineOn) { // Maui's line, glowing where it runs under the sea
+    const hx = wkX + 19, hy = WY - 16 + tiltY(19), n = Math.max(1, Math.abs(lineEX - hx));
+    for (let s = 0; s <= n; s++) { const u = s / n, x = Math.round(mix(hx, lineEX, u)), y = Math.round(mix(hy, lineEY, u) - (mauiP === M_CAST && state === BAIT ? Math.sin(u * Math.PI) * 10 : 0)); plot(buf, x, y, (s & 1) ? WHITE : SKY_C); }
+    if (hookY > 0) { for (let y = lineEY; y < hookY; y++) if ((y + pfr) % 3) plot(buf, LINEX, y, SKY_C); halo(LINEX, hookY, 6, SKY_C, SEA_L); plot(buf, LINEX, hookY, WHITE); plot(buf, LINEX + 1, hookY + 1, WHITE); plot(buf, LINEX + 2, hookY, SKY_C); plot(buf, LINEX, hookY - 1, spark || state === BAIT ? RED : WHITE); }
+  }
+  if (swirl >= 0) for (let k = 0; k < 3; k++) { const rr = ((swirl * 0.6 + k * 8) % 24); for (let s = 0; s < 32; s++) { const a = s * TWO_PI / 32 + swirl * 0.1, x = Math.round(LINEX + Math.cos(a) * rr), y = Math.round(HZ + 15 + Math.sin(a) * rr * 0.25); if (s % 3 && x >= 0 && x < W) plot(buf, x, y, SKY_C); } }
+  if (hackA > 0) for (let k = 0; k < 3; k++) { // the brothers hacking at the fish with their adzes
+    const x = HACKX[k], y = Math.round(mix(HUMP[x], CARV[x], carveA)) - 1, s = (pfr + k) & 1;
+    if (!dith(x, y, hackA)) continue;
+    plot(buf, x, y, SKIN); plot(buf, x, y - 1, SKIN); plot(buf, x, y - 2, SKIN); plot(buf, x, y - 3, HAIR); plot(buf, x - 1, y, TAN);
+    line(buf, x + 1, y - 2, x + 3, y - 4 + s * 3, EARTH); plot(buf, x + 3, y - 4 + s * 3, ROCK_L);
+  }
+  if (birds >= 0) for (let k = 0; k < 4; k++) { // tui birds with their white throat tufts
+    const x = Math.round(60 + k * 24 - birds * (1.2 + k * 0.15)), y = Math.round(24 + k * 4 + Math.sin(birds * 0.3 + k) * 2), s = (pfr + k) & 1;
+    if (x < 1 || x > W - 2) continue;
+    plot(buf, x, y, NIT_B); plot(buf, x - 1, y - s, NIT_B); plot(buf, x + 1, y - s, NIT_B); plot(buf, x, y + 1, WHITE);
+  }
+  if (mistA > 0) for (let y = HZ - 6; y < 80; y += 3) for (let x = 0; x < W; x++) if (Math.sin((x + tick * 0.2) * 0.06 + y * 1.7) > 1 - mistA * 0.8) buf[y * W + x] = LIGHTEN[buf[y * W + x]]; // sea mist
+}
+function drawOver() {
+  drawParticles(false);
+  if (hookGlow > 0) { const x = wkX + 16, y = WY - 26 + tiltY(16); halo(x, y, Math.round(6 + 6 * hookGlow), WHITE, SKY_C); if (hookGlow > 0.6) for (let k = 0; k < 6; k++) { const a = k * TWO_PI / 6 + pfr * 0.25; plot(buf, Math.round(x + Math.cos(a) * 6), Math.round(y + Math.sin(a) * 6), WHITE); } }
+  drawParticles(true);
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+}
+// #endregion
+})();
+</script>

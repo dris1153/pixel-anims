@@ -6,6 +6,36 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "maui-fishes-the-island",
+    tags: ["humanoid", "creature", "magic", "dawn"],
+    country: "nz",
+    title: "Maui Fishes Up the Island",
+    still: 800,
+    res: [160, 90],
+    loop: 16,
+    states: ["shore", "reveal", "hook", "bait", "bite", "haul", "island", "carve", "green", "return"],
+    kind: "Made with the skill",
+    note: "The fish and the island are one skyline: the same silhouette rises as scales, dithers into rock, takes a carved mountain profile and then a forest that sweeps across it before the mist sinks it again.",
+    prompt:
+      "Pixel art the Māori legend of Māui fishing up the North Island of New Zealand, 160×90, one fixed shot, " +
+      "16-second seamless loop, 10 states. Scene: the open Pacific at the edge of the world: a big carved waka " +
+      "canoe with a red prow in the middle of the sea, a low shore of pōhutukawa trees with red blossoms at the " +
+      "left, and a wide empty ocean at the right where the island will rise; the light runs from dawn through " +
+      "blazing noon and golden dusk to a night of Matariki stars, and back. Keep the frame readable: Māui, his " +
+      "brothers in the canoe, and one wonder at a time. 1. shore: at dawn Māui's brothers push the waka off from " +
+      "the shore, not seeing Māui hidden under the floorboards. 2. reveal: far out at sea Māui pops up from under " +
+      "the boards and the brothers shake their paddles at him. 3. hook: he holds up his magic fishhook carved from " +
+      "his grandmother's jawbone; it gleams with a pearly light. 4. bait: he baits the hook with a spark of his own " +
+      "blood and casts the line far into the deep, glowing as it sinks. 5. bite: the line goes taut, the waka tips " +
+      "and the sea around it bubbles and swirls. 6. haul: Māui hauls, chanting, his brothers pull with him, and a " +
+      "vast fish rises, its back breaking the surface across the whole horizon. 7. island: the fish becomes an " +
+      "island; water pours off it in waterfalls and it lies still under the setting sun. 8. carve: while Māui is " +
+      "away, the brothers leap onto the fish and hack at it, carving valleys, mountains and lakes, and a volcano " +
+      "steams. 9. green: forest spreads over it in a wave, silver ferns unfurl and tūī birds fly as the island " +
+      "glows under the Matariki stars. 10. return: sea mist rolls in at dawn, the island sinks back into legend " +
+      "beneath the waves, and the waka rests on the shore again.",
+  },
+  {
     slug: "oisin-tir-na-nog",
     tags: ["humanoid", "creature", "magic", "dusk"],
     country: "ie",
@@ -1582,7 +1612,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['id', 'Indonesia'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['iq', 'Iraq'], ['ir', 'Iran'], ['gb-eng', 'England'], ['gb-sct', 'Scotland'], ['ie', 'Ireland'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['mx', 'Mexico'], ['br', 'Brazil'], ['pe', 'Peru'], ['nz', 'New Zealand'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
