@@ -6,6 +6,32 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "rio-carnival-night",
+    tags: ["humanoid", "night"],
+    country: "br",
+    title: "Carnival Night in Rio",
+    still: 300,
+    res: [160, 90],
+    loop: 12,
+    states: ["bateria", "frontline", "float", "feathers", "flag", "confetti", "fireworks", "dawn"],
+    kind: "Made with the skill",
+    note: "Each parade group has its own start and speed on one loop clock, so the drums, the float and the dancers overlap as they pass, and the sweeper clears the avenue just before the loop closes.",
+    prompt:
+      "Pixel art a Carnival night in Rio de Janeiro, 160×90, one fixed shot, 12-second seamless loop, 8 states. " +
+      "Scene: the samba parade avenue at night: packed stands of faces with camera flashes and banners along the " +
+      "back, floodlight towers at each end, and beyond them Sugarloaf Mountain with its cable car over a moonlit " +
+      "bay; the parade crosses the frame from left to right in saturated gold, magenta, emerald and turquoise. Keep " +
+      "the frame readable: one parade group at a time, entering at the left and leaving at the right. 1. bateria: " +
+      "the drum corps marches in, white and green, beating big surdo drums so the frame pulses on the beat. 2. " +
+      "frontline: the front commission dances in sequins, capes flaring open in a wave. 3. float: a float rolls " +
+      "through with a scarlet macaw spreading blue and gold mechanical wings, dancers on its tiers and sparkles in " +
+      "the air. 4. feathers: samba dancers pass under towering fans of turquoise and emerald feathers. 5. flag: the " +
+      "flag bearer spins in a gold hoop gown with the school's flag whirling above her, her partner bowing around " +
+      "her. 6. confetti: baianas pass in huge spinning skirts as confetti and streamers rain down. 7. fireworks: " +
+      "fireworks burst over Sugarloaf and the bay. 8. dawn: the sky pinks over the bay, a sweeper in orange pushes " +
+      "the confetti away, and night falls again for the next school.",
+  },
+  {
     slug: "pied-piper-hamelin",
     tags: ["humanoid", "creature", "magic", "dusk"],
     country: "de",
@@ -1236,7 +1262,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
