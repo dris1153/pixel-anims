@@ -6,6 +6,35 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "snow-queen-ice-palace",
+    tags: ["humanoid", "creature", "magic", "day"],
+    country: "dk",
+    title: "The Snow Queen",
+    still: 400,
+    res: [160, 90],
+    loop: 12,
+    states: ["mirror", "roses", "sleigh", "search", "north", "palace", "tear", "spring"],
+    kind: "Made with the skill",
+    note: "The town takes the seasons as palette swaps while the north stays frozen under its own aurora, and the word Eternity is a 3×5 pixel font that the ice shards spell out.",
+    prompt:
+      "Pixel art Hans Christian Andersen's The Snow Queen, 160×90, one fixed shot, 12-second seamless loop, 8 " +
+      "states. Scene: a split world: at the left two old town houses with a gutter of rose boxes between their " +
+      "attics and a little square below; snowy mountains in the middle; at the right a frozen plain and a frozen " +
+      "lake below an ice palace of spires, under an arctic night sky where the aurora hangs in curtains; the town's " +
+      "season runs from summer to deep winter and back through spring. Keep the frame readable: Kai, Gerda and one " +
+      "wonder at a time. 1. mirror: goblins fly a huge magic mirror up into the sky; it slips and bursts into " +
+      "splinters that sparkle down over the town, while Kai and Gerda sit among the rooftop roses. 2. roses: a " +
+      "splinter strikes Kai's eye; he frowns and turns away, and the roses droop and drop their petals. 3. sleigh: " +
+      "winter falls; the Snow Queen, tall in white fur with a crown of ice, sweeps into the square in her white " +
+      "sleigh, Kai ties his little sled behind it, and they are whirled away north in snowflakes as big as hens. 4. " +
+      "search: Gerda sets out barefoot across the snow, a crow flies with her, and a reindeer bounds up to meet " +
+      "her. 5. north: she rides the reindeer across the frozen plain as the aurora flares green and violet. 6. " +
+      "palace: at the ice palace Kai sits blue with cold on the frozen lake, fitting shards of ice together, and " +
+      "Gerda runs to him. 7. tear: she hugs him and her warm tears fall; the splinter melts out of his eye in a " +
+      "flash, and the ice shards spell the word ETERNITY. 8. spring: they walk home as the reindeer bounds away, " +
+      "the snow melts into spring, and they sit among the blooming rooftop roses again.",
+  },
+  {
     slug: "rio-carnival-night",
     tags: ["humanoid", "night"],
     country: "br",
@@ -1262,7 +1291,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
