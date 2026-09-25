@@ -6,6 +6,33 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "rostam-white-div",
+    tags: ["humanoid", "creature", "melee", "heal", "night"],
+    country: "ir",
+    title: "Rostam and the White Div",
+    still: 400,
+    res: [160, 90],
+    loop: 12,
+    states: ["ride", "dragon", "witch", "cave", "duel", "heart", "heal", "return"],
+    kind: "Made with the skill",
+    note: "The miniature look comes from flat pinnacles with spongy cells traced in gold, gold-edged ribbon clouds and rosette stars; the night keeps a turquoise horizon under the indigo as the old painters did.",
+    prompt:
+      "Pixel art the Persian epic Shahnameh: Rostam and the White Div, 160×90, one fixed shot, 12-second seamless " +
+      "loop, 8 states. Scene: the wild mountains of Mazandaran: a rocky pass in front, a spring with a cypress tree " +
+      "at the left, jagged peaks and a black cave mouth at the right, and a Persian-miniature sky of turquoise, " +
+      "gold and deep indigo with bright stars. Keep the frame readable: Rostam and one foe at a time. 1. ride: at " +
+      "dusk the hero Rostam rides in on his red-roan horse Rakhsh, wearing his leopard-skin coat and helmet, the " +
+      "ox-headed mace on his saddle. 2. dragon: he sleeps by the spring; a dragon slides out of the dark, Rakhsh " +
+      "rears and neighs, and Rostam wakes and cuts it down as it bursts into smoke. 3. witch: a lovely woman in " +
+      "silk brings him wine and sings; when he speaks the name of God she twists into a hag, and he strikes her " +
+      "away. 4. cave: at night he rolls away the stone and enters the White Div's cave, the gloom lit by glowing " +
+      "eyes. 5. duel: the White Div, a white-furred giant with horns and a huge millstone, rises and they wrestle; " +
+      "rocks crack and dust flies until Rostam heaves him down. 6. heart: Rostam draws out the div's glowing heart. " +
+      "7. heal: he brings it to the blind King Kay Kavus; three drops touch the king's eyes, they shine as his " +
+      "sight returns, and the soldiers cheer. 8. return: at dawn Rostam rides Rakhsh out of the mountains, the cave " +
+      "dark and empty, and the sky turns back to dusk.",
+  },
+  {
     slug: "manco-capac-cusco",
     tags: ["humanoid", "magic", "craft", "dawn"],
     country: "pe",
@@ -1411,7 +1438,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['ir', 'Iran'], ['gb-eng', 'England'], ['no', 'Norway'], ['dk', 'Denmark'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['br', 'Brazil'], ['pe', 'Peru'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
