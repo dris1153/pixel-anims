@@ -148,6 +148,28 @@ Node 18 or newer and Chrome, Edge or Chromium for the snapshot QA step, and a mo
 
 The landing page and showcase live in `site/` as a plain Vite app. Run `pnpm install`, then `pnpm dev` to work on it or `pnpm build` to build `dist/`. To add a showcase, put its `.html` in `site/public/anims/`, run `pnpm posters <slug>` to render its placeholder frame, and add one entry to `site/src/showcases.js`.
 
+The site speaks English, Vietnamese, Korean, Japanese, Chinese, Thai, Hindi, Arabic and Spanish. Pick one with `?lang=<code>` or the globe button in the header; the choice is remembered. English lives in the HTML and `site/src/i18n/dict/en.js`; every other language is a file of `key: text` pairs in `site/src/i18n/dict/<code>.js`, and any missing key falls back to English. Showcase titles, tags and countries use the keys `title.<slug>`, `tag.<id>` and `country.<id>`. Everything except Vietnamese is a draft translation, and native fixes are welcome.
+
+A showcase can also tell its story. Add `site/src/stories/<slug>/<code>.md`:
+
+```markdown
+---
+origin: Vietnam · Legend of the Lê dynasty, 15th century
+note: (optional) replaces the showcase note in this language
+title: (optional) replaces the showcase title in this language
+---
+
+## legend
+
+The tale, in plain paragraphs.
+
+## beats
+
+- lend: One line per state, keyed by the exact names in the showcase's `states`.
+```
+
+Both files and translations are optional. The detail page shows the story in the reader's language, or in English with a note when it has not been translated yet, and each beat seeks the preview to its state.
+
 ## License
 
 [MIT](LICENSE). The country flags on the website are from [pixel-flags](https://github.com/tgines/pixel-flags) by Tony Gines, also MIT.
