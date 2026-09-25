@@ -6,6 +6,45 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "hoan-kiem-returned-sword",
+    tags: ["humanoid", "creature", "magic", "melee", "dawn"],
+    country: "vn",
+    title: "The Returned Sword of Hoan Kiem",
+    still: 1036,
+    res: [160, 90],
+    loop: 20,
+    states: ["lend", "net", "hilt", "join", "rally", "battle", "fort", "crown", "boat", "ask", "return", "named"],
+    kind: "Made with the skill",
+    note: "The whole legend in three acts in one transforming shot: the far bank turns from a Ming fort into Thang Long and, for one night, into the lake of today, while Long Quan's golden shimmer under the water lends the sword at the start and takes it home at the end.",
+    prompt:
+      "Pixel art the Vietnamese legend of the Returned Sword of Hoan Kiem Lake, 160×90, one fixed shot, 20-second " +
+      "seamless loop, 12 states. Scene: a stretch of water with a great banyan with hanging roots on the left bank, " +
+      "two small reedy islets and a lakeside path in front. The far bank changes with the story: a Ming fort with a " +
+      "palisade, a watchtower and black banners while the land is occupied; the roofs, pagoda and red gate of Thang " +
+      "Long after the victory; and the Turtle Tower with the red The Huc bridge only in the closing night, as the " +
+      "lake is today. The light runs from a cold grey dawn under the occupation through a warm dawn and bright day, " +
+      "one fast turn of day and night for the year that passes, and gold dusk into night. Keep the frame readable: " +
+      "one hero and one wonder at a time. 1. lend: in the mist, the Dragon King Long Quan glides as a golden " +
+      "shimmer under the water and lets go of two lights: one sinks where the fisherman will cast, the other flies " +
+      "to the top of the banyan. 2. net: the fisherman Le Than casts his net from a sampan and hauls up a glowing " +
+      "blade, holding it high. 3. hilt: Le Loi runs in with only two ragged followers, sees a light at the top of " +
+      "the banyan, climbs and takes down a jade hilt while the fisherman poles ashore. 4. join: the fisherman " +
+      "kneels and offers the blade; it fits the hilt exactly in a flash, a ring of light spreads across the water, " +
+      "the inscription Thuan Thien glints on the blade and the followers kneel. 5. rally: Le Loi raises the blazing " +
+      "sword and soldiers with spears and red banners stream in to join him. 6. battle: the Lam Son army charges; " +
+      "dark-armoured Ming soldiers with black banners meet them, break and flee off the frame. 7. fort: the fort's " +
+      "black banners fall one by one, red banners rise and the sun breaks through. 8. crown: the fort fades and " +
+      "Thang Long rises behind the trees; in a burst of light Le Loi appears in a yellow robe and crown under a " +
+      "golden parasol as his men kneel, then the sky turns once through dusk, night and dawn: a year goes by. 9. " +
+      "boat: the king rides a dragon boat out onto the green lake, oarsmen rowing, the sword at his belt. 10. ask: " +
+      "the lake swirls gold and the Golden Turtle rises beside the boat, raising its head toward the king; it " +
+      "speaks in rings of light and the sword trembles at his belt. 11. return: the king draws the sword and holds " +
+      "it out; it glides into the turtle's jaws, the turtle sinks, and deep below the golden shimmer of Long Quan " +
+      "passes to take it home. 12. named: night on the lake of the returned sword: lotus lanterns float, the Turtle " +
+      "Tower and the red bridge glimmer into view, the dragon boat rows away, and the dawn mist brings back the " +
+      "fort for the story to begin again.",
+  },
+  {
     slug: "trip-to-the-moon-1902",
     tags: ["humanoid", "projectile", "space"],
     country: "fr",
