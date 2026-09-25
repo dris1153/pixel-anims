@@ -12,7 +12,7 @@ if (bar && nav) {
     ?? links.filter(a => a.origin === location.origin && a.pathname !== '/' && location.pathname.startsWith(a.pathname))
       .sort((a, b) => b.pathname.length - a.pathname.length)[0] ?? links[0];
   scoreBoard();
-  const cat = !calm && matchMedia('(hover: hover) and (pointer: fine)').matches ? startCat(nav, home) : null;
+  const cat = !calm && matchMedia('(hover: hover) and (pointer: fine)').matches ? startCat(bar, home) : null;
   menuCursor(home, a => cat?.go(a));
 }
 
@@ -44,7 +44,11 @@ function menuCursor(home, onTarget) { // one cursor that steps to the hovered or
   const put = () => { cur.style.translate = `${target.offsetLeft}px ${target.offsetTop + (target.offsetHeight >> 1) - 5}px`; };
   const to = a => { if (!a) return; if (a !== target) { target = a; put(); } onTarget(a); }; // the cat may still be off on a stroll
   nav.addEventListener('pointerover', e => to(e.target.closest('a')));
-  nav.addEventListener('pointerleave', () => { const f = document.activeElement; to(nav.contains(f) && f.matches(':focus-visible') ? f : home); });
+  nav.addEventListener('pointerleave', e => {
+    if (e.relatedTarget?.closest?.('.hud-cat')) return;                         // reaching for the cat on its button
+    const f = document.activeElement;
+    to(nav.contains(f) && f.matches(':focus-visible') ? f : home);
+  });
   nav.addEventListener('focusin', e => to(e.target.closest('a')));
   nav.addEventListener('focusout', e => { if (!nav.contains(e.relatedTarget)) to(home); });
   nav.addEventListener('pointerdown', e => {
