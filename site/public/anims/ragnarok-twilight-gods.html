@@ -522,7 +522,7 @@ function sample() {
     if (t < 12) { thY = mix(-10, 53, ease(t / 12)); bolt = t < 12 ? 2 : 0; }
     else if (t < 84) {
       const c = (t - 12) % 24; thArm = c < 6 ? 1 : c < 22 ? 2 : 0;
-      if (c >= 6 && c < 22) { hamOn = 1; const u = c < 14 ? (c - 6) / 8 : 1 - (c - 14) / 8; hamX = mix(thX + 3, jgX + 8, u); hamY = mix(thY - 12, jgY, u) - 8 * Math.sin(Math.PI * u); }
+      if (c >= 6 && c < 22) { hamOn = 1; const u = c < 14 ? (c - 6) / 8 : 1 - (c - 14) / 8; hamX = mix(thX - 5, jgX + 8, u); hamY = mix(thY - 12, jgY, u) - 8 * Math.sin(Math.PI * u); }
       bolt = c >= 12 && c < 18 ? 1 : 0;
     } else if (t < 102) { thX = 118 + Math.min(9, (t - 84) / 18 * 9 | 0) * 1.2; thArm = 3; }
     else { thX = 128.8; thLie = 1; thA = 1 - ease((t - 104) / 10); }
@@ -623,17 +623,17 @@ function maw(hx, hy, a0, a1, len, c) { // fill the open mouth between two jaw an
 function drawHeimdall() { // the watchman: white-gold mail, a winged gold helm, the Gjallarhorn
   grp = 1;
   const x = 124, y = cragY(124);
-  line(lay, x, y - 4, x - 1, y, ROCK_L); line(lay, x + 1, y - 4, x + 2, y, ROCK_M);
+  line(lay, x, y - 4, x + 1, y, ROCK_L); line(lay, x - 1, y - 4, x - 2, y, ROCK_M);
   capsule(lay, x, y - 4, 1.8, x, y - 8, 2.1, ROCK_L, SNOW, SNOW);
   hline(lay, x - 1, x + 1, y - 5, GOLD_M);
-  disc(x + 1, y - 10, 1.6, SKIN, lay); plot(lay, x + 2, y - 10, INK);
-  hline(lay, x - 1, x + 2, y - 12, GOLD_M); plot(lay, x, y - 13, GOLD_L); plot(lay, x - 2, y - 13, SNOW); plot(lay, x - 2, y - 14, SNOW);
-  line(lay, x, y - 11, x - 2, y - 5, GOLD_M);                                                        // cloak edge
-  if (hmHorn) { line(lay, x + 1, y - 7, x + 3, y - 9, SNOW); line(lay, x + 3, y - 9, x + 7, y - 12, GOLD_M); line(lay, x + 7, y - 12, x + 9, y - 16, GOLD_L); plot(lay, x + 10, y - 17, GOLD_L); plot(lay, x + 8, y - 17, GOLD_L); }
-  else { line(lay, x + 2, y - 7, x + 2, y - 3, SNOW); line(lay, x + 3, y - 6, x + 5, y - 3, GOLD_M); plot(lay, x + 5, y - 2, GOLD_L); }
-  line2(lay, x - 3, y - 12, x - 3, y + 0, ROCK_L, ROCK_M);                                           // spear
-  plot(lay, x - 3, y - 13, SNOW);
-  hint(x - 10, y - 22, x + 14, y + 1);
+  disc(x - 1, y - 10, 1.6, SKIN, lay); plot(lay, x - 2, y - 10, INK);                                // he faces left, toward the world and its foes
+  hline(lay, x - 2, x + 1, y - 12, GOLD_M); plot(lay, x, y - 13, GOLD_L); plot(lay, x + 2, y - 13, SNOW); plot(lay, x + 2, y - 14, SNOW);
+  line(lay, x, y - 11, x + 2, y - 5, GOLD_M);                                                        // cloak edge
+  if (hmHorn) { line(lay, x - 1, y - 7, x - 3, y - 9, SNOW); line(lay, x - 3, y - 9, x - 7, y - 12, GOLD_M); line(lay, x - 7, y - 12, x - 9, y - 16, GOLD_L); plot(lay, x - 10, y - 17, GOLD_L); plot(lay, x - 8, y - 17, GOLD_L); }
+  else { line(lay, x - 2, y - 7, x - 2, y - 3, SNOW); line(lay, x - 3, y - 6, x - 5, y - 3, GOLD_M); plot(lay, x - 5, y - 2, GOLD_L); }
+  line2(lay, x + 3, y - 12, x + 3, y + 0, ROCK_L, ROCK_M);                                           // spear
+  plot(lay, x + 3, y - 13, SNOW);
+  hint(x - 14, y - 22, x + 10, y + 1);
   if (hmA < 1) layFade(hmA);
   layEnd(H - 1);
 }
@@ -704,15 +704,15 @@ function drawThor() { // Thor: red beard, winged helm, red cloak; Mjolnir in his
   } else {
     const w = thArm === 3 ? pfr & 1 : 0;
     line(lay, x - 1, y - 5, x - 2 - w, y, ROCK_M); line(lay, x + 1, y - 5, x + 2 + w, y, ROCK_M);
-    for (let k = 0; k < 7; k++) plot(lay, x - 2 - (k >> 1), y - 9 + k, FIRE_D);                        // cloak
+    for (let k = 0; k < 7; k++) plot(lay, x + 2 + (k >> 1), y - 9 + k, FIRE_D);                        // cloak, behind him
     capsule(lay, x, y - 5, 2.2, x, y - 10, 2.6, FIRE_D, FIRE_D, FIRE_M);
     hline(lay, x - 2, x + 2, y - 6, GOLD_M);
-    disc(x + 1, y - 13, 1.8, SKIN, lay); plot(lay, x + 2, y - 13, INK);
-    plot(lay, x + 1, y - 11, FIRE_M); plot(lay, x + 2, y - 11, FIRE_M); plot(lay, x + 1, y - 10, FIRE_M);  // beard
-    hline(lay, x - 1, x + 2, y - 15, ROCK_L); plot(lay, x - 2, y - 16, SNOW); plot(lay, x + 3, y - 16, SNOW); plot(lay, x - 2, y - 17, SNOW);
-    const ax = thArm === 1 ? x - 3 : thArm === 2 ? x + 5 : thArm === 3 ? x + 3 : x + 3, ay = thArm === 1 ? y - 16 : thArm === 2 ? y - 10 : thArm === 3 ? y - 7 + (pfr & 1) : y - 8;
-    line(lay, x + 1, y - 9, ax, ay, SKIN);
-    if (!hamOn) { line(lay, ax, ay, ax, ay - 3, BARK_M); rect(lay, ax - 1, ay - 5, 3, 2, ROCK_L); plot(lay, ax + 1, ay - 5, SNOW); }
+    disc(x - 1, y - 13, 1.8, SKIN, lay); plot(lay, x - 2, y - 13, INK);                                // he faces left, toward the serpent
+    plot(lay, x - 1, y - 11, FIRE_M); plot(lay, x - 2, y - 11, FIRE_M); plot(lay, x - 1, y - 10, FIRE_M);  // beard
+    hline(lay, x - 2, x + 1, y - 15, ROCK_L); plot(lay, x + 2, y - 16, SNOW); plot(lay, x - 3, y - 16, SNOW); plot(lay, x + 2, y - 17, SNOW);
+    const ax = thArm === 1 ? x + 3 : thArm === 2 ? x - 5 : x - 3, ay = thArm === 1 ? y - 16 : thArm === 2 ? y - 10 : thArm === 3 ? y - 7 + (pfr & 1) : y - 8;
+    line(lay, x - 1, y - 9, ax, ay, SKIN);
+    if (!hamOn) { line(lay, ax, ay, ax, ay - 3, BARK_M); rect(lay, ax - 1, ay - 5, 3, 2, ROCK_L); plot(lay, ax - 1, ay - 5, SNOW); }
   }
   hint(x - 14, y - 22, x + 14, y + 1);
   if (thA < 1) layFade(thA);
@@ -853,7 +853,7 @@ function drawOver() {
   if (hmHorn) for (let k = 0; k < 4; k++) { // the horn's call rolls out over the ice
     const age = (stT - 18 - k * 15);
     if (age < 0 || age > 60) continue;
-    ring(134, 36, age * 1.4, age < 20 ? SNOW : ICE);
+    ring(114, 36, age * 1.4, age < 20 ? SNOW : ICE);
   }
   if (bolt) { // lightning: from the sky to the serpent's head, or down onto the crag
     const tx = bolt === 1 ? Math.round(jgX + 8) : 118, ty = bolt === 1 ? Math.round(jgY) : Math.round(thY);
