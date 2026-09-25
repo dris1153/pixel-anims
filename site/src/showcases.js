@@ -6,6 +6,34 @@
 // country (an id from COUNTRIES, for subjects from one culture's myth or history; default other).
 export const SHOWCASES = [
   {
+    slug: "pied-piper-hamelin",
+    tags: ["humanoid", "creature", "magic", "dusk"],
+    country: "de",
+    title: "The Pied Piper of Hamelin",
+    still: 530,
+    res: [160, 90],
+    loop: 12,
+    states: ["rats", "piper", "tune", "river", "refuse", "children", "mountain", "return"],
+    kind: "Made with the skill",
+    note: "Sixteen rats run on one rule set: they scurry on a looping path, file out of the doors behind the Piper and are swept down the river, and the children reuse the same follower line.",
+    prompt:
+      "Pixel art the German legend of the Pied Piper of Hamelin, 160×90, one fixed shot, 12-second seamless loop, 8 " +
+      "states. Scene: medieval Hamelin: half-timbered houses with steep red roofs along a cobbled street, a stone " +
+      "church with a spire and a round-topped window, the river Weser running past the town wall at the left, and " +
+      "the green Koppen hill with a rock face at the right; the light runs from gold afternoon through dusk and " +
+      "night to a cold morning, and back. Keep the frame readable: the Piper and one crowd, rats or children, at a " +
+      "time. 1. rats: rats pour through the street and out of barrels and doors while a baker chases them with a " +
+      "broom. 2. piper: a tall stranger in a coat of red and yellow patches and a feathered hat walks in, and the " +
+      "fat mayor in purple with his chain of office shakes his hand, holding up a bag of gold. 3. tune: he plays " +
+      "his pipe, notes float out, and the rats stream out of every door behind him in a long line as he walks to " +
+      "the river. 4. river: he leads them into the Weser and they are swept away downstream. 5. refuse: the mayor " +
+      "laughs and holds out an empty purse, and the Piper's face darkens as dusk falls. 6. children: he plays a " +
+      "new, glowing tune, and the children skip out of the houses and follow him up the street toward the hill. 7. " +
+      "mountain: a doorway of light opens in the hill, the Piper and the children go in and it closes as night " +
+      "falls, leaving one small boy with a crutch outside. 8. return: under a cold dawn the church's stained-glass " +
+      "window of the story glows, the lame boy limps home, and the rats creep back into the street.",
+  },
+  {
     slug: "wonderful-wizard-of-oz",
     tags: ["humanoid", "creature", "magic", "day"],
     country: "us",
@@ -1208,7 +1236,7 @@ export const SHOWCASES = [
 
 // Filter groups on /showcase/ (a badge + popover each): OR within a group, AND across groups. Resolution tags come from `res`.
 export const resTag = s => `${s.res[0]}x${s.res[1]}`;
-export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['other', 'Other']];
+export const COUNTRIES = [['vn', 'Vietnam'], ['cn', 'China'], ['jp', 'Japan'], ['kr', 'Korea'], ['th', 'Thailand'], ['ph', 'Philippines'], ['in', 'India'], ['ru', 'Russia'], ['gr', 'Greece'], ['tr', 'Turkey'], ['eg', 'Egypt'], ['gb-eng', 'England'], ['no', 'Norway'], ['de', 'Germany'], ['es', 'Spain'], ['fr', 'France'], ['us', 'USA'], ['other', 'Other']];
 export const countryOf = s => s.country ?? 'other';
 export const TAG_GROUPS = [
   { label: 'Character', tags: [['humanoid', 'Humanoid'], ['creature', 'Creature'], ['robot', 'Robot']] },
