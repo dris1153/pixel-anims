@@ -223,15 +223,26 @@
   margin-top: 40px;
   padding: 16px 20px 20px;
 }
+.brief-head { /* the label and the copy button share a row, so the prompt text runs the full width */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.brief .copy {
+  position: static;
+  margin: 0;
+}
 .brief-label {
-  margin: 0 0 10px;
+  margin: 0;
   font: 700 0.7rem/2.2 var(--display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--cyan);
 }
 .brief p {
-  max-width: 90ch;
+  margin: 0;
   font-size: 1.02rem;
 }
 .pager {
@@ -284,4 +295,15 @@
   margin: 0;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: 28px;
+}
+.ff-badge { /* the fast-forward readout while the preview races to a state */
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  padding: 6px 9px;
+  font: 700 0.7rem var(--mono);
+  color: var(--gold);
+  background: rgba(7, 10, 28, 0.85);
+  border: 2px solid var(--gold);
 }

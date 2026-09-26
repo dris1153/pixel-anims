@@ -9,6 +9,88 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "con-rong-chau-tien",
+    tags: ["humanoid", "creature", "magic", "dawn"],
+    country: "vn",
+    title: "Children of the Dragon and the Fairy",
+    still: 1011,
+    res: [160, 90],
+    loop: 32,
+    states: ["drum", "fairy", "dragon", "meet", "palace", "sac", "eggs", "hatch", "grow", "call", "wait", "reunite", "part", "sea", "hills", "crown", "van lang", "return"],
+    kind: "Made with the skill",
+    note: "One integer camera glides over a world baked once two screens wide while the far ranges drift at half speed, and the tale is framed by a Đông Sơn drum face drawn in polar bands that melts outward into the dawn and is rebuilt inward as the people, houses, boats and birds stream back into their rings.",
+    prompt:
+      "Pixel art the Vietnamese legend of Lạc Long Quân and Âu Cơ, the Children of the Dragon and the Fairy, 160×90, " +
+      "32-second seamless loop, 18 states. The camera glides: the world is two screens wide, and the camera pans " +
+      "across it in a few states and rests in the others. Scene: from left to right, the misty high mountains of the " +
+      "north with peach and apricot blossom, the midland hills of Phong Châu, the flowering plain of Lạc Việt with " +
+      "the palace of Long Trang, and the Eastern Sea with a water palace glinting below the waves. The light runs " +
+      "from dawn through a golden day, a moonlit night and another day to dusk. The tale opens and closes on the face " +
+      "of a Đông Sơn bronze drum. Keep the frame readable: the dragon, the fairy and one wonder at a time. 1. drum: " +
+      "the face of a bronze Đông Sơn drum fills the frame: a fourteen-rayed star at the center, rings of flying Lạc " +
+      "birds, dancers in feathered headdresses. The star flares and the bronze melts into a dawn world. 2. fairy: the " +
+      "camera glides left to the high mountains, where Âu Cơ, a fairy of the line of Thần Nông in white and rose " +
+      "robes, floats down among a flock of Lạc birds. 3. dragon: the camera sweeps right across the whole land to the " +
+      "sea, where Lạc Long Quân, a great dragon of gold and jade, rises from the waves beside his water palace. 4. " +
+      "meet: the camera glides back to the plain; the dragon lands and becomes a tall young lord, Âu Cơ alights " +
+      "beside him, and flowers burst open all around them. 5. palace: the palace of Long Trang rises on the plain, " +
+      "and the two are wed amid swirling petals and birds. 6. sac: Âu Cơ gives birth to a glowing, pearly sac that " +
+      "pulses with light. 7. eggs: the sac opens and a hundred shining eggs roll out across the ground. 8. hatch: the " +
+      "eggs hatch one after another in bursts of light, and a hundred rosy children tumble out. 9. grow: without milk " +
+      "or nursing, the children shoot up as if blown by the wind into strong young men and women. 10. call: missing " +
+      "the sea, Lạc Long Quân turns back into the dragon and dives home beneath the waves. 11. wait: under the moon " +
+      "Âu Cơ waits on the shore with the hundred children, gazing out to sea. 12. reunite: the dragon returns at her " +
+      "call and they meet at the water's edge. 13. part: they agree to part, and the hundred children divide into two " +
+      "groups of fifty, one by the father, one by the mother. 14. sea: the camera glides right as fifty children " +
+      "follow the dragon into the waves, riding the surf in boats and casting nets. 15. hills: the camera sweeps left " +
+      "as fifty follow Âu Cơ up into the mountains, past terraced fields and forests. 16. crown: at Phong Châu the " +
+      "eldest son is crowned the first Hùng King, with his Lạc hầu and Lạc tướng bowing and bronze drums booming. 17. " +
+      "van lang: the camera glides back to the plain, and the kingdom of Văn Lang flourishes with rice fields, stilt " +
+      "houses, boats and a festival of bronze drums and feather dancers. 18. return: at dusk the whole world draws " +
+      "into the drum face. Dancers, stilt houses, boats and Lạc birds settle into its rings of engraving, and the " +
+      "star turns, ready to shine again.",
+  },
+  {
+    slug: "pangu-separates-heaven-earth",
+    tags: ["humanoid", "magic", "impact", "dawn"],
+    country: "cn",
+    title: "Pangu Separates Heaven and Earth",
+    still: 336,
+    res: [160, 90],
+    loop: 28,
+    states: ["egg", "sleep", "wake", "axe", "split", "hold", "grow", "weary", "fall", "breath", "eyes", "peaks", "rivers", "stars", "bloom", "return"],
+    kind: "Made with the skill",
+    note: "The burst chaos is one turning yin-yang pulled apart into sky and earth, and the fallen giant is one heightfield whose columns stretch from flesh into the five stone peaks, so the whole world grows out of his body before a single vortex draws it back into the egg.",
+    prompt:
+      "Pixel art the Chinese creation myth of Pangu separating heaven and earth, 160×90, one fixed shot, 28-second " +
+      "seamless loop, 16 states. Scene: at first a black void with one vast cosmic egg floating in the middle, its " +
+      "shell marbled dark and pale like yin and yang. After the split a new world fills the frame: a pale sky above " +
+      "and a dark ochre earth below. Later come mountains lying along the horizon, rivers, a sun and a moon, stars " +
+      "and green forests. The light runs from black chaos through storm, a first golden day and a starry night to " +
+      "dusk. Keep the frame readable: Pangu or one wonder at a time. 1. egg: in the black void the vast egg floats, " +
+      "turning slowly, a faint glow pulsing inside like a heartbeat. 2. sleep: the glow brightens and through the " +
+      "shell shows a giant curled up asleep, knees to chest, while dust and embers drift for eighteen thousand years. " +
+      "3. wake: his eyes open as two sparks, he stretches, and bright cracks race across the shell. 4. axe: Pangu " +
+      "seizes a great axe and swings it; the egg bursts apart in a blast of white light and a ring of shell shards " +
+      "flying outward. 5. split: the clear, light part of chaos drifts up and becomes the sky, the heavy, murky part " +
+      "sinks down and becomes the earth, the two swirling apart like a turning yin-yang. 6. hold: Pangu stands " +
+      "between them so they cannot close again, palms pressed up against the sky and feet braced on the earth. He is " +
+      "bearded and long-haired, with small horns and a cape of leaves at his waist. 7. grow: day and night flicker " +
+      "past faster and faster as he grows taller every day, the sky rising and the earth sinking until they stand far " +
+      "apart. 8. weary: the sky holds by itself at last; Pangu lowers his arms, lets the axe fall and sinks to one " +
+      "knee, breathing hard. 9. fall: he lies down along the horizon, head to the east and feet to the west, and " +
+      "breathes out one last great breath. 10. breath: his breath rolls out as wind and billowing clouds, and his " +
+      "voice becomes thunder, lightning flickering along the clouds. 11. eyes: his left eye rises into the sky as a " +
+      "blazing sun and his right eye as a silver moon. 12. peaks: his body turns to stone: his head, belly and feet " +
+      "rise into the great sacred mountains, his arms into long ridges. 13. rivers: his blood runs out as winding " +
+      "rivers between the peaks to a shining sea, and his sweat falls as rain. 14. stars: night falls, and his hair " +
+      "and beard lift into the sky and scatter as countless stars around the moon. 15. bloom: the first dawn breaks; " +
+      "the fine hair of his skin sprouts as grass, trees and flowers that spread green over the mountains, and his " +
+      "teeth and bones glint as gold and jade in the rocks. 16. return: at dusk the whole world streams back into one " +
+      "point: stars, moon, sun, rivers and mountains spiral inward and close into the cosmic egg again, with the " +
+      "giant curled up asleep inside, ready to wake.",
+  },
+  {
     slug: "forging-the-sampo",
     tags: ["humanoid", "craft", "magic", "night"],
     country: "fi",

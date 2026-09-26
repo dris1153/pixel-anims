@@ -1,0 +1,1674 @@
+<title>Children of the Dragon and the Fairy</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { color-scheme: dark; background: #120c18; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #120c18; }
+  canvas {
+    position: fixed; inset: 0; width: 100%; height: 100%; display: block;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+  }
+</style>
+<canvas id="view" role="img" aria-label="Pixel art of the Vietnamese legend of Lạc Long Quân and Âu Cơ: the face of a Đông Sơn bronze drum with its fourteen-rayed star, ring of flying Lạc birds and feathered dancers melts into a dawn world two screens wide; the camera glides to the misty mountains where the fairy Âu Cơ floats down among Lạc birds, sweeps over the land to the sea where the gold and jade dragon Lạc Long Quân rises beside his water palace, and back to the plain where he becomes a young lord, they meet among bursting flowers and wed at the palace of Long Trang; she bears a glowing sac of a hundred eggs that roll out and hatch into a hundred children who shoot up as if blown by the wind; at sunset he dives home as a dragon, she waits under the moon with the children and he returns at her call; at dawn the crowd splits in two, fifty follow him into the waves in boats casting nets and fifty follow her up the terraced hills, where the eldest son is crowned the first Hùng King to booming bronze drums; the kingdom of Văn Lang flourishes with rice fields, stilt houses, boats and a festival of drums and feather dancers, and at dusk the whole world draws back into the drum face"></canvas>
+<script>
+'use strict';
+// pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
+(() => {
+// #region SCENE config
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // no single floor: spray, petals and sparks are culled at their own ground in step()
+const POSE_STEP = 6;               // 10 fps pose frames
+const WW = 320, FW = 240;          // the world is two screens wide; the far ranges scroll at half speed
+const HZ = 66;                     // the far edge of the land and the sea horizon
+const DCX = 80, DCY = 45;          // the drum face, centred on the frame
+
+// Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
+const PAL = [
+  '#120c18',
+  '#1c1a3a', '#2c3264', '#3b62a6', '#6f9fd6', '#b6d8ec', '#fffaf0',
+  '#5c2f5a', '#a8486a', '#e67a8e', '#fbc6c8',
+  '#ec8c40', '#a86c28', '#e8b440', '#fff09a',
+  '#2e2418', '#6a4a28',
+  '#16403c', '#27806a', '#6ccaa0',
+  '#23402a', '#457a36', '#90b848',
+  '#454a7e', '#7d88b8',
+  '#b2644c', '#f0b890',
+  '#c43a30', '#1a2c30', '#ddd2c4',
+];
+const INK = 0, NIT_A = 1, NIT_B = 2, SKY_A = 3, SKY_B = 4, SKY_C = 5, WHITE = 6,
+  PLUM = 7, ROSE_D = 8, ROSE = 9, PINK_L = 10, AMBER = 11, GOLD_D = 12, GOLD = 13, GOLD_L = 14,
+  BRZ_D = 15, BRZ_M = 16, JADE_D = 17, JADE_M = 18, JADE_L = 19, GRN_D = 20, GRN_M = 21, GRN_L = 22,
+  MTN_D = 23, MTN_L = 24, SKIN_D = 25, SKIN_L = 26, RED = 27, NIT_G = 28, CREAM = 29;
+
+// One step brighter per ramp; bronze climbs into the gold ramp, the sky toward white.
+const LIGHTEN = Uint8Array.of(
+  NIT_A,
+  NIT_B, SKY_A, SKY_B, SKY_C, WHITE, WHITE,
+  ROSE_D, ROSE, PINK_L, WHITE,
+  GOLD, GOLD, GOLD_L, WHITE,
+  BRZ_M, GOLD_D,
+  JADE_M, JADE_L, JADE_L,
+  GRN_M, GRN_L, GOLD_L,
+  MTN_L, SKY_C,
+  SKIN_L, PINK_L,
+  AMBER, GRN_D, WHITE);
+const RAMP_GOLD = Uint8Array.of(WHITE, GOLD_L, GOLD, GOLD_D, BRZ_M);
+const RAMP_SPRAY = Uint8Array.of(WHITE, SKY_C, SKY_B, SKY_A);
+const RAMP_PETAL = Uint8Array.of(PINK_L, ROSE, ROSE_D, PLUM);
+const RAMP_JADE = Uint8Array.of(WHITE, JADE_L, JADE_M, JADE_D);
+const RAMP_DUST = Uint8Array.of(CREAM, GOLD_D, BRZ_M, BRZ_D);
+const RAMP_PEARL = Uint8Array.of(WHITE, PINK_L, SKY_C, MTN_L);
+const RAMP_LEAF = Uint8Array.of(GOLD_L, GRN_L, GRN_M, GRN_D);
+const RAMPS = [RAMP_GOLD, RAMP_SPRAY, RAMP_PETAL, RAMP_JADE, RAMP_DUST, RAMP_PEARL, RAMP_LEAF];
+const R_GOLD = 0, R_SPRAY = 1, R_PETAL = 2, R_JADE = 3, R_DUST = 4, R_PEARL = 5, R_LEAF = 6;
+const RIM = Uint8Array.of(GOLD, GOLD_L, WHITE);
+const RIM_BANDS = Uint16Array.of(16, 30, 48);   // a long dragon: only the coils near the light catch it
+const LIGHT = Float32Array.of(0.5, -0.87);      // the sun, high and to the east over the sea
+// Her ribbons and every feather are thin trailing things: never rim-lit end to end.
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[PINK_L] = RIM_OK[WHITE] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[NIT_A] = AIR[NIT_B] = AIR[SKY_A] = AIR[SKY_B] = AIR[SKY_C] = AIR[PLUM] = AIR[ROSE_D] = AIR[AMBER] = 1;
+
+const DRUM = 0, FAIRY = 1, DRAGON = 2, MEET = 3, PALACE = 4, SAC = 5, EGGS = 6, HATCH = 7, GROW = 8, CALL = 9,
+  WAIT = 10, REUNITE = 11, PART = 12, SEA = 13, HILLS = 14, CROWN = 15, VANLANG = 16, RETURN = 17;
+const DUR = Uint16Array.of(108, 108, 132, 108, 96, 96, 96, 120, 96, 102, 102, 96, 102, 108, 132, 108, 120, 90); // L = 1920
+const EASE = new Uint16Array(18).fill(6);
+const EASE_OUT = new Uint8Array(18);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = Array.from({ length: 18 }, () => REST);
+// #endregion
+
+// #region ENGINE
+const N = W * H, STEP_MS = 1000 / 60, EMPTY = 255;
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BAYER = Uint8Array.of(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5); // 4x4 ordered dither, 0-15
+const SHAKE = Int8Array.of(1, -1, 0, 1, -1, 1, 0, -1);
+
+const bg = new Uint8Array(N);   // static backdrop, built once
+const buf = new Uint8Array(N);  // indexed frame
+const spr = new Uint8Array(N);  // actor layer, EMPTY where transparent
+
+const view = document.getElementById('view');
+const vctx = view.getContext('2d', { alpha: false });
+const off = document.createElement('canvas');
+off.width = W; off.height = H;
+const octx = off.getContext('2d');
+const img = octx.createImageData(W, H);
+const u32 = new Uint32Array(img.data.buffer);
+const LE = new Uint8Array(Uint32Array.of(1).buffer)[0] === 1;
+const PAL32 = Uint32Array.from(PAL, hex => {
+  const v = parseInt(hex.slice(1), 16), r = v >> 16, g = (v >> 8) & 255, b = v & 255;
+  return (LE ? 0xff000000 | b << 16 | g << 8 | r : r << 24 | g << 16 | b << 8 | 0xff) >>> 0;
+});
+const RB = Uint32Array.from(RIM_BANDS, r => r * r);
+
+// Particle pool (structure of arrays). ORBIT reuses pvx as angular speed and pvy as radius decay.
+const MAXP = 320, ORBIT = 1, BURST = 2, TRAIL = 3, MOTE = 4;
+const pKind = new Uint8Array(MAXP), pLife = new Int16Array(MAXP), pMax = new Int16Array(MAXP), pRamp = new Uint8Array(MAXP);
+const px = new Float32Array(MAXP), py = new Float32Array(MAXP);
+const pqx = new Float32Array(MAXP), pqy = new Float32Array(MAXP);
+const pvx = new Float32Array(MAXP), pvy = new Float32Array(MAXP);
+const pa = new Float32Array(MAXP), pr = new Float32Array(MAXP);
+let cursor = 0;
+
+const pose = Float32Array.from(TARGET[0]), from = Float32Array.from(TARGET[0]), snap = Float32Array.from(TARGET[0]);
+const spring = new Float32Array(8); // up to 4 damped springs as [pos, vel] pairs
+const clock = new Float64Array(2);  // last frame time, accumulator
+const ctl = new Int32Array(3);      // embedding control: paused, fast-forward ticks left, fast-forward ticks per frame
+const rng = Uint32Array.of(0x9e3779b9);
+let state = 0, stT = -1, tick = -1;
+let srcX = 0, srcY = 0, rim = 1; // FX light (also the orbit center) and its level, set by sample()
+let shakeT = 0, flashT = 0, shakeX = 0, shakeY = 0, scale = 1, viewX = 0, viewY = 0;
+let jx = 0, jy = 0;              // joint() result
+let cropX = 0, cropY = 0, cropW = W, cropH = H; // region shown on screen; QA zooms in via #t=N&crop=x,y,w,h
+
+// Seeded xorshift32 so #t=N always renders the same frame. Never use Math.random.
+function rand() {
+  let x = rng[0];
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+  rng[0] = x;
+  return rng[0] / 4294967296;
+}
+
+function plot(t, x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = c;
+}
+function hline(t, x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) plot(t, x, y, c);
+}
+function rect(t, x, y, w, h, c) {
+  for (let j = 0; j < h; j++) hline(t, x, x + w - 1, y + j, c);
+}
+function line(t, x0, y0, x1, y1, c, yMax = H - 1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+  for (let s = 0; s <= n; s++) {
+    const y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y <= yMax) plot(t, Math.round(x0 + (x1 - x0) * s / n), y, c);
+  }
+}
+// 2px prop from one DDA so both edges step together: dark edge left of steep lines, below shallow ones.
+function line2(t, x0, y0, x1, y1, light, dark, yMax = H - 1) {
+  const ax = Math.abs(x1 - x0), ay = Math.abs(y1 - y0), n = Math.max(ax, ay) || 1;
+  const ox = ay > ax ? -1 : 0, oy = ay > ax ? 0 : 1;
+  for (let s = 0; s <= n; s++) {
+    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
+    if (y + oy <= yMax) plot(t, x + ox, y + oy, dark);
+    if (y <= yMax) plot(t, x, y, light);
+  }
+}
+// Tapered capsule (x0,y0,r0)-(x1,y1,r1) shaded by facing toward LIGHT: necks, tails, limbs, sleeves.
+function capsule(t, x0, y0, r0, x1, y1, r1, dark, base, light) {
+  const dx = x1 - x0, dy = y1 - y0, len2 = dx * dx + dy * dy || 1, R = Math.ceil(Math.max(r0, r1));
+  const xa = Math.floor(Math.min(x0, x1)) - R, xb = Math.ceil(Math.max(x0, x1)) + R;
+  const ya = Math.floor(Math.min(y0, y1)) - R, yb = Math.ceil(Math.max(y0, y1)) + R;
+  for (let y = ya; y <= yb; y++) {
+    for (let x = xa; x <= xb; x++) {
+      const u = Math.max(0, Math.min(1, ((x - x0) * dx + (y - y0) * dy) / len2));
+      const qx = x - x0 - dx * u, qy = y - y0 - dy * u, r = r0 + (r1 - r0) * u;
+      if (qx * qx + qy * qy > r * r) continue;
+      const f = (qx * LIGHT[0] + qy * LIGHT[1]) / (r || 1); // -1 shadow side .. 1 lit side
+      plot(t, x, y, f > 0.35 ? light : f < -0.35 ? dark : base);
+    }
+  }
+}
+// Two-bone solve (elbow, knee) from root (ax,ay) to end (bx,by); side +-1 picks the bend. Writes jx, jy.
+function joint(ax, ay, bx, by, l1, l2, side) {
+  const dx = bx - ax, dy = by - ay, dist = Math.sqrt(dx * dx + dy * dy) || 0.001, d = Math.min(dist, l1 + l2);
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  const ux = dx / dist, uy = dy / dist;
+  jx = Math.round(ax + ux * a - uy * h * side);
+  jy = Math.round(ay + uy * a + ux * h * side);
+}
+function disc(cx, cy, r, c, t = buf) {
+  const k = Math.ceil(r);
+  for (let dy = -k; dy <= k; dy++)
+    for (let dx = -k; dx <= k; dx++) if (dx * dx + dy * dy <= r * r) plot(t, cx + dx, cy + dy, c);
+}
+function ring(cx, cy, r, c, t = buf) {
+  r = Math.round(r);
+  for (let x = r, y = 0, err = 1 - r; x >= y; y++) {
+    plot(t, cx + x, cy + y, c); plot(t, cx - x, cy + y, c);
+    plot(t, cx + x, cy - y, c); plot(t, cx - x, cy - y, c);
+    plot(t, cx + y, cy + x, c); plot(t, cx - y, cy + x, c);
+    plot(t, cx + y, cy - x, c); plot(t, cx - y, cy - x, c);
+    if (err < 0) err += 2 * y + 3;
+    else { err += 2 * (y - x) + 5; x--; }
+  }
+}
+// Posterized glow (core, solid falloff, checker fringe) that only tints AIR pixels.
+function halo(cx, cy, r, core, mid, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.09, r2 = r * r * 0.36;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r || !AIR[t[i]]) continue;
+      if (d2 <= r1) t[i] = core;
+      else if (d2 <= r2 || (x + y) & 1) t[i] = mid;
+    }
+  }
+}
+// Light pool on any surface (floor, wall, body): 2 LIGHTEN steps at the core, 1 inside, checker fringe.
+function lighten(cx, cy, r, t = buf) {
+  r = Math.round(r);
+  const r1 = r * r * 0.16, r2 = r * r * 0.5;
+  for (let dy = -r; dy <= r; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -r; dx <= r; dx++) {
+      const x = cx + dx, d2 = dx * dx + dy * dy, i = y * W + x;
+      if (x < 0 || x >= W || d2 > r * r) continue;
+      if (d2 <= r1) t[i] = LIGHTEN[LIGHTEN[t[i]]];
+      else if (d2 <= r2 || (x + y) & 1) t[i] = LIGHTEN[t[i]];
+    }
+  }
+}
+
+function spawn(kind, life, x, y, vx, vy, ramp = 0) {
+  let i = cursor;
+  for (let n = 0; n < MAXP && pKind[i]; n++) i = (i + 1) % MAXP; // pool full: recycle the slot at cursor
+  cursor = (i + 1) % MAXP;
+  pKind[i] = kind; pLife[i] = pMax[i] = Math.max(2, life); pRamp[i] = ramp;
+  px[i] = pqx[i] = x; py[i] = pqy[i] = y; pvx[i] = vx; pvy[i] = vy;
+  return i;
+}
+// Spark spiralling into (srcX, srcY), starting at an angle in [a0, a0 + arc); lives until its radius is ~1px.
+function spawnOrbit(r, speed, decay, a0 = 0, arc = 6.283, ramp = 0) {
+  const a = a0 + rand() * arc;
+  const i = spawn(ORBIT, Math.log(r / 1.2) / -Math.log(decay), srcX + Math.cos(a) * r, srcY + Math.sin(a) * r * 0.5,
+    speed, decay, ramp);
+  pa[i] = a; pr[i] = r;
+  return i;
+}
+function updateParticles() {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    if (--pLife[i] <= 0) { pKind[i] = 0; continue; }
+    pqx[i] = px[i]; pqy[i] = py[i];
+    if (k === ORBIT) {
+      pr[i] *= pvy[i];
+      pa[i] += pvx[i] * 14 / (pr[i] + 4); // spins faster as it falls inward
+      px[i] = srcX + Math.cos(pa[i]) * pr[i];
+      py[i] = srcY + Math.sin(pa[i]) * pr[i] * 0.5;
+      continue;
+    }
+    if (k === BURST) { pvx[i] *= 0.93; pvy[i] = pvy[i] * 0.93 + 0.035; }
+    else if (k === TRAIL) { pvx[i] *= 0.9; pvy[i] *= 0.9; }
+    else pvx[i] = Math.sin(pLife[i] * 0.15) * 0.08;
+    px[i] += pvx[i]; py[i] += pvy[i];
+    if (py[i] > FY) { py[i] = FY; pvy[i] *= -0.45; pvx[i] *= 0.7; }
+  }
+}
+function stepSpring(k, target) {
+  spring[k + 1] = (spring[k + 1] + (target - spring[k]) * 0.03) * 0.88;
+  spring[k] += spring[k + 1];
+}
+
+// Stamp the actor over the scene: auto outline in ink, plus a 1px rim on edges facing (srcX, srcY).
+function composite() {
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x, c = spr[i];
+      if (c === EMPTY) {
+        if ((x > 0 && spr[i - 1] !== EMPTY) || (x < W - 1 && spr[i + 1] !== EMPTY) ||
+          (y > 0 && spr[i - W] !== EMPTY) || (y < H - 1 && spr[i + W] !== EMPTY)) buf[i] = 0;
+        continue;
+      }
+      const dx = srcX - x, dy = srcY - y, d2 = dx * dx + dy * dy;
+      const lv = rim - (d2 < RB[0] ? 0 : d2 < RB[1] ? 1 : d2 < RB[2] ? 2 : 3);
+      const sx = dx > 1 ? 1 : dx < -1 ? -1 : 0, sy = dy > 1 ? 1 : dy < -1 ? -1 : 0;
+      const open = (sx !== 0 && (x + sx < 0 || x + sx >= W || spr[i + sx] === EMPTY)) ||
+        (sy !== 0 && (y + sy < 0 || y + sy >= H || spr[i + sy * W] === EMPTY));
+      buf[i] = lv > 0 && RIM_OK[c] && open ? (lv === 1 ? LIGHTEN[c] : RIM[Math.min(lv, 4) - 2]) : c;
+    }
+  }
+}
+
+function dot(fx, fy, c, back) {
+  const x = Math.round(fx), y = Math.round(fy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const i = y * W + x;
+  if (!back || spr[i] === EMPTY) buf[i] = c;
+}
+// Orbiting sparks on the far half of their ellipse pass behind the actor.
+function drawParticles(front) {
+  for (let i = 0; i < MAXP; i++) {
+    const k = pKind[i];
+    if (!k) continue;
+    const back = k === ORBIT && Math.sin(pa[i]) < 0;
+    if (back === front) continue;
+    const ramp = RAMPS[pRamp[i]], n = ramp.length, step = (pMax[i] - pLife[i]) * n / pMax[i] | 0;
+    dot(pqx[i], pqy[i], ramp[Math.min(n - 1, step + 1)], back);
+    dot(px[i], py[i], ramp[step], back);
+  }
+}
+
+function update() {
+  tick++;
+  if (++stT >= DUR[state]) { state = (state + 1) % DUR.length; stT = 0; from.set(pose); }
+  const p = Math.min(1, stT / EASE[state]);
+  const e = EASE_OUT[state] ? p * (2 - p) : 0.5 - 0.5 * Math.cos(Math.PI * p);
+  const to = TARGET[state];
+  for (let k = 0; k < NP; k++) pose[k] = from[k] + (to[k] - from[k]) * e;
+  step();
+  updateParticles();
+  if (calm) shakeT = flashT = 0;
+  if (shakeT > 0) shakeT--;
+  if (flashT > 0) flashT--;
+  const amp = shakeT > 8 ? 2 : shakeT > 0 ? 1 : 0, s = (shakeT >> 1) & 7;
+  shakeX = SHAKE[s] * amp; shakeY = SHAKE[(s + 3) & 7] * amp;
+}
+function render() {
+  buf.set(bg);
+  drawUnder();
+  spr.fill(EMPTY);
+  drawActor();
+  composite();
+  drawOver();
+  if (flashT > 0) for (let i = 0; i < N; i++) buf[i] = LIGHTEN[buf[i]]; // one LIGHTEN step per flash frame
+  present();
+}
+function present() {
+  for (let i = 0; i < N; i++) u32[i] = PAL32[buf[i]];
+  octx.putImageData(img, 0, 0);
+  vctx.fillStyle = PAL[0];
+  vctx.fillRect(0, 0, view.width, view.height);
+  vctx.drawImage(off, cropX, cropY, cropW, cropH, viewX + shakeX * scale, viewY + shakeY * scale, cropW * scale, cropH * scale);
+}
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  view.width = Math.round(innerWidth * dpr);
+  view.height = Math.round(innerHeight * dpr);
+  scale = Math.max(1, Math.floor(Math.min(view.width / cropW, view.height / cropH)));
+  viewX = (view.width - cropW * scale) >> 1;
+  viewY = (view.height - cropH * scale) >> 1;
+  vctx.imageSmoothingEnabled = false; // resizing resets context state
+  present();
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = now - clock[0];
+  clock[0] = now;
+  if (ctl[0]) { clock[1] = 0; return; }             // paused by the embedding page: hold the frame
+  if (ctl[1] > 0) {                                  // fast-forward: a burst of steps each frame, then play on
+    for (let n = Math.min(ctl[1], ctl[2]); n > 0; n--, ctl[1]--) update();
+    clock[1] = 0;
+    render();
+    return;
+  }
+  if (Math.abs(dt - STEP_MS) < 1) dt = STEP_MS; // absorb vsync jitter: one step per frame on 60 Hz displays
+  clock[1] = Math.min(250, clock[1] + Math.max(0, dt));
+  let steps = 0;
+  while (clock[1] >= STEP_MS) { clock[1] -= STEP_MS; update(); steps++; }
+  if (steps) render();
+}
+// Fail loudly at boot on SCENE config mistakes that would otherwise render wrong silently.
+function checkContract() {
+  const fail = msg => { throw new Error('pixel-anims contract: ' + msg); };
+  const colors = PAL.length;
+  if (!PAL.every(h => /^#[0-9a-f]{6}$/i.test(h))) fail('PAL entries must be #rrggbb');
+  if (colors > EMPTY) fail('PAL is limited to 255 colors');
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM_OK', RIM_OK], ['AIR', AIR]])
+    if (lut.length !== colors) fail(`${name} must have PAL.length entries`);
+  for (const [name, lut] of [['LIGHTEN', LIGHTEN], ['RIM', RIM], ...RAMPS.map((r, k) => [`RAMPS[${k}]`, r])])
+    if (!lut.length || lut.some(c => c >= colors)) fail(`${name} must hold palette indices`);
+  if (RIM.length !== 3 || RIM_BANDS.length !== 3) fail('RIM and RIM_BANDS need 3 entries');
+  const states = DUR.length;
+  if (EASE.length !== states || EASE_OUT.length !== states || TARGET.length !== states)
+    fail('DUR, EASE, EASE_OUT and TARGET need one entry per state');
+  DUR.forEach((d, k) => {
+    if (d % POSE_STEP) fail(`DUR[${k}] must be a multiple of POSE_STEP`);
+    if (!(EASE[k] >= 1 && EASE[k] <= d)) fail(`EASE[${k}] must be within 1..DUR[${k}]`);
+    if (TARGET[k].length !== NP) fail(`TARGET[${k}] needs NP values`);
+  });
+  if (TARGET[states - 1].some((v, k) => v !== TARGET[0][k])) fail('the last state must return to TARGET[0]');
+}
+// #endregion
+
+// #region SCENE logic
+// Scene tables
+const TWO_PI = Math.PI * 2;
+const ST0 = new Uint16Array(18);                    // each state's first tick in the loop
+const WORLD = new Uint8Array(WW * H).fill(EMPTY);   // land and sea, baked once; EMPTY lets the far ranges and sky through
+const FAR = new Uint8Array(FW * H).fill(EMPTY);     // misty ranges and clouds at half the camera speed
+const TER = new Int16Array(WW);                     // top of the hills and mountains per world column (HZ on the plain)
+const SKYM = new Uint8Array(N);                     // 1 where this frame shows open sky
+const DD = new Float32Array(N), DA = new Float32Array(N), SHEEN = new Uint8Array(N); // the drum face in polar form
+// Drum bands, inner row first: zigzag, the scene of houses, dancers and boats, circles, the Lạc birds, outer ticks
+const WZ = 82, WS = 132, WC = 176, WB = 220, WO = 264;
+const TZ = new Uint8Array(3 * WZ), TS = new Uint8Array(10 * WS), TC = new Uint8Array(3 * WC), TB = new Uint8Array(9 * WB), TO = new Uint8Array(3 * WO);
+// Time of day as palette remaps of the day world, one set for open sky and one for land, sea and far ranges
+const DAY = 0, DAWN = 1, SUNSET = 2, NIGHT = 3, DUSK = 4;
+const TODS = [0, 1, 2, 3, 4].map(() => new Uint8Array(PAL.length)), TODL = [0, 1, 2, 3, 4].map(() => new Uint8Array(PAL.length));
+// Camera: start and end stop per state, and the ticks the glide runs between
+const CAM_A = Int16Array.of(80, 80, 0, 160, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 160, 0, 0, 80);
+const CAM_B = Int16Array.of(80, 0, 160, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 160, 0, 0, 80, 80);
+const PAN0 = Uint8Array.of(0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 6, 0, 0, 0);
+const PAN1 = Uint8Array.of(1, 84, 120, 78, 1, 1, 1, 1, 1, 1, 1, 1, 1, 96, 120, 1, 84, 1);
+// World places
+const HX = 70, HTOP = 48;                           // the Phong Châu hill and its flat crown
+const FAX = 140, MAX = 156, CPY = 80;               // where Âu Cơ and the young lord stand on the plain
+const SACX = 148, SACY = 84;
+const PLX = 170;                                    // the palace of Long Trang
+const WPX = 270;                                    // the water palace under the waves
+// The hundred: eggs, children, then fifty and fifty
+const NK = 100;
+const EX = new Int16Array(NK), EY = new Int16Array(NK), CRX = new Int16Array(NK), CRY = new Int16Array(NK);
+const CWX = new Int16Array(NK), CWY = new Int16Array(NK), VX = new Int16Array(NK), VY = new Int16Array(NK);
+const HR = new Float32Array(NK), GO = new Float32Array(NK), KCOL = new Uint8Array(NK);
+const KX = new Int16Array(NK), KY = new Int16Array(NK), KS = new Uint8Array(NK), KV = new Uint8Array(NK), KF = new Uint8Array(NK),
+  KD = new Int8Array(NK), KB = new Uint8Array(NK);   // sampled: position, stage, visible, feathered, facing, bowing/walking
+const TUNIC = Uint8Array.of(RED, JADE_M, GOLD_D, ROSE_D, BRZ_M, SKY_A, GRN_D, PLUM);
+const NPATH = 120, PATHX = new Float32Array(NPATH), PATHY = new Float32Array(NPATH); // the climb to Phong Châu, 1px apart
+const NFL = 44, FLX = new Int16Array(NFL), FLY = new Int16Array(NFL), FLT = new Uint8Array(NFL), FLC = new Uint8Array(NFL);
+const NBT = 10, BX = new Int16Array(NBT), BY = new Int16Array(NBT), BLY = new Int16Array(NBT); // boats: at sea, launch rows
+const bQX = new Int16Array(NBT), bQY = new Int16Array(NBT), bOn = new Uint8Array(NBT);        // sampled boats
+const NHS = 3, HSX = Int16Array.of(104, 124, 194), HSY = Int16Array.of(71, 70, 71);  // Văn Lang stilt houses
+const NB = 8, BRX = new Int16Array(NB), BRY = new Int16Array(NB), BRD = new Int8Array(NB);    // the Lạc birds
+// The dragon: a chain of capsules along one path of his head through time
+const NSEG = 24, LAG = 2;
+const DX = new Float32Array(NSEG), DY = new Float32Array(NSEG), DUX = new Float32Array(NSEG), DUY = new Float32Array(NSEG);
+const DR = Float32Array.from({ length: NSEG }, (_, i) => i < 3 ? 3.4 : 3.6 - 2.5 * Math.pow((i - 2) / (NSEG - 3), 1.3));
+const HD = new Float32Array(2);
+const DSX = new Int16Array(NSEG), DSY = new Int16Array(NSEG);                 // sampled, in screen space
+const pWL = new Float32Array(MAXP);                // per particle: the row it lands on
+
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+}
+function ease(u) {
+  return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
+}
+function mix(a, b, e) {
+  return a + (b - a) * e;
+}
+function clamp01(u) {
+  return Math.max(0, Math.min(1, u));
+}
+function shoreX(y) { // the waterline runs slightly outward as the beach comes toward us
+  return 200 + ((y - HZ) >> 1);
+}
+
+function buildBackground() {
+  const seed = Uint32Array.of(20260926);
+  const rnd = () => { let x = seed[0]; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; seed[0] = x; return seed[0] / 4294967296; };
+  for (let k = 1; k < 18; k++) ST0[k] = ST0[k - 1] + DUR[k - 1];
+  const wset = (x, y, c) => { if (x >= 0 && x < WW && y >= 0 && y < H) WORLD[y * WW + x] = c; };
+  const fset = (x, y, c) => { if (x >= 0 && x < FW && y >= 0 && y < H) FAR[y * FW + x] = c; };
+  const map = (lut, pairs) => { for (let j = 0; j < pairs.length; j += 2) lut[pairs[j]] = pairs[j + 1]; };
+  for (let m = 0; m < 5; m++) for (let c = 0; c < PAL.length; c++) TODS[m][c] = TODL[m][c] = c;
+  map(TODS[DAWN], [SKY_A, MTN_D, SKY_B, ROSE, SKY_C, PINK_L]);
+  map(TODS[SUNSET], [SKY_A, ROSE_D, SKY_B, AMBER, SKY_C, GOLD_L]);
+  map(TODS[NIGHT], [SKY_A, NIT_A, SKY_B, NIT_A, SKY_C, NIT_B]);
+  map(TODS[DUSK], [SKY_A, PLUM, SKY_B, ROSE_D, SKY_C, AMBER]);
+  map(TODL[DAWN], [SKY_A, MTN_D, SKY_B, ROSE_D, SKY_C, PINK_L, NIT_B, PLUM, WHITE, PINK_L, MTN_L, MTN_D, MTN_D, PLUM,
+    GRN_L, GRN_M, GRN_M, GRN_D, GRN_D, NIT_G, CREAM, PINK_L]);
+  map(TODL[SUNSET], [SKY_A, PLUM, SKY_B, ROSE_D, SKY_C, GOLD_L, NIT_B, PLUM, WHITE, GOLD_L, MTN_L, ROSE_D, MTN_D, PLUM,
+    GRN_L, GRN_M, GRN_M, GRN_D, GRN_D, NIT_G, CREAM, AMBER]);
+  map(TODL[NIGHT], [SKY_A, NIT_B, SKY_B, MTN_D, SKY_C, MTN_L, NIT_B, NIT_A, WHITE, SKY_B, MTN_L, MTN_D, MTN_D, NIT_B,
+    GRN_L, JADE_D, GRN_M, NIT_G, GRN_D, INK, CREAM, MTN_D, SKIN_L, SKIN_D, SKIN_D, BRZ_M, ROSE, ROSE_D, ROSE_D, PLUM, PINK_L, ROSE,
+    RED, ROSE_D, JADE_M, JADE_D, JADE_L, JADE_M, BRZ_M, BRZ_D, BRZ_D, INK, GOLD_D, BRZ_M, GOLD, GOLD_D, GOLD_L, GOLD, AMBER, ROSE_D, PLUM, NIT_B]);
+  map(TODL[DUSK], [SKY_A, PLUM, SKY_B, ROSE_D, SKY_C, AMBER, NIT_B, NIT_A, WHITE, ROSE, MTN_L, PLUM, MTN_D, NIT_B,
+    GRN_L, GRN_M, GRN_M, GRN_D, GRN_D, NIT_G, CREAM, ROSE_D]);
+
+  // Sky bands (screen space) joined by narrow dither seams; the world covers everything from the horizon down.
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    let c = SKY_A;
+    if (y >= 38) c = y >= 42 || dith(x, y, (y - 37) / 5) ? SKY_C : SKY_B;
+    else if (y >= 16) c = y >= 20 || dith(x, y, (y - 15) / 5) ? SKY_B : SKY_A;
+    bg[y * W + x] = c;
+  }
+
+  // Far ranges: a pale misty one behind a darker one, both highest in the north-west
+  const bump = (x, c, flat, top, hw) => { const d = Math.max(0, Math.abs(x - c) - flat) / hw; return d >= 1 ? HZ : HZ - (HZ - top) * (0.5 + 0.5 * Math.cos(Math.PI * d)); };
+  for (let x = 0; x < FW; x++) {
+    const j = Math.sin(x * 0.9) * 0.8 + Math.sin(x * 0.37 + 1) * 1.2;
+    const t1 = Math.round(Math.min(bump(x, 8, 0, 4, 36), bump(x, 50, 0, 14, 30), bump(x, 92, 0, 32, 28), bump(x, 126, 0, 48, 22)) + (j > 0 ? j : 0));
+    const t2 = Math.round(Math.min(bump(x, 28, 0, 22, 24), bump(x, 68, 0, 30, 26), bump(x, 104, 0, 46, 22), bump(x, 134, 0, 56, 15)) + j * 0.7);
+    const l1 = Math.min(bump(x - 1, 8, 0, 4, 36), bump(x - 1, 50, 0, 14, 30), bump(x - 1, 92, 0, 32, 28), bump(x - 1, 126, 0, 48, 22)) > t1;
+    const l2 = Math.min(bump(x - 1, 28, 0, 22, 24), bump(x - 1, 68, 0, 30, 26), bump(x - 1, 104, 0, 46, 22), bump(x - 1, 134, 0, 56, 15)) > t2;
+    for (let y = t1; y < HZ; y++) fset(x, y, y === t1 && !l1 ? SKY_C : MTN_L);
+    for (let y = t2; y < HZ; y++) {
+      let c = y === t2 ? (l2 ? MTN_D : MTN_L) : MTN_D;
+      if (y > 50 && dith(x, y, (y - 50) / 12) && (x + y) & 1) c = MTN_L;                   // mist pooling in the valleys
+      fset(x, y, c);
+    }
+  }
+  const CL = [34, 11, 15, 2.2, 108, 19, 20, 2.6, 176, 8, 14, 2, 214, 24, 11, 1.8];
+  for (let k = 0; k < CL.length; k += 4) for (let dy = -3; dy <= 3; dy++) for (let dx = -22; dx <= 22; dx++) {
+    const rx = CL[k + 2], ry = CL[k + 3];
+    if ((dx / rx) ** 2 + (dy / ry) ** 2 > 1) continue;
+    fset(Math.round(CL[k]) + dx, CL[k + 1] + dy, dy < 0 ? WHITE : SKY_C);
+  }
+
+  // Near land: two mountains in the north-west, the Phong Châu hill, a wooded knoll at the edge of the plain
+  for (let x = 0; x < WW; x++) {
+    let t = Math.min(bump(x, 4, 2, 8, 40), bump(x, 34, 0, 26, 24), bump(x, HX, 5, HTOP, 26), bump(x, 114, 0, 59, 11));
+    if (x < 60 && t < HZ - 3) t += Math.sin(x * 1.3) * 0.9 + Math.sin(x * 0.47) * 1.1;
+    if ((x >= 44 && x <= 62) || (x >= 78 && x <= 94)) t = Math.ceil(t / 3) * 3;             // terraced fields
+    TER[x] = Math.round(t);
+  }
+  for (let x = 0; x < WW; x++) {
+    const top = TER[x], sl = TER[Math.min(WW - 1, x + 1)] - TER[Math.max(0, x - 1)], terr = (x >= 44 && x <= 62) || (x >= 78 && x <= 94);
+    for (let y = top; y < HZ; y++) {
+      const dd = y - top, n = Math.sin(x * 0.73 + y * 1.9) + Math.sin(x * 0.21 - y * 0.6);
+      let c;
+      if (terr && y > top - 1) c = y % 3 === 0 ? GRN_L : y % 3 === 1 ? ((x * 3 + y) % 7 < 2 ? SKY_B : GRN_M) : GRN_D;
+      else if (dd === 0) c = sl > 0 ? GRN_L : GRN_M;
+      else if (x < 58 && y < 40 && n > 1.1) c = sl > 0 ? MTN_L : MTN_D;                      // bare rock high up
+      else c = sl > 0 ? (n > 0.9 ? GRN_L : GRN_M) : (n > 1.2 ? GRN_M : GRN_D);
+      wset(x, y, c);
+    }
+  }
+  const tree = (x, y, r, a, b, cc) => { // a round crown: a lit side, a dark side, a trunk
+    for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) {
+      if (dx * dx + dy * dy > r * r + 0.5) continue;
+      wset(x + dx, y + dy - 2, dx + dy > 0 ? b : dx - dy < -r * 0.8 ? cc : a);
+    }
+    wset(x, y, BRZ_D); wset(x, y - 1, BRZ_D);
+  };
+  for (let k = 0; k < 16; k++) { // peach and apricot in blossom on the northern slopes
+    const x = 3 + k * 4 + ((k * 7) % 3), y = TER[x] + 3 + (k % 3) * 2;
+    if (y >= HZ) continue;
+    if (k & 1) tree(x, y, 2.4, GOLD, GOLD_D, GOLD_L); else tree(x, y, 2.4, ROSE, ROSE_D, PINK_L);
+  }
+  for (let k = 0; k < 9; k++) { const x = 106 + k * 2 + (k & 1), y = TER[x] + 3 + (k % 2); if (y < HZ + 1) tree(x, y, 2.2, GRN_M, GRN_D, GRN_L); } // the knoll's wood
+  for (let k = 0; k < 6; k++) tree(40 + k * 3, HZ + 1 - (k & 1), 2, GRN_M, GRN_D, GRN_L);                                     // wood at the hill foot
+
+  // The plain, the sand and the Eastern Sea
+  for (let y = HZ; y < H; y++) for (let x = 0; x < WW; x++) {
+    const sx = shoreX(y);
+    let c;
+    if (x >= sx) {
+      c = y === HZ ? SKY_C : y < 70 ? SKY_B : y < 78 ? ((x * 5 + y * 11) % 17 === 0 ? SKY_B : SKY_A) : ((x * 7 + y * 3) % 19 === 0 ? SKY_A : NIT_B);
+    } else if (x >= sx - 4) c = (x * 3 + y * 7) % 9 === 0 ? SKIN_L : CREAM;
+    else {
+      c = y === HZ ? GRN_D : GRN_M;
+      const n = (x * 7 + y * 13) % 23, m = (x * 5 + y * 3) % 29;
+      if (y > HZ && n === 0) c = GRN_L;
+      else if (y > HZ + 1 && m === 0) c = GRN_D;
+      else if (y > 80 && ((x + (y >> 1)) % 6 === 0) && (y & 1)) c = GRN_L;                  // near grass, tufted
+    }
+    wset(x, y, c);
+  }
+  for (let k = 0; k < 14; k++) { // bushes and areca palms along the far edge of the plain
+    const x = 124 + k * 6 + ((k * 5) % 4);
+    if (x > 194) break;
+    if (k % 3 === 1) {
+      for (let j = 0; j < 8; j++) wset(x, HZ - j, BRZ_M);
+      for (let d = -3; d <= 3; d++) { wset(x + d, HZ - 8 + Math.abs(d) / 2, GRN_M); wset(x + d, HZ - 9 + (Math.abs(d) >> 1), d > 0 ? GRN_L : GRN_D); }
+    } else tree(x, HZ + 1, 1.8, GRN_M, GRN_D, GRN_L);
+  }
+  // The water palace glinting below the waves: tiered jade roofs, dim pillars, gold finials
+  for (let dx = -22; dx <= 22; dx++) {
+    const x = WPX + dx, a = Math.abs(dx);
+    if (a <= 20) { wset(x, 80 - (a > 17 ? 1 : 0), JADE_M); wset(x, 81, JADE_D); if (a > 17) wset(x, 79, JADE_M); }
+    if (a <= 12) { wset(x, 74 - (a > 10 ? 1 : 0), JADE_M); wset(x, 75, JADE_D); wset(x, 76, JADE_D); }
+    if (a <= 18 && a % 5 === 1) for (let y = 82; y < 88; y++) wset(x, y, JADE_D);
+    if (a <= 9 && a % 4 === 1) for (let y = 77; y < 80; y++) wset(x, y, JADE_D);
+    if (a <= 21) wset(x, 88, JADE_D);
+  }
+  wset(WPX, 72, GOLD_D); wset(WPX, 71, GOLD_D); wset(WPX - 21, 78, GOLD_D); wset(WPX + 21, 78, GOLD_D);
+
+  // The climb to Phong Châu: across the plain, then up the terraces to the crown of the hill
+  const pts = [];
+  for (let x = 150; x >= 104; x -= 0.5) pts.push(x, mix(82, 69, (150 - x) / 46));
+  for (let x = 102; x >= 66; x -= 0.5) pts.push(x, TER[Math.round(x)] + 1);
+  const acc = [0];
+  for (let j = 2; j < pts.length; j += 2) acc.push(acc[acc.length - 1] + Math.hypot(pts[j] - pts[j - 2], pts[j + 1] - pts[j - 1]));
+  const total = acc[acc.length - 1];
+  for (let k = 0, j = 0; k < NPATH; k++) {
+    const s = total * k / (NPATH - 1);
+    while (j < acc.length - 2 && acc[j + 1] < s) j++;
+    const f = (s - acc[j]) / Math.max(0.001, acc[j + 1] - acc[j]);
+    PATHX[k] = mix(pts[j * 2], pts[j * 2 + 2], f); PATHY[k] = mix(pts[j * 2 + 1], pts[j * 2 + 3], f);
+  }
+
+  // The hundred: egg spots round the sac, the night crowd on the shore, the crowd round the hill, the festival
+  const scatter = (ox, oy, n, x0, x1, y0, y1, gap, keep) => {
+    for (let k = 0, tries = 0; k < n && tries < 20000; tries++) {
+      const x = Math.round(x0 + rnd() * (x1 - x0)), y = Math.round(y0 + rnd() * (y1 - y0));
+      if (!keep(x, y)) continue;
+      let ok = true;
+      for (let j = 0; j < k; j++) if (Math.abs(ox[j] - x) < gap && Math.abs(oy[j] - y) < 3) { ok = false; break; }
+      if (ok) { ox[k] = x; oy[k] = y; k++; }
+    }
+  };
+  const sortX = (ax, ay, n) => { const idx = Array.from({ length: n }, (_, k) => k).sort((a, b) => ax[a] - ax[b] || ay[a] - ay[b]); const cx = idx.map(k => ax[k]), cy = idx.map(k => ay[k]); for (let k = 0; k < n; k++) { ax[k] = cx[k]; ay[k] = cy[k]; } };
+  scatter(EX, EY, NK, 94, 198, 72, 89, 4, (x, y) => x < shoreX(y) - 5 && !(Math.abs(x - 148) < 12 && y > 76 && y < 86));
+  sortX(EX, EY, NK);
+  scatter(CRX, CRY, NK, 118, 190, 72, 88, 3, (x, y) => x < shoreX(y) - 7 && !(x > 186 && y < 82));
+  sortX(CRX, CRY, NK);
+  for (let k = 0; k < NK; k++) {
+    HR[k] = Math.hypot(EX[k] - SACX, (EY[k] - SACY) * 2.4);
+    GO[k] = (EX[k] - 94) / 104 * 44 + rnd() * 10;
+    KCOL[k] = TUNIC[(k * 5 + (k >> 3)) % TUNIC.length];
+  }
+  const hr = Array.from(HR).sort((a, b) => a - b);
+  for (let k = 0; k < NK; k++) HR[k] = hr.indexOf(HR[k]); // hatch rank, outward from the sac
+  const tx = new Int16Array(50), ty = new Int16Array(50);
+  scatter(tx, ty, 18, 42, 98, 50, 64, 3, (x, y) => (x < 60 || x > 82) && y >= TER[x] + 2 && y <= TER[x] + 5);
+  for (let k = 0; k < 18; k++) { CWX[k + 1] = tx[k]; CWY[k + 1] = ty[k]; }
+  scatter(tx, ty, 31, 22, 134, 72, 88, 4, (x, y) => !(x > 34 && x < 54 && y < 80) && !(x > 104 && x < 122 && y < 80));
+  for (let k = 0; k < 31; k++) { CWX[k + 19] = tx[k]; CWY[k + 19] = ty[k]; }
+  for (let k = 0; k < 20; k++) { // dancers in two rings round the festival drum
+    const a = (k % 10) / 10 * TWO_PI + (k < 10 ? 0 : 0.31), rx = k < 10 ? 13 : 20, ry = k < 10 ? 4 : 6;
+    VX[k + 1] = Math.round(138 + Math.cos(a) * rx); VY[k + 1] = Math.round(82 + Math.sin(a) * ry);
+  }
+  scatter(tx, ty, 29, 86, 196, 72, 88, 4, (x, y) => x < shoreX(y) - 5 && Math.hypot((x - 138) / 23, (y - 82) / 8) > 1.1 && !(Math.abs(x - 164) < 5 && y < 80));
+  for (let k = 0; k < 29; k++) { VX[k + 21] = tx[k]; VY[k + 21] = ty[k]; }
+  for (let b = 0; b < NBT; b++) { BX[b] = 222 + b * 9; BY[b] = 70 + ((b * 3) % 5) * 4; BLY[b] = 72 + (b % 5) * 3; }
+  scatter(FLX, FLY, NFL, 104, 196, 70, 89, 3, (x, y) => x < shoreX(y) - 5);
+  for (let k = 0; k < NFL; k++) {
+    FLT[k] = 70 + Math.min(36, Math.hypot(FLX[k] - 148, (FLY[k] - 80) * 2.5) * 0.5 + rnd() * 6) | 0;
+    FLC[k] = k % 3 === 0 ? GOLD_L : k % 3 === 1 ? ROSE : WHITE;
+  }
+  buildDrum();
+  initTables();
+}
+
+// Band glyphs, outer row first: x raised relief, o its lit crest, d an engraved groove
+const G_HOUSE = ['xx..........xx', '.xx........xx.', '..xxxxxxxxxx..', '..xoxoxoxoxx..', '...xxxxxxxx...', '...x..xx..x...',
+  '..xxxxxxxxxx..', '...x..x...x...', '...x..x...x...', '..xx.xxx..xx..'];
+const G_DANCER = ['..xxx.', '.x..xx', '.xo..x', '.oo...', 'xxxx..', '.xxx..', '.xxxx.', 'xx.xx.', '.x.x..', 'x...x.'];
+const G_BOAT = ['..................', '.x...x...x...x....', 'x.x.x.x.x.x.x.x...', '.o...o...o...o....', '.x...x...x...x....',
+  'xxxxxxxxxxxxxxxxxx', 'oxoxoxoxoxoxoxoxox', '.xxxxxxxxxxxxxxxx.', '...x...x...x......', '..x...x...x.......'];
+const G_BIRD = ['..........xx........', '..x......xxx........', '...x....xxx.........', 'xxxox..xxx..........', '...xxxxxoxxxxxxxx...',
+  '.......xxxx....xxxx.', '........xxx......xx.', '.........xx........x', '....................'];
+function stamp(tex, tw, rows, u0, g) {
+  for (let r = 0; r < g.length; r++) for (let j = 0; j < g[r].length; j++) {
+    const ch = g[r][j];
+    if (ch === '.') continue;
+    tex[(rows - 1 - r) * tw + ((u0 + j) % tw)] = ch === 'x' ? GOLD : ch === 'o' ? GOLD_L : BRZ_D;
+  }
+}
+function buildDrum() {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, dx = x - DCX + 0.5, dy = y - DCY + 0.5;
+    DD[i] = Math.hypot(dx, dy); DA[i] = (Math.atan2(dy, dx) / TWO_PI + 1) % 1;
+    const s = 1 - Math.abs(DA[i] - 0.875) / 0.075;                         // a polished sheen toward the sun
+    SHEEN[i] = DD[i] > 40 && dith(x, y, s * 1.4) ? 1 : 0;
+  }
+  TZ.fill(BRZ_M); TS.fill(BRZ_M); TC.fill(BRZ_M); TB.fill(BRZ_M); TO.fill(BRZ_M);
+  for (let u = 0; u < WZ; u++) { const h = [0, 1, 2, 2, 1, 0][u % 6]; for (let v = 0; v < 3; v++) TZ[v * WZ + u] = v < h ? GOLD : v === h ? GOLD_D : BRZ_M; }
+  for (let u = 0; u < WC; u++) { // circles with a dot, joined by tangents
+    const p = u % 8;
+    TC[WC + u] = p === 4 ? BRZ_D : p === 3 || p === 5 ? GOLD : GOLD_D;
+    TC[u] = TC[2 * WC + u] = p >= 3 && p <= 5 ? GOLD : BRZ_M;
+  }
+  for (let u = 0; u < WO; u++) for (let v = 0; v < 3; v++) TO[v * WO + u] = u % 3 === 0 ? GOLD : v === 2 && u % 3 === 1 ? BRZ_D : BRZ_M;
+  for (let h = 0; h < 2; h++) { // twice round: a stilt house, four feathered dancers, a war boat of feathered rowers
+    const u0 = h * 66;
+    stamp(TS, WS, 10, u0, G_HOUSE);
+    for (let d = 0; d < 4; d++) stamp(TS, WS, 10, u0 + 16 + d * 7, G_DANCER);
+    stamp(TS, WS, 10, u0 + 45, G_BOAT);
+  }
+  for (let b = 0; b < 10; b++) stamp(TB, WB, 9, b * 22, G_BIRD);
+}
+
+// Sampled scene state: everything below is a pure function of (state, stT), frozen on pose frames
+const F_STAND = 0, F_FLOAT = 1, F_REACH = 2, F_KNEEL = 3, F_CALL = 4, F_WALK = 5, F_WED = 6;
+const M_STAND = 0, M_REACH = 1, M_RAISE = 2;
+const HOP = Int8Array.of(0, -2, -3, -3, -2, -1, 0);
+let TT = 0, pfr = 0, camX = 80;
+let skyA = DAWN, skyB = DAWN, skyE = 0, skyUp = 0;
+let sunX = 142, sunY = 58, sunV = 1, moonX = 150, moonY = 60, moonV = 0, starV = 0;
+let drumOn = 1, drumR = 0, starRot = 0, flare = 0;
+let fOn = 0, fX = 0, fY = 0, fD = 1, fP = F_STAND, fFade = 1, fFly = 0, fHide = 0;
+let mOn = 0, mX = MAX, mY = CPY, mD = -1, mP = M_STAND, mFade = 1;
+let dOn = 0, dFade = 1, dClip = 99, dCon = 0;
+let kgOn = 0, kgFade = 1, crownOn = 0, kgArms = 0, crownX = 0, crownY = 0, crownHeld = 0;
+let bOnN = 0;
+let palR = 0, hallR = 0, fieldR = 0, lantern = 0, flowerT = -1, flowerShut = 0, houseT = -1;
+let sacR = 0, sacOpen = 0, sacGlow = 0;
+let windT = -1, splitT = -1, netT = -1, beatA = -1, fbeat = -1, rippleT = -1, seaGlow = 0, flyT = -1;
+let srcWX = 0, srcWY = 0, srcScr = 1;
+let gX = 0, gY = 0;
+
+function camAt(s, t) {
+  return Math.round(mix(CAM_A[s], CAM_B[s], ease((t - PAN0[s]) / (PAN1[s] - PAN0[s]))));
+}
+function bez(u, x0, y0, x1, y1, x2, y2, x3, y3) {
+  u = clamp01(u);
+  const v = 1 - u;
+  gX = v * v * v * x0 + 3 * v * v * u * x1 + 3 * v * u * u * x2 + u * u * u * x3;
+  gY = v * v * v * y0 + 3 * v * v * u * y1 + 3 * v * u * u * y2 + u * u * u * y3;
+}
+function headAt(mode, T) { // the dragon's head through time, one path per appearance
+  if (mode === 1) {        // up out of the sea by his palace, then one long swoop down to the plain
+    if (T < 0) { gX = 258; gY = 92; }
+    else if (T < 28) bez(T / 28, 258, 92, 262, 40, 252, 10, 232, 12);
+    else bez((T - 28) / 72, 232, 12, 196, -6, 186, 72, MAX + 2, CPY - 8);
+  } else if (mode === 2) { // up from where he stood, over the shore and down into the sea
+    if (T < 0) { gX = MAX + 2; gY = CPY - 8; }
+    else if (T < 22) bez(T / 22, MAX + 2, CPY - 8, 160, 40, 176, 14, 196, 12);
+    else if (T < 44) bez((T - 22) / 22, 196, 12, 216, 10, 232, 40, 236, 80);
+    else { gX = 236; gY = 80 + (T - 44) * 1.2; }
+  } else if (mode === 3) { // back out of the sea to the water's edge
+    if (T < 0) { gX = 244; gY = 94; }
+    else bez(T / 40, 244, 94, 242, 34, 222, 34, 208, 74);
+  } else {                 // out through the surf, his coils rising and sinking
+    if (T < 0) { gX = 206; gY = 78; }
+    else { gX = 206 + T * 0.95; gY = 75 - 5 * Math.sin(T * 0.16); }
+  }
+}
+function dragonSpine(mode, T) {
+  for (let i = 0; i < NSEG; i++) {
+    headAt(mode, T - i * LAG);
+    const x0 = gX, y0 = gY;
+    headAt(mode, T - i * LAG - 1);
+    let dx = x0 - gX, dy = y0 - gY;
+    const l = Math.hypot(dx, dy);
+    if (l > 0.01) { dx /= l; dy /= l; } else { dx = -1; dy = 0; }
+    let ux = dy, uy = -dx;
+    if (dx < 0) { ux = -ux; uy = -uy; }                               // his back stays up whichever way he flies
+    const w = 2.2 * Math.sin(T * 0.3 - i * 0.7) * Math.min(1, i / 4); // the sinuous ripple
+    DX[i] = x0 + ux * w; DY[i] = y0 + uy * w; DUX[i] = ux; DUY[i] = uy;
+    if (i === 0) { HD[0] = dx; HD[1] = dy; }
+  }
+  if (dCon > 0) for (let i = 1; i < NSEG; i++) { DX[i] = mix(DX[i], DX[0], dCon); DY[i] = mix(DY[i], DY[0], dCon); }
+}
+function pathAt(s) { // the climb, by index; before its start the file waits on the plain
+  if (s <= 0) { gX = PATHX[0] - s * 0.8; gY = PATHY[0]; return; }
+  const j = Math.min(NPATH - 2, s | 0), f = Math.min(1, s - j);
+  gX = mix(PATHX[j], PATHX[j + 1], f); gY = mix(PATHY[j], PATHY[j + 1], f);
+}
+function flock(cx, cy, rx, ry, spd) { // the Lạc birds wheeling round a point
+  for (let k = 0; k < NB; k++) {
+    const a = k * TWO_PI / NB + TT * spd, r = 0.75 + 0.25 * (k & 1);
+    BRX[k] = Math.round(cx + Math.cos(a) * rx * r); BRY[k] = Math.round(cy + Math.sin(a) * ry * r + (k % 3) - 1);
+    BRD[k] = Math.sin(a) * spd < 0 ? 1 : -1;
+  }
+}
+function hillsLead(t) {
+  return mix(72, 116, ease(t / 124));
+}
+function people(s, t) {
+  for (let k = 0; k < NK; k++) {
+    let x = EX[k], y = EY[k], st = 3, v = 1, d = 1, b = 0;
+    const g1 = k < 50, j = g1 ? k : k - 50;
+    KF[k] = 0;
+    if (s < EGGS) v = 0;
+    else if (s === EGGS) { // rolling out of the sac, bouncing
+      const p = (t - 14 - HR[k] * 0.5) / 24;
+      if (p < 0) v = 0;
+      else { const e = ease(p); x = mix(SACX, EX[k], e); y = mix(SACY, EY[k], e) - Math.abs(Math.sin(p * 6.3)) * 3 * (1 - p); st = 0; b = (pfr + k) & 1; }
+    } else if (s === HATCH) {
+      const h = 6 + HR[k];
+      if (t < h) { st = 0; b = h - t <= 8 ? 2 + ((pfr + k) & 1) : 0; } // wobbling before it cracks
+      else { st = 1; y += HOP[Math.min(6, (t - h) / 3 | 0)]; d = k & 1 ? 1 : -1; }
+    } else if (s === GROW) {
+      const g = 6 + GO[k];
+      st = t < g ? 1 : t < g + 12 ? 2 : 3; d = -1; b = (pfr + k) % 3 === 0 ? 4 : 0; // leaning in the wind
+    } else if (s === CALL) d = 1;
+    else if (s === WAIT) {
+      const p = clamp01((t - 6 - k * 0.2) / 54), e = ease(p);
+      x = mix(EX[k], CRX[k], e); y = mix(EY[k], CRY[k], e);
+      if (p > 0 && p < 1) { b = 1; d = CRX[k] >= EX[k] ? 1 : -1; }
+    } else if (s === REUNITE) { x = CRX[k]; y = CRY[k]; if (t >= 54) y += HOP[((t + k * 3) >> 2) % 7]; }
+    else if (s === PART || (s === SEA && g1)) {
+      const e = s === SEA ? 1 : ease((t - 24) / 60);
+      x = CRX[k] + (g1 ? -14 : 8) * e; y = CRY[k]; d = g1 ? -1 : 1;
+      if (e > 0 && e < 1) b = 1;
+      if (s === SEA || e >= 1) d = g1 ? 1 : -1;
+    } else if (s === SEA) { // down to the boats
+      const bt = j / 5 | 0, lb = 10 + bt * 5;
+      if (t >= lb) v = 0;
+      else { const e = t / lb; x = mix(CRX[k] + 8, 203, e); y = mix(CRY[k], BLY[bt], e); b = 1; d = 1; }
+    } else if (!g1) v = 0;  // the sea people ride in their boats from here on
+    else if (s === HILLS) {
+      pathAt(hillsLead(t) - 5 - j * 1.35); x = gX; y = gY; d = -1; b = 1;
+    } else if (s === CROWN || s === VANLANG || s === RETURN) {
+      pathAt(hillsLead(124) - 5 - j * 1.35);
+      if (j === 0) v = 0;                                                   // the eldest son: now the king
+      const e = s === CROWN ? ease(t / 36) : 1;
+      x = mix(gX, CWX[k], e); y = mix(gY, CWY[k], e); d = CWX[k] < HX ? 1 : -1;
+      if (s === CROWN && e > 0 && e < 1) b = 1;
+      if (s === CROWN && fbeat >= 0 && fbeat < 10 && j > 4) b = 5;           // bowing to the drums
+      if (s !== CROWN) {
+        const f = s === VANLANG ? ease(t / 72) : 1;
+        x = mix(CWX[k], VX[k], f); y = mix(CWY[k], VY[k], f); d = VX[k] > CWX[k] ? 1 : -1;
+        if (f > 0 && f < 1) b = 1;
+        else if (j <= 20) { KF[k] = 1; d = (j & 1) ? 1 : -1; if (beatA >= 0 && beatA < 6) b = 6; }
+      }
+      if (j >= 1 && j <= 4) KF[k] = j <= 2 ? 2 : 3;                         // Lạc hầu and Lạc tướng
+    }
+    KX[k] = Math.round(x); KY[k] = Math.round(y); KS[k] = st; KV[k] = v; KD[k] = d; KB[k] = b;
+  }
+  for (let b = 0; b < NBT; b++) {
+    bOn[b] = s >= SEA ? 1 : 0;
+    if (s === SEA) {
+      const lb = 10 + b * 5, e = ease((t - lb) / 56);
+      bOn[b] = t >= lb ? 1 : 0; bQX[b] = Math.round(mix(203, BX[b], e)); bQY[b] = Math.round(mix(BLY[b], BY[b], e));
+    } else if (s === HILLS || s === CROWN) { bQX[b] = BX[b]; bQY[b] = BY[b]; }
+    else { bQX[b] = 210 + b * 10; bQY[b] = BY[b]; }
+  }
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
+function sample() {
+  snap.set(pose);
+  const s = state, t = stT, TB0 = ST0[DRAGON] + 96;
+  TT = ST0[s] + t; pfr = TT / POSE_STEP | 0;
+  skyA = skyB = DAY; skyE = 0; skyUp = 0; sunV = 1; sunX = 118; sunY = 14; moonV = 0; starV = 0;
+  drumOn = 0; drumR = 0; starRot = 0; flare = 0;
+  fOn = 0; fFade = 1; fFly = 0; fP = F_STAND; fD = 1; fX = FAX; fY = CPY; fHide = 0;
+  mOn = 0; mFade = 1; mP = M_STAND; mD = -1; mX = MAX; mY = CPY;
+  dOn = 0; dFade = 1; dClip = 99; dCon = 0;
+  kgOn = s >= CROWN ? 1 : 0; kgFade = 1; crownOn = s > CROWN ? 1 : 0; kgArms = 0; crownHeld = 0;
+  bOnN = 0;
+  palR = s > PALACE ? 1 : 0; hallR = s > CROWN ? 1 : 0; fieldR = s > VANLANG ? 1 : 0; houseT = s > VANLANG ? 999 : -1;
+  lantern = 0; flowerT = s === PALACE || s === SAC ? 999 : -1; flowerShut = 0;
+  sacR = 0; sacOpen = 0; sacGlow = 0;
+  windT = splitT = netT = beatA = fbeat = rippleT = flyT = -1; seaGlow = 0;
+  srcScr = 1; rim = 1;
+  if (s === DRUM) {
+    skyA = skyB = DAWN; sunX = 142; sunY = Math.round(58 - 8 * ease(t / 108));
+    drumOn = 1; drumR = t < 42 ? 0 : 100 * ease((t - 42) / 54);
+    flare = t < 12 ? 0 : t < 42 ? 1 + Math.min(2, 3 * ease((t - 12) / 30) | 0) : 3;
+    if (t >= 60) { // the birds of the ring take flight as the bronze melts
+      bOnN = 1;
+      for (let k = 0; k < NB; k++) {
+        const a = k * TWO_PI / NB + 0.4, e = ease((t - 60 - k * 3) / 44);
+        BRX[k] = Math.round(mix(DCX + Math.cos(a) * 35, -30 + k * 4, e)) + camX; BRY[k] = Math.round(mix(DCY + Math.sin(a) * 30, 4 + k * 3, e) - Math.sin(Math.PI * e) * 12); BRD[k] = -1;
+      }
+    }
+  } else if (s === FAIRY || s === DRAGON) {
+    if (s === FAIRY) {
+      skyA = DAWN; skyE = ease((t - 24) / 72);
+      sunX = Math.round(mix(142, 118, ease(t / 108))); sunY = Math.round(mix(50, 14, ease(t / 108)));
+      fX = Math.round(mix(66, 56, ease(t / 100))); fY = Math.round(mix(30, 46, ease(t / 96)));
+    } else { fX = 56; fY = 46; }
+    fY += (pfr >> 2) & 1;
+    fOn = 1; fFly = 1; fP = F_FLOAT; fD = 1; bOnN = 1;
+    if (s === FAIRY) flock(fX, fY - 18, 20, 8, 0.03);
+    else { const e = ease(t / 116); flock(mix(56, 250, e), mix(28, 18, e) - Math.sin(Math.PI * e) * 6, mix(20, 12, Math.sin(Math.PI * e)), 7, 0.03); }
+    if (s === DRAGON) {
+      seaGlow = t < 60 ? 0 : t < 96 ? ease((t - 60) / 30) : 1 - ease((t - 96) / 24);
+      if (t >= 90) { dOn = 1; dClip = 74; dragonSpine(1, TT - TB0); srcScr = 0; srcWX = Math.round(DX[0]); srcWY = Math.round(DY[0]); rim = t < 108 ? 3 : 2; }
+    }
+  } else if (s === MEET) {
+    if (t < 76) {
+      dOn = 1; dClip = 74;
+      if (t >= 64) { dCon = ease((t - 64) / 12); dFade = 1 - ease((t - 64) / 12); }
+      dragonSpine(1, TT - TB0);
+      srcScr = 0; srcWX = Math.round(DX[0]); srcWY = Math.round(DY[0]); rim = t >= 62 && t < 72 ? 4 : 1;
+    }
+    if (t >= 66) { mOn = 1; mFade = ease((t - 66) / 12); }
+    const e = ease(t / 84);
+    fOn = 1; fX = Math.round(mix(56, FAX, e)); fY = Math.round(mix(46, CPY, ease((t - 12) / 76)) - Math.sin(Math.PI * e) * 10);
+    fFly = t < 84 ? 1 : 0; fP = t < 84 ? F_FLOAT : F_STAND;
+    bOnN = 1; flock(mix(250, 150, ease(t / 90)), mix(18, 32, ease(t / 90)), 20, 8, 0.03);
+    flowerT = t;
+  } else if (s >= PALACE && s <= GROW) {
+    fOn = mOn = 1; fD = 1; mD = -1;
+    srcScr = 0; srcWX = SACX; srcWY = SACY - 4;
+    if (s === PALACE) {
+      palR = ease(t / 48);
+      if (t >= 48) { fP = F_WED; mP = M_REACH; }
+      bOnN = 1; flock(152, 30 - 64 * ease((t - 70) / 26), 32, 9, 0.025);
+      srcWX = (FAX + MAX) >> 1; srcWY = CPY - 22; rim = t >= 48 ? 2 : 1;
+    } else if (s === SAC) {
+      fP = t < 12 ? F_STAND : F_KNEEL; flowerShut = ease(t / 40);
+      sacR = t < 30 ? 0 : 6.5 * ease((t - 30) / 12); sacGlow = t < 30 ? ease((t - 6) / 24) : 1;
+      rim = t < 30 ? 1 + (t / 12 | 0) : 3;
+    } else if (s === EGGS) {
+      fP = t < 66 ? F_KNEEL : F_STAND;
+      sacR = t < 70 ? 6.5 : 6.5 * (1 - ease((t - 70) / 18)); sacOpen = ease((t - 10) / 12); sacGlow = 1 - ease((t - 60) / 30); rim = 2;
+    } else if (s === HATCH) rim = 2;
+    else windT = t;
+  } else if (s === CALL) {
+    skyB = SUNSET; skyE = ease((t - 6) / 66);
+    const e = ease(t / 96);
+    sunX = Math.round(mix(118, 22, e)); sunY = Math.round(14 + e * e * 50);
+    fOn = 1; fP = t < 20 ? F_STAND : F_REACH;
+    if (t < 24) { mOn = 1; mD = 1; mP = t < 8 ? M_STAND : M_RAISE; mFade = 1 - ease((t - 16) / 8); }
+    if (t >= 16) {
+      dOn = 1; dClip = 72; dFade = ease((t - 16) / 10); dragonSpine(2, t - 18);
+      srcScr = 0; srcWX = Math.round(DX[0]); srcWY = Math.round(DY[0]); rim = t < 30 ? 4 : 1;
+    }
+  } else if (s === WAIT) {
+    skyA = SUNSET; skyB = NIGHT; skyE = ease(t / 54);
+    sunX = 22; sunY = 64 + (t >> 2); sunV = t < 40 ? 1 : 0;
+    const e = ease((t - 12) / 72);
+    moonV = t >= 12 ? 1 : 0; moonX = Math.round(mix(150, 134, e)); moonY = Math.round(mix(72, 16, e)); starV = ease((t - 30) / 40);
+    const w = ease(t / 54);
+    fOn = 1; fX = Math.round(mix(FAX, 194, w)); fY = Math.round(mix(CPY, 78, w)); fP = t < 54 ? F_WALK : t < 72 ? F_STAND : F_CALL;
+    lantern = t >= 30 ? 1 : 0; rippleT = t >= 78 ? t - 78 : -1;
+    srcWX = moonX; srcWY = moonY;
+  } else if (s === REUNITE) {
+    skyA = NIGHT; skyB = DAWN; skyE = ease((t - 30) / 54); skyUp = 1;
+    const mset = ease((t - 16) / 64);
+    moonV = 1; moonX = Math.round(mix(134, 44, mset)); moonY = Math.round(mix(16, 62, mset)); starV = 1 - ease((t - 24) / 40);
+    sunV = t >= 54 ? 1 : 0; sunX = 150; sunY = Math.round(mix(70, 52, ease((t - 54) / 42)));
+    lantern = t < 60 ? 1 : 0;
+    fOn = 1; fX = 194; fY = 78; fP = t < 24 ? F_CALL : t < 60 ? F_STAND : F_WED;
+    srcWX = moonX; srcWY = moonY;
+    if (t < 54) {
+      dOn = 1; dClip = 74;
+      if (t >= 42) { dCon = ease((t - 42) / 10); dFade = 1 - ease((t - 42) / 10); }
+      dragonSpine(3, t - 4);
+      srcScr = 0; srcWX = Math.round(DX[0]); srcWY = Math.round(DY[0]); rim = t >= 40 && t < 50 ? 4 : 2;
+    }
+    if (t >= 44) { mOn = 1; mX = 204; mY = 80; mFade = ease((t - 44) / 10); mP = t >= 60 ? M_REACH : M_STAND; }
+  } else if (s === PART) {
+    skyA = DAWN; skyE = ease((t - 6) / 60);
+    sunX = Math.round(mix(150, 118, ease(t / 100))); sunY = Math.round(mix(52, 14, ease(t / 100)));
+    mOn = 1; mX = 204; mY = 80; mP = t < 72 ? M_STAND : M_RAISE;
+    fOn = 1;
+    if (t < 24) { fX = 194; fY = 78; }
+    else if (t < 78) { const e = ease((t - 24) / 54); fFly = 1; fP = F_FLOAT; fD = -1; fX = Math.round(mix(194, 116, e)); fY = Math.round(mix(78, 80, e) - Math.sin(Math.PI * e) * 8); }
+    else { fX = 116; fY = 80; }
+    splitT = t;
+  } else if (s === SEA) {
+    fOn = 1; fX = 116; fY = 80;
+    if (t < 12) { mOn = 1; mX = 204; mY = 80; mP = M_RAISE; mFade = 1 - ease((t - 4) / 8); }
+    if (t >= 4) {
+      dOn = 1; dClip = 77; dFade = ease((t - 4) / 10); dragonSpine(4, t - 6);
+      srcScr = 0; srcWX = Math.round(DX[0]); srcWY = Math.round(DY[0]); rim = t < 14 ? 4 : 1;
+    }
+    netT = t - 66;
+  } else if (s === HILLS) {
+    pathAt(hillsLead(t)); fOn = 1; fX = Math.round(gX); fY = Math.round(gY); fP = F_WALK; fD = -1;
+  } else if (s === CROWN) {
+    hallR = ease(t / 24); kgFade = ease((t - 4) / 16); crownOn = t >= 40 ? 1 : 0; kgArms = t >= 44 && t < 72 ? 1 : 0;
+    pathAt(hillsLead(124));
+    const e = ease(t / 20);
+    fOn = 1; fX = Math.round(mix(gX, 52, e)); fY = Math.round(mix(gY, TER[52] + 1, e)); fD = 1;
+    fP = t < 20 ? F_WALK : t >= 26 && t < 42 ? F_CALL : F_STAND;
+    const cf = ease((t - 30) / 10);
+    crownHeld = t >= 26 && t < 40 ? 1 : 0; crownX = Math.round(mix(fX + 3, HX, cf)); crownY = Math.round(mix(fY - 33, HTOP - 17, cf));
+    if (t >= 36 && t < 52) { srcScr = 0; srcWX = HX; srcWY = HTOP - 18; rim = 3; }
+    if (t >= 48) fbeat = (t - 48) % 18;
+  } else if (s === VANLANG || s === RETURN) {
+    houseT = s === VANLANG ? t : 999; fieldR = s === VANLANG ? ease((t - 6) / 54) : 1;
+    const e = s === VANLANG ? ease((t - 12) / 72) : 1;
+    fOn = 1; fX = Math.round(mix(52, 164, e)); fY = Math.round(mix(TER[52] + 1, 79, e) - Math.sin(Math.PI * e) * 16);
+    fFly = e > 0 && e < 1 ? 1 : 0; fP = fFly ? F_FLOAT : F_STAND;
+    bOnN = 1;
+    if (s === VANLANG) {
+      flock(mix(10, 150, ease(t / 110)), 24, 22, 7, 0.03);
+      if (t >= 72) beatA = (t - 72) % 16;
+    } else {
+      skyB = DUSK; skyE = ease(t / 36);
+      sunX = Math.round(mix(118, 34, ease(t / 80))); sunY = Math.round(mix(14, 54, ease(t / 80)));
+      flock(150, 24, 22, 7, 0.03);
+      drumOn = 1; drumR = t < 24 ? 200 : 100 * (1 - ease((t - 24) / 60)); starRot = ease((t - 30) / 54);
+      flyT = t; fHide = t >= 30 ? 1 : 0;
+      srcWX = DCX; srcWY = DCY; rim = 1;
+    }
+  }
+  if (srcScr && s !== WAIT && s !== REUNITE && s !== RETURN) { srcWX = sunX; srcWY = sunY; }
+  people(s, t);
+}
+
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function burstAt(x, y, n, v, ramp, wl) {
+  for (let k = 0; k < n; k++) {
+    const a = rand() * TWO_PI, s = v * (0.4 + rand() * 0.8);
+    sp(BURST, 14 + rand() * 18, x, y, Math.cos(a) * s, Math.sin(a) * s - v * 0.4, ramp, wl);
+  }
+}
+function step() {
+  const nc = camAt(state, stT), dc = nc - camX;
+  camX = nc;
+  if (dc) for (let i = 0; i < MAXP; i++) if (pKind[i]) { px[i] -= dc; pqx[i] -= dc; } // particles live in the world
+  if (tick % POSE_STEP === 0) sample();
+  srcX = srcScr ? srcWX : srcWX - camX; srcY = srcWY;
+  const s = state, t = stT, cx = camX;
+  if (s === DRUM) {
+    if (t === 42) { flashT = 3; burstAt(DCX, DCY, 40, 2.2, R_GOLD, 99); }
+    if (t > 42 && t < 96) for (let n = 0; n < 2; n++) { // molten bronze spitting off the melting edge
+      const a = rand() * TWO_PI, r = drumR;
+      if (r > 4 && r < 60) sp(BURST, 10 + rand() * 12, DCX + Math.cos(a) * r, DCY + Math.sin(a) * r, Math.cos(a) * 0.8, Math.sin(a) * 0.8 - 0.4, R_GOLD, 99);
+    }
+  } else if (s === FAIRY || s === DRAGON || (s === MEET && t < 84)) {
+    if (t % 4 === 1) sp(TRAIL, 14 + rand() * 12, fX - cx - fD * 3 + (rand() - 0.5) * 6, fY - 12 + rand() * 8, (rand() - 0.5) * 0.2, 0.15, rand() < 0.5 ? R_PETAL : R_GOLD, 99);
+  }
+  if ((s === FAIRY || s === HILLS || s === CROWN) && t % 5 === 2) { // blossom drifting off the northern slopes
+    const wx = 3 + rand() * 60 | 0;
+    if (wx - cx > -4 && wx - cx < W) sp(MOTE, 50 + rand() * 40, wx - cx, TER[wx] + 1 + rand() * 4, 0.1, 0.12, R_PETAL, HZ + 10);
+  }
+  if (s === DRAGON) {
+    if (t >= 60 && t < 96 && t % 3 === 0) sp(MOTE, 16 + rand() * 12, 258 - cx + (rand() - 0.5) * 12, 74 + rand() * 6, 0, -0.3, R_SPRAY, 99);
+    if (t === 96) { flashT = 3; shakeT = 14; burstAt(258 - cx, 73, 44, 2.6, R_SPRAY, 76); burstAt(258 - cx, 72, 16, 1.6, R_GOLD, 76); }
+    if (t > 96 && t < 124 && t % 2 === 0) sp(BURST, 16 + rand() * 12, 258 - cx + (rand() - 0.5) * 6, 73, (rand() - 0.5) * 0.8, -1 - rand() * 1.4, R_SPRAY, 75);
+  }
+  if (dOn && dFade > 0.5 && t % 4 === 0) { const i = 3 + (rand() * 16 | 0); sp(MOTE, 16 + rand() * 12, DX[i] - cx, DY[i], 0, 0.1, R_GOLD, 99); } // gold dust off his scales
+  if (s === MEET) {
+    if (t === 64) { flashT = 2; shakeT = 4; burstAt(MAX - cx, CPY - 10, 34, 1.8, R_GOLD, CPY); }
+    for (let k = 0; k < NFL; k++) if (FLT[k] === t) burstAt(FLX[k] - cx, FLY[k] - 1, 3, 0.8, FLC[k] === GOLD_L ? R_GOLD : R_PETAL, FLY[k]);
+  } else if (s === PALACE) {
+    if (t < 48 && t % 2 === 0) sp(BURST, 12 + rand() * 10, PLX - cx + (rand() - 0.5) * 34, 70, (rand() - 0.5) * 0.8, -0.3 - rand() * 0.5, R_DUST, 71);
+    if (t === 48) burstAt(PLX - cx, 40, 20, 1.4, R_GOLD, 71);
+    if (t >= 48 && t < 90 && t % 3 === 0) { const a = rand() * TWO_PI; sp(MOTE, 40 + rand() * 30, 148 - cx + Math.cos(a) * 18, 50 + Math.sin(a) * 10, 0.15, 0.05, R_PETAL, 89); }
+  } else if (s === SAC) {
+    if (t >= 6 && t < 30 && t % 2 === 0) spawnOrbit(10 + rand() * 8, 0.08 + rand() * 0.04, 0.94, 0, TWO_PI, R_PEARL);
+    if (t === 30) burstAt(SACX - cx, SACY - 3, 20, 1.2, R_PEARL, SACY + 3);
+  } else if (s === EGGS) {
+    if (t === 12) burstAt(SACX - cx, SACY - 4, 18, 1.4, R_PEARL, SACY + 3);
+  } else if (s === HATCH) {
+    for (let k = 0; k < NK; k++) if (6 + HR[k] === t) burstAt(EX[k] - cx, EY[k] - 2, 4, 1, k & 1 ? R_GOLD : R_PEARL, EY[k]);
+    if (t === 40 || t === 80) flashT = 2;
+  } else if (s === GROW) {
+    if (t < 84 && t % 3 === 0) sp(MOTE, 40 + rand() * 20, 90 - cx + rand() * 20, 70 + rand() * 18, 0.9 + rand() * 0.4, -0.05, rand() < 0.5 ? R_LEAF : R_PETAL, 99);
+  } else if (s === CALL) {
+    if (t === 18) { flashT = 2; burstAt(MAX - cx, CPY - 12, 30, 1.8, R_GOLD, CPY); }
+    if (t === 58) { shakeT = 6; burstAt(236 - cx, 72, 36, 2.2, R_SPRAY, 74); }
+  } else if (s === WAIT) {
+    if (t % 6 === 3) sp(MOTE, 40 + rand() * 30, 110 - cx + rand() * 90, 70 + rand() * 14, 0, -0.08, R_GOLD, 99); // fireflies
+  } else if (s === REUNITE) {
+    if (t === 6) burstAt(244 - cx, 73, 30, 2, R_SPRAY, 75);
+    if (t === 44) { flashT = 2; burstAt(206 - cx, 68, 30, 1.8, R_GOLD, 80); }
+  } else if (s === PART) {
+    if (t >= 18 && t < 42 && t % 2 === 0) sp(BURST, 12 + rand() * 8, 159 - cx, 71 + (t - 18) * 0.75, (rand() - 0.5) * 1.2, -0.6 - rand() * 0.6, R_GOLD, 89);
+  } else if (s === SEA) {
+    if (t === 6) { flashT = 2; burstAt(204 - cx, 68, 30, 1.8, R_GOLD, 80); }
+    if (dOn && t % 3 === 0) { const i = rand() * 12 | 0; if (DY[i] < dClip + 1 && DY[i] > dClip - 4) sp(BURST, 10 + rand() * 8, DX[i] - cx, dClip, (rand() - 0.5) * 1, -0.8 - rand() * 0.8, R_SPRAY, dClip + 1); }
+  } else if (s === CROWN) {
+    if (t === 40) { flashT = 2; burstAt(HX - cx, HTOP - 17, 30, 1.6, R_GOLD, HTOP); }
+    if (fbeat === 0 && t % 18 === 12) { shakeT = 3; burstAt(44 - cx, 72, 6, 0.8, R_DUST, 77); burstAt(113 - cx, 72, 6, 0.8, R_DUST, 77); }
+  } else if (s === VANLANG) {
+    if (t >= 72 && (t - 72) % 16 === 0) burstAt(138 - cx, 78, 8, 1, R_GOLD, 83);
+    if (t % 4 === 0 && t > 30) sp(MOTE, 30 + rand() * 30, 110 - cx + rand() * 60, 74 + rand() * 10, (rand() - 0.5) * 0.2, -0.15, rand() < 0.5 ? R_PETAL : R_GOLD, 99);
+  }
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === BURST && pvy[i] > 0 && py[i] > pWL[i]) pKind[i] = 0;
+}
+// The world, drawn into buf. Everything anchored in the world goes through tc() so night and dusk reach it too.
+const NST = 36, STX = new Uint8Array(NST), STY = new Uint8Array(NST), SPH = new Uint8Array(NST);
+const DARKC = new Uint8Array(PAL.length);
+function initTables() {
+  let sd = 77;
+  for (let k = 0; k < NST; k++) { sd = sd * 16807 % 2147483647; STX[k] = sd % 156 + 2; sd = sd * 16807 % 2147483647; STY[k] = sd % 40 + 2; SPH[k] = sd >> 8; }
+  for (let c = 0; c < PAL.length; c++) DARKC[c] = c;
+  const pairs = [RED, ROSE_D, ROSE_D, PLUM, JADE_M, JADE_D, GOLD_D, BRZ_M, BRZ_M, BRZ_D, SKY_A, NIT_B, GRN_D, NIT_G, PLUM, NIT_A, ROSE, ROSE_D, PINK_L, ROSE];
+  for (let j = 0; j < pairs.length; j += 2) DARKC[pairs[j]] = pairs[j + 1];
+  const lords = [56, 50, 84, 90];
+  for (let j = 0; j < 4; j++) { CWX[j + 1] = lords[j]; CWY[j + 1] = TER[lords[j]] + 2; }
+}
+function swept(x, y) {
+  const k = skyUp ? H - 1 - y : y;
+  return skyE > 0 && dith(x, y, (skyE * (H + 8) - k) / 8);
+}
+function tc(x, y, c) {
+  return (swept(x, y) ? TODL[skyB] : TODL[skyA])[c];
+}
+function wp(x, y, c) { // plot a world-anchored colour at screen x, y
+  if (x >= 0 && x < W && y >= 0 && y < H) buf[y * W + x] = tc(x, y, c);
+}
+function whl(x0, x1, y, c) {
+  for (let x = x0; x <= x1; x++) wp(x, y, c);
+}
+function isSea(x, y) {
+  return y >= HZ && x + camX >= shoreX(y);
+}
+
+let pX0 = 0, pOff = 0, pBase = 0;
+function P(dx, y, c) { // a prop pixel, raised out of the ground by pOff and clipped at its base
+  const yy = y + pOff;
+  if (yy <= pBase) wp(pX0 + dx, yy, c);
+}
+function palRoof(y0, hw, lift) { // tiles in rows, the eaves curling up at both ends
+  for (let dx = -hw - 2; dx <= hw + 2; dx++) {
+    const a = Math.abs(dx), curl = a > hw - 3 ? (a - (hw - 3)) : 0;
+    for (let r = 0; r < 5; r++) {
+      const y = y0 + r - (r === 4 ? curl : Math.round(curl * 0.6)) - (a > hw ? lift : 0);
+      if (a > hw && r < 3) continue;
+      P(dx, y, r === 0 ? GOLD : r === 4 ? JADE_D : (dx + r) % 3 === 0 ? JADE_D : dx > 0 ? JADE_L : JADE_M);
+    }
+  }
+  P(-hw - 2, y0 + 1, GOLD_L); P(hw + 2, y0 + 1, GOLD_L);
+}
+function drawPalace() { // Long Trang: a stone terrace, red pillars, two sweeping roofs of jade tile, gold dragons on the ridge
+  pX0 = PLX - camX; pOff = Math.round((1 - palR) * 40); pBase = 70;
+  if (pX0 < -30 || pX0 > W + 30) return;
+  for (let y = 66; y <= 70; y++) for (let dx = -19 + (70 - y); dx <= 19 - (70 - y); dx++) P(dx, y, y === 66 ? CREAM : (dx + y) % 6 === 0 ? BRZ_D : y === 70 ? BRZ_M : SKIN_L);
+  for (let dx = -15; dx <= 15; dx++) {
+    const a = Math.abs(dx);
+    for (let y = 54; y <= 65; y++) {
+      if (a % 6 === 3) P(dx, y, y === 54 ? GOLD : a > 12 ? ROSE_D : RED);                   // pillars
+      else if (a < 13) P(dx, y, y > 62 ? BRZ_D : a < 3 && y > 57 ? BRZ_D : (a < 3 ? GOLD_D : BRZ_M)); // walls and the door
+    }
+  }
+  palRoof(49, 17, 1);
+  for (let dx = -9; dx <= 9; dx++) for (let y = 43; y <= 48; y++) {
+    const a = Math.abs(dx);
+    P(dx, y, a === 9 || a === 3 ? RED : y === 45 && a > 4 && a < 8 ? GOLD_L : BRZ_M);
+  }
+  palRoof(38, 11, 1);
+  P(0, 37, WHITE); P(-1, 37, GOLD_L); P(1, 37, GOLD_L);                                // the pearl
+  for (let s = -1; s <= 1; s += 2) { P(s * 4, 37, GOLD); P(s * 5, 36, GOLD); P(s * 6, 36, GOLD_L); P(s * 7, 37, GOLD); } // two gold dragons
+}
+function drawHall(hx, base, w, rise, big) { // a stilt house: posts, a floor, woven walls, a boat-shaped saddle roof
+  const h = big ? 34 : 16;
+  pX0 = hx - camX; pOff = Math.round((1 - rise) * (h + 2)); pBase = base;
+  if (pX0 < -w - 6 || pX0 > W + w + 6 || rise <= 0) return;
+  const post = big ? 7 : 5, wall = big ? 8 : 4, hw = w >> 1;
+  for (let y = base - post; y <= base; y++) for (let dx = -hw + 2; dx <= hw - 2; dx += big ? 4 : 3) P(dx, y, BRZ_D);
+  for (let dx = -hw + 1; dx <= hw - 1; dx++) P(dx, base - post - 1, BRZ_M);
+  for (let y = base - post - 1 - wall; y < base - post - 1; y++) for (let dx = -hw + 2; dx <= hw - 2; dx++)
+    P(dx, y, (dx + y) % 3 === 0 ? GOLD_D : Math.abs(dx) <= 1 && y > base - post - 1 - wall + 1 ? BRZ_D : BRZ_M);
+  const rt = base - post - 1 - wall, rh = big ? 12 : 6;
+  for (let dx = -hw - 4; dx <= hw + 4; dx++) { // the saddle roof: its ridge sweeps up past the eaves at both ends
+    const a = Math.abs(dx), sweep = a > hw - 2 ? Math.round((a - hw + 2) * (big ? 1.2 : 0.8)) : 0;
+    const top = rt - rh + (a < hw - 2 ? 0 : 0) - sweep, bot = rt - (a > hw ? rh : 0);
+    for (let y = top; y <= Math.min(bot, rt); y++) P(dx, y, y === top ? GOLD_L : (y + (dx >> 1)) % 3 === 0 ? BRZ_M : dx > 0 ? GOLD : GOLD_D);
+    if (a === hw + 4) { P(dx, top - 1, GOLD_L); P(dx - Math.sign(dx), top - 2, GOLD); } // bird-head finials
+  }
+}
+function drawBronzeDrum(wx, y, r, beat, side) { // a Đông Sơn drum: a starred face, a banded body, a flared foot, and its drummer
+  const x = wx - camX;
+  if (x < -r - 8 || x > W + r + 8) return;
+  whl(x - r + 1, x + r - 1, y - 7, GOLD);
+  for (let dx = -r; dx <= r; dx++) wp(x + dx, y - 6, dx === 0 ? WHITE : Math.abs(dx) === r ? GOLD : (dx & 1) ? GOLD_L : GOLD);
+  whl(x - r, x + r, y - 5, GOLD_D);
+  for (let yy = y - 4; yy <= y - 1; yy++) {
+    const hw = yy === y - 4 || yy === y - 1 ? r : r - 1;
+    for (let dx = -hw; dx <= hw; dx++) wp(x + dx, yy, yy === y - 3 && (dx & 1) ? BRZ_D : dx > hw * 0.4 ? GOLD : dx < -hw * 0.4 ? BRZ_M : GOLD_D);
+  }
+  whl(x - r, x + r, y, BRZ_D);
+  const px = x + side * (r + 3), up = beat ? 0 : 1;                         // the drummer pounds with a long pestle
+  whl(px - 1, px + 1, y - 5, RED); whl(px - 1, px + 1, y - 4, RED); whl(px - 1, px + 1, y - 3, RED);
+  wp(px - 1, y - 2, SKIN_D); wp(px + 1, y - 2, SKIN_D); wp(px - 1, y - 1, SKIN_D); wp(px + 1, y - 1, SKIN_D);
+  wp(px, y - 7, SKIN_L); wp(px - side, y - 7, NIT_A); wp(px, y - 8, NIT_A); wp(px - side, y - 9, WHITE); wp(px - side * 2, y - 10, GOLD_L);
+  line(buf, px - side, y - 6 - up * 3, x + side * 2, y - 7 - up * 5, tc(px, y, BRZ_D));
+}
+function drumRing(wx, y, a) { // the boom rolling out across the ground
+  if (a < 0 || a >= 12) return;
+  const x = wx - camX, c = a < 4 ? GOLD_L : a < 8 ? GOLD : GOLD_D;
+  for (let k = 0; k < 2; k++) {
+    const rr = 3 + a * 1.6 - k * 4;
+    if (rr < 2) continue;
+    for (let q = 0; q < 48; q++) { const px = Math.round(x + Math.cos(q * 0.1309) * rr), py = Math.round(y + Math.sin(q * 0.1309) * rr * 0.4); plot(buf, px, py, c); }
+  }
+}
+function drawBoat(b) { // a long boat of the sea people, five aboard, rocking
+  const x = bQX[b] - camX, y = bQY[b] + (((pfr >> 1) + b) & 1);
+  if (x < -10 || x > W + 10) return;
+  for (let dx = -6; dx <= 6; dx++) {
+    const a = Math.abs(dx), lift = a > 4 ? a - 4 : 0;
+    wp(x + dx, y - 1 - lift, a > 5 ? GOLD_D : BRZ_M);
+    if (a < 6) wp(x + dx, y, BRZ_D);
+  }
+  for (let s = 0; s < 5; s++) {
+    const rx = x - 4 + s * 2, k = 50 + b * 5 + s;
+    if (flyT >= 0 && flyT >= 8 + b * 4) continue;
+    wp(rx, y - 2, KCOL[k]); wp(rx, y - 3, SKIN_L); wp(rx, y - 4, (k & 1) ? NIT_A : GOLD_L);
+  }
+  wp(x - 7, y - 3, GOLD_L); wp(x - 7, y - 2, GOLD_D);                                     // the bird-head prow
+  if (netT > 0 && b % 3 === 0) { // a net cast in a fan over the side
+    const r = Math.min(8, netT * 0.3);
+    for (let j = 0; j <= r; j++) for (let q = -j; q <= j; q += 2) if (isSea(x + 6 + j, y + (q >> 1) + 1)) wp(x + 6 + j, y + (q >> 1) + 1, j === Math.floor(r) ? WHITE : SKY_C);
+  }
+}
+function drawFlowers() {
+  const t = flowerT;
+  for (let k = 0; k < NFL; k++) {
+    const x = FLX[k] - camX, y = FLY[k];
+    if (x < -2 || x > W + 1) continue;
+    const age = state === MEET ? t - FLT[k] : 99, shut = flowerShut > (k % 7) / 7;
+    if (flowerShut > 0.15 + (k % 5) * 0.2) continue;
+    if (age < 0) { wp(x, y, GRN_L); continue; }
+    wp(x, y + 1, GRN_D);
+    if (shut || age < 3) { wp(x, y, FLC[k] === WHITE ? PINK_L : FLC[k]); continue; }
+    const c = FLC[k];
+    wp(x - 1, y, c); wp(x + 1, y, c); wp(x, y - 1, c); wp(x, y, c === GOLD_L ? AMBER : GOLD_L);
+    if (age < 9 && state === MEET) { wp(x - 2, y, c); wp(x + 2, y, c); wp(x, y - 2, c); }  // bursting open
+  }
+}
+function drawFields() { // paddies of Văn Lang: rows of rice between dikes, water glinting
+  for (let y = 72; y < H; y++) for (let wx = 84; wx <= 126; wx++) {
+    const x = wx - camX;
+    if (x < 0 || x >= W || !dith(wx, y, fieldR * 1.3 - (wx - 84) / 42 * 0.3)) continue;
+    const c = (wx - 84) % 11 === 0 || (y - 72) % 6 === 5 ? BRZ_M : (x * 3 + y + (pfr >> 2)) % 13 === 0 ? SKY_B : y % 2 === 0 ? GRN_L : (wx + y) % 4 ? GOLD : GRN_L;
+    wp(x, y, c);
+  }
+}
+function drawSea() { // crests rolling to the shore, the shore lapping, the water palace glinting
+  for (let y = HZ + 2; y < H; y += 3) {
+    const n = y < 76 ? 20 : 40, o = (TT * 17 * n / 1920) | 0;
+    for (let x = 0; x < W; x++) {
+      const wx = x + camX;
+      if (!isSea(x, y)) continue;
+      const p = (wx + o + y * 5) % 17;
+      if (p < 3) wp(x, y, p === 1 ? WHITE : SKY_C);
+    }
+  }
+  const lap = Math.round(1 + Math.sin(TT * TWO_PI / 120));
+  for (let y = HZ + 1; y < H; y++) { const x = shoreX(y) - camX - lap; wp(x, y, WHITE); wp(x + 1, y, SKY_C); }
+  const px0 = WPX - camX;
+  if (px0 > -30 && px0 < W + 30) for (let k = 0; k < 5; k++) {
+    const ph = ((TT >> 2) + k * 9) % 24;
+    if (ph < 3) { const x = px0 - 18 + k * 9, y = 73 + (k % 3) * 4; wp(x, y, WHITE); if (ph === 1) { wp(x - 1, y, GOLD_L); wp(x + 1, y, GOLD_L); } }
+  }
+  if (seaGlow > 0) { lighten(258 - camX, 78, Math.round(4 + seaGlow * 9)); }
+}
+function drawPerson(k) {
+  const x = KX[k] - camX, y = KY[k], st = KS[k], d = KD[k], b = KB[k], f = (pfr + k) & 1;
+  if (x < -3 || x > W + 2) return;
+  if (st === 0) { // a shining egg with a shadow on the grass
+    const ox = x + (b >= 2 ? (b & 1 ? 1 : -1) : 0);
+    whl(ox - 1, ox + 1, y, GRN_D);
+    wp(ox, y - 4, WHITE); wp(ox - 1, y - 3, WHITE); wp(ox, y - 3, b === 1 ? GOLD_L : WHITE); wp(ox + 1, y - 3, SKY_C);
+    wp(ox - 1, y - 2, WHITE); wp(ox, y - 2, PINK_L); wp(ox + 1, y - 2, SKY_C); wp(ox, y - 1, MTN_L);
+    return;
+  }
+  if (st === 1) { // a rosy child waving its arms
+    whl(x - 1, x + 1, y, GRN_D);
+    wp(x, y - 6, NIT_A); wp(x - d, y - 5, NIT_A); wp(x, y - 5, SKIN_L);
+    wp(x - 1, y - 4, PINK_L); wp(x, y - 4, ROSE); wp(x + 1, y - 4, PINK_L);
+    wp(x - 1 - f, y - 5, PINK_L); wp(x + 1 + (1 - f), y - 5, PINK_L);
+    wp(x, y - 3, ROSE); wp(x, y - 2, ROSE_D); wp(x - 1, y - 1, SKIN_D); wp(x + 1, y - 1, SKIN_D);
+    return;
+  }
+  const c = KCOL[k], cd = DARKC[c], girl = k & 1, lean = b === 4 ? 1 : 0, bow = b === 5 ? d : 0, hop = b === 6 ? -1 : 0;
+  if (KF[k] >= 2) { // a lord: a long robe; Lạc hầu in a flat hat, Lạc tướng with a plume and a bronze axe
+    const war = KF[k] === 3, rc = war ? RED : BRZ_M, bw = bow * 2, yy = y + hop;
+    for (let r = 0; r < 7; r++) whl(x - 1 - (r > 4 ? 1 : 0), x + 1, yy - 1 - r, r === 0 ? GOLD : r > 5 ? DARKC[rc] : rc);
+    whl(x - 1 + bw, x + 1 + bw, yy - 8 - (bow ? -2 : 0), rc);
+    const hy = yy - 10 + (bow ? 2 : 0), hxx = x + bw + (bow ? d : 0);
+    whl(hxx - 1, hxx + 1, hy, SKIN_L); wp(hxx + d, hy, SKIN_L); wp(hxx + d, hy - 1, SKIN_L); wp(hxx - d, hy - 1, NIT_A);
+    if (war) { wp(hxx - d, hy - 2, WHITE); wp(hxx - 2 * d, hy - 3, WHITE); wp(hxx - 2 * d, hy - 4, GOLD_L); wp(x + 2 * d, yy - 6, BRZ_D); wp(x + 2 * d, yy - 7, BRZ_D); wp(x + 2 * d, yy - 8, BRZ_D); wp(x + 3 * d, yy - 8, GOLD); wp(x + 3 * d, yy - 7, GOLD); }
+    else whl(hxx - 2, hxx + 2, hy - 2, BRZ_D);
+    return;
+  }
+  const small = st === 2, hy = y - (small ? 6 : 8) + hop + (bow ? 2 : 0), top = hy + 2;
+  const hx = x + lean + bow;
+  wp(hx, hy, NIT_A); wp(hx - d, hy, NIT_A); wp(hx - d, hy + 1, NIT_A); wp(hx, hy + 1, SKIN_L); wp(hx + d, hy + 1, SKIN_L);
+  if (girl) { wp(hx - d * 2, hy + 1, NIT_A); wp(hx - d, hy - 1, NIT_A); }
+  if (KF[k] === 1) { wp(hx - d, hy - 1, WHITE); wp(hx - d * 2, hy - 2, WHITE); wp(hx - d * 2, hy - 3, GOLD_L); wp(hx, hy - 1, GOLD); }
+  const legs = small ? 1 : 2;
+  for (let yy = top; yy < y - legs + hop; yy++) {
+    const sh = yy < top + 2 ? lean + bow : 0;
+    whl(x - 1 + sh, x + 1 + sh, yy, yy === top ? c : (girl && yy > top + 2) ? c : x - 1 + sh === x - 1 && d > 0 ? cd : c);
+    if (yy === top) wp(x + 2 * d + sh, yy + 1, SKIN_L);                                 // a hand
+  }
+  if (girl && !small) { whl(x - 1, x + 1, y - 2 + hop, c); whl(x - 1, x + 1, y - 1 + hop, cd); }
+  else if (b === 1 && f) { wp(x - 1, y - 1 + hop, SKIN_D); wp(x + 1, y - 2 + hop, SKIN_D); if (!small) wp(x + 1, y - 1 + hop, BRZ_D); }
+  else { wp(x - 1, y - 1 + hop, SKIN_D); wp(x + 1, y - 1 + hop, SKIN_D); if (!small) { wp(x - 1, y - 2 + hop, SKIN_D); wp(x + 1, y - 2 + hop, SKIN_D); } }
+}
+function drawPeople(front) {
+  const cut = fOn ? fY : CPY;
+  for (let k = 0; k < NK; k++) {
+    if (!KV[k] || (KY[k] >= cut) !== front) continue;
+    if (flyT >= 0 && flyT >= flyStart(k)) continue;
+    drawPerson(k);
+  }
+}
+function flyStart(k) {
+  return 6 + (k * 17) % 40;
+}
+
+function drawUnder() {
+  const fo = camX >> 1, LSA = TODS[skyA], LSB = TODS[skyB], LA = TODL[skyA], LB = TODL[skyB];
+  for (let y = 0; y < H; y++) {
+    const rw = y * WW + camX, rf = y * FW + fo, ro = y * W, k = skyUp ? H - 1 - y : y, fr = (skyE * (H + 8) - k) / 8;
+    for (let x = 0; x < W; x++) {
+      const i = ro + x;
+      let c = WORLD[rw + x], sky = 0;
+      if (c === EMPTY) { c = FAR[rf + x]; if (c === EMPTY) { c = buf[i]; sky = 1; } }
+      SKYM[i] = sky;
+      const sw = skyE > 0 && fr * 16 > BAYER[(y & 3) * 4 + (x & 3)];
+      buf[i] = sky ? (sw ? LSB[c] : LSA[c]) : (sw ? LB[c] : LA[c]);
+    }
+  }
+  drawCelestial();
+  drawSea();
+  if (state >= PALACE && palR > 0) drawPalace();
+  if (lantern) for (let k = -1; k <= 1; k += 2) { const x = PLX - camX + k * 6; halo(x, 45, 5, GOLD, AMBER); plot(buf, x, 45, GOLD_L); plot(buf, x + k, 45, GOLD_L); plot(buf, PLX - camX + k * 12, 58, GOLD_L); }
+  if (hallR > 0) drawHall(HX, HTOP, 30, hallR, 1);
+  if (state >= CROWN) { drawBronzeDrum(44, 77, 4, fbeat >= 0 && fbeat < 6, -1); drawBronzeDrum(113, 77, 4, fbeat >= 0 && fbeat < 6, 1); drumRing(44, 71, fbeat); drumRing(113, 71, fbeat); }
+  if (fieldR > 0) drawFields();
+  for (let h = 0; h < NHS; h++) if (houseT >= 0 && !(flyT >= 0 && flyT >= 10 + h * 6)) drawHall(HSX[h], HSY[h], 14, ease((houseT - 12 - h * 10) / 24), 0);
+  if (state >= VANLANG) { drawBronzeDrum(138, 82, 5, beatA >= 0 && beatA < 5, 1); drumRing(138, 76, beatA); }
+  if (flowerT >= 0) drawFlowers();
+  for (let b = 0; b < NBT; b++) if (bOn[b] && !(flyT >= 0 && flyT >= 8 + b * 4)) drawBoat(b);
+  if (rippleT >= 0) for (let r = 0; r < 3; r++) { // her call runs out over the water
+    const rr = rippleT * 0.8 - r * 6;
+    if (rr < 1) continue;
+    for (let a = 0; a < 64; a++) { const x = Math.round(214 - camX + Math.cos(a * 0.0982) * rr * 1.6), y = Math.round(75 + Math.sin(a * 0.0982) * rr * 0.35); if (isSea(x, y) && x < W) plot(buf, x, y, r === 0 ? SKY_C : SKY_B); }
+  }
+  drawPeople(false);
+  if (bOnN) drawBirds();
+}
+function drawCelestial() {
+  if (starV > 0) for (let k = 0; k < NST; k++) {
+    const x = STX[k], y = STY[k], i = y * W + x;
+    if (!SKYM[i] || !dith(x, y, starV)) continue;
+    const lv = ((TT * 3 + SPH[k] * 7) >> 5) & 3;
+    buf[i] = lv === 3 ? WHITE : lv === 2 ? SKY_C : MTN_L;
+  }
+  if (moonV > 0) {
+    halo(moonX, moonY, 12, NIT_B, NIT_B);
+    for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) {
+      const x = moonX + dx, y = moonY + dy;
+      if (dx * dx + dy * dy > 25 || x < 0 || x >= W || y < 0 || y >= H || !SKYM[y * W + x] || !dith(x, y, moonV)) continue;
+      const crater = (dx === -2 && dy === -1) || (dx === 1 && dy === 2) || (dx === 2 && dy === -2);
+      buf[y * W + x] = crater || dx + dy < -5 ? SKY_C : WHITE;
+    }
+    for (let y = HZ + 2; y < H; y += 2) { // the moon's road across the sea
+      const x = moonX + Math.round(Math.sin(y * 1.7 + (TT >> 3)) * (1 + (y - HZ) * 0.15));
+      if (isSea(x, y) && dith(x, y, moonV)) { plot(buf, x, y, SKY_C); if (y > 76) plot(buf, x + 1, y, MTN_L); }
+    }
+  }
+  if (sunV > 0) {
+    const warm = skyA !== DAY || skyB !== DAY, x = sunX, y = sunY;
+    halo(x, y, 10, warm ? GOLD_L : SKY_C, warm ? AMBER : SKY_B);
+    for (let dy = -5; dy <= 5; dy++) for (let dx = -5; dx <= 5; dx++) {
+      const d2 = dx * dx + dy * dy, px = x + dx, py = y + dy;
+      if (d2 > 25 || px < 0 || px >= W || py < 0 || py >= H || !SKYM[py * W + px]) continue;
+      buf[py * W + px] = d2 < 5 ? WHITE : d2 < 14 ? GOLD_L : warm ? AMBER : GOLD;
+    }
+    if (warm && y > 30) for (let yy = HZ + 1; yy < H; yy += 2) { // a road of light on the water at dawn and dusk
+      const xx = x + Math.round(Math.sin(yy * 1.3 + (TT >> 3)) * (1 + (yy - HZ) * 0.2));
+      if (isSea(xx, yy)) { plot(buf, xx, yy, GOLD_L); plot(buf, xx - 1, yy, AMBER); }
+    }
+  }
+}
+// Actors go through lay into spr under a group id: where one actor meets another the seam is inked.
+const lay = new Uint8Array(N).fill(EMPTY), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let grp = 0, pid = 0, bx0 = 0, by0 = 0, bx1 = W - 1, by1 = H - 1;
+function hint(x0, y0, x1, y1) {
+  bx0 = Math.max(0, x0 | 0); by0 = Math.max(0, y0 | 0); bx1 = Math.min(W - 1, x1 | 0); by1 = Math.min(H - 1, y1 | 0);
+}
+function layEnd(fade, clipY) { // copy the part into spr through a dissolve; below clipY in the sea it swims as a shadow
+  GRP[++pid] = grp;
+  for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) {
+    const i = y * W + x;
+    if (lay[i] === EMPTY || (fade < 1 && !dith(x, y, fade))) continue;
+    if (y > clipY && isSea(x, y)) { buf[i] = (x + y + pfr) & 1 ? JADE_D : NIT_B; continue; }
+    spr[i] = lay[i]; own[i] = pid;
+  }
+  for (let y = Math.max(1, by0 - 1); y <= Math.min(H - 2, by1 + 1); y++) for (let x = Math.max(1, bx0 - 1); x <= Math.min(W - 2, bx1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || own[i] === pid || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
+  }
+  for (let y = by0; y <= by1; y++) lay.fill(EMPTY, y * W + bx0, y * W + bx1 + 1);
+}
+function lp(x, y, c) {
+  if (x >= 0 && x < W && y >= 0 && y < H) lay[y * W + x] = c;
+}
+
+function drawBirds() { // Lạc birds, small and white: a long beak, a swept crest, a streaming tail, wings beating
+  for (let k = 0; k < NB; k++) {
+    if (flyT >= 0 && flyT >= 20 + k * 3) continue;
+    const x = BRX[k] - camX, y = BRY[k], d = BRD[k], up = (pfr + k) & 1;
+    if (x < -8 || x > W + 8 || y < -4 || y > H + 3) continue;
+    for (let j = -4; j <= 1; j++) plot(buf, x + j * d, y, j < -2 ? CREAM : WHITE);
+    plot(buf, x + 2 * d, y - 1, WHITE); plot(buf, x + 3 * d, y - 1, GOLD_D); plot(buf, x + 4 * d, y, GOLD_D); // head and long beak
+    plot(buf, x + d, y - 2, GOLD_L);                                                                  // crest
+    plot(buf, x - 1 * d, y + 1, SKY_C); plot(buf, x - 5 * d, y + 1, CREAM);                          // belly shade, tail tip
+    if (up) { plot(buf, x - d, y - 1, WHITE); plot(buf, x - 2 * d, y - 2, WHITE); plot(buf, x - 2 * d, y - 3, SKY_C); }
+    else { plot(buf, x - d, y + 2, WHITE); plot(buf, x - 2 * d, y + 3, SKY_C); }
+  }
+}
+function drawDragon() { // Lạc Long Quân: gold scales, a jade crest and mane, antlers, long whiskers
+  grp = 20;
+  const cx = camX;
+  for (let i = NSEG - 2; i >= 0; i--) capsule(lay, DX[i + 1] - cx, DY[i + 1], DR[i + 1], DX[i] - cx, DY[i], DR[i], GOLD_D, GOLD, GOLD_L);
+  for (let i = 2; i < NSEG - 2; i++) {
+    const ux = DUX[i], uy = DUY[i], r = DR[i], x = DX[i] - cx, y = DY[i];
+    lp(Math.round(x - ux * (r - 0.6)), Math.round(y - uy * (r - 0.6)), i & 1 ? CREAM : GOLD_L);        // belly plates
+    if (i % 2 === 0 && i < NSEG - 3) {                                                                    // a jade fin, swept back
+      const tx = DX[i + 1] - DX[i], ty = DY[i + 1] - DY[i], l = Math.hypot(tx, ty) || 1;
+      line(lay, Math.round(x + ux * r), Math.round(y + uy * r), Math.round(x + ux * (r + 2.5) + tx / l * 2), Math.round(y + uy * (r + 2.5) + ty / l * 2), JADE_M);
+      lp(Math.round(x + ux * (r + 2.5) + tx / l * 2), Math.round(y + uy * (r + 2.5) + ty / l * 2), JADE_L);
+    }
+    if (i === 4 || i === 14) { // a clawed leg under the body
+      const tx = DX[i - 1] - DX[i + 1], ty = DY[i - 1] - DY[i + 1], l = Math.hypot(tx, ty) || 1;
+      const fx = Math.round(x - ux * (r + 3.5) - tx / l * 2.5), fy = Math.round(y - uy * (r + 3.5) - ty / l * 2.5);
+      capsule(lay, x - ux * r * 0.4, y - uy * r * 0.4, 1.5, fx, fy, 1.1, GOLD_D, GOLD, GOLD_L);
+      lp(fx - 1, fy, CREAM); lp(fx + 1, fy, CREAM); lp(fx, fy + 1, CREAM);
+    }
+  }
+  const tx = DX[NSEG - 1] - cx, ty = DY[NSEG - 1], tux = DUX[NSEG - 1], tuy = DUY[NSEG - 1]; // the tail's jade flame
+  for (let j = 1; j <= 3; j++) { lp(Math.round(tx + tux * j), Math.round(ty + tuy * j), JADE_L); lp(Math.round(tx - tux * j), Math.round(ty - tuy * j), JADE_M); }
+  const hx = DX[0] - cx, hy = DY[0], ax = HD[0], ay = HD[1], vx = DUX[0], vy = DUY[0];
+  for (let j = 0; j < 4; j++) line(lay, Math.round(hx - ax * (1 + j * 1.5) + vx * 2), Math.round(hy - ay * (1 + j * 1.5) + vy * 2), Math.round(hx - ax * (3 + j * 1.8) + vx * (4 + (j & 1))), Math.round(hy - ay * (3 + j * 1.8) + vy * (4 + (j & 1))), j & 1 ? JADE_L : JADE_M); // mane
+  capsule(lay, hx - vx * 1.4, hy - vy * 1.4, 1.7, hx + ax * 6 - vx * 3, hy + ay * 6 - vy * 3, 1.1, GOLD_D, GOLD_D, GOLD);   // lower jaw, open
+  capsule(lay, hx - ax, hy - ay, 3.6, hx + ax * 7, hy + ay * 7, 2, GOLD_D, GOLD, GOLD_L);                                  // head and snout
+  line(lay, Math.round(hx + ax * 2 - vx), Math.round(hy + ay * 2 - vy), Math.round(hx + ax * 7 - vx * 1.4), Math.round(hy + ay * 7 - vy * 1.4), INK);
+  for (let j = 3; j <= 6; j += 3) lp(Math.round(hx + ax * j - vx * 2), Math.round(hy + ay * j - vy * 2), WHITE);           // teeth
+  for (let k = 0; k < 2; k++) { // antlers, forked
+    const bx = hx - ax * (1 + k) + vx * 2.5, by = hy - ay * (1 + k) + vy * 2.5, ex = bx - ax * 5 + vx * 5, ey = by - ay * 5 + vy * 5;
+    line(lay, Math.round(bx), Math.round(by), Math.round(ex), Math.round(ey), k ? CREAM : GOLD_L);
+    line(lay, Math.round(bx - ax * 2.5 + vx * 2.5), Math.round(by - ay * 2.5 + vy * 2.5), Math.round(bx - ax * 1 + vx * 5), Math.round(by - ay * 1 + vy * 5), k ? CREAM : GOLD_L);
+  }
+  for (let k = 0; k < 2; k++) for (let j = 1; j <= 9; j++) { // whiskers streaming back, waving
+    const w = Math.sin(j * 0.8 + pfr * 0.9 + k * 2) * 1.2;
+    lp(Math.round(hx + ax * (7 - j * 1.1) - vx * (k ? -1 + j * 0.3 : -2 - j * 0.1) + vx * w), Math.round(hy + ay * (7 - j * 1.1) - vy * (k ? -1 + j * 0.3 : -2 - j * 0.1) + vy * w), JADE_L);
+  }
+  lp(Math.round(hx + ax * 1.5 + vx * 1.4), Math.round(hy + ay * 1.5 + vy * 1.4), RED);                                   // eye
+  lp(Math.round(hx + ax * 2.3 + vx * 1.4), Math.round(hy + ay * 2.3 + vy * 1.4), WHITE);
+  hint(-40, -20, W + 40, H + 20);
+  let xa = W, xb = 0, ya = H, yb = 0;
+  for (let i = 0; i < NSEG; i++) { const x = DX[i] - cx, y = DY[i]; xa = Math.min(xa, x); xb = Math.max(xb, x); ya = Math.min(ya, y); yb = Math.max(yb, y); }
+  hint(xa - 16, ya - 16, xb + 16, yb + 16);
+  layEnd(dFade, dClip);
+}
+const M_HEAD = 'HHHH.HHSSSHSSES.SSSS.DSS.', F_HEAD = '.HHH.HHSSSHSSESHSSS.H.S..'; // 5x5 heads facing right
+function arm(sx, sy, hx, hy, dark, base, light, near) {
+  capsule(lay, sx, sy, 1.5, hx, hy, 1.2, dark, near ? base : dark, light);
+  lp(hx, hy + 1, near ? SKIN_L : SKIN_D); lp(hx, hy, SKIN_L);
+}
+function drawMan() { // the young lord: a long robe of jade and gold, a topknot and a small gold dragon crown
+  grp = 21;
+  const x = mX - camX, y = mY, d = mD;
+  const nx = mP === M_REACH ? 8 : mP === M_RAISE ? 3 : 2, ny = mP === M_REACH ? -18 : mP === M_RAISE ? -31 : -11;
+  arm(x - d * 3, y - 20, x - d * 2, y - 11, JADE_D, JADE_M, JADE_L, 0);
+  for (let r = 0; r < 11; r++) { // the robe skirt, widening to the hem
+    const yy = y - 1 - r, hw = 4 + (r < 4 ? 1 : 0), l = x - hw, rr = x + hw;
+    for (let xx = l; xx <= rr; xx++) lp(xx, yy, r === 0 ? GOLD : xx === l || xx === rr ? JADE_D : xx === x + d ? JADE_D : (xx - x) * d > 1 ? JADE_L : JADE_M);
+  }
+  lp(x - 2, y, BRZ_D); lp(x - 1, y, BRZ_D); lp(x + 1, y, BRZ_D); lp(x + 2, y, BRZ_D);
+  for (let xx = x - 4; xx <= x + 4; xx++) lp(xx, y - 12, (xx - x) * d === 1 ? GOLD_L : GOLD);  // belt
+  for (let r = 0; r < 9; r++) { // torso: broad shoulders, a gold cross-collar
+    const yy = y - 13 - r, hw = r > 6 ? 5 : 4;
+    for (let xx = x - hw; xx <= x + hw; xx++) lp(xx, yy, (xx - x) * d > 2 ? JADE_L : (xx - x) * d < -2 ? JADE_D : JADE_M);
+    lp(x + Math.round(d * (3 - r * 0.5)), yy, GOLD);
+  }
+  lp(x, y - 22, SKIN_D);
+  for (let r = 0; r < 5; r++) for (let j = 0; j < 5; j++) {
+    const ch = M_HEAD[r * 5 + j];
+    if (ch !== '.') lp(x + (j - 2) * d, y - 27 + r, ch === 'H' ? NIT_A : ch === 'S' ? SKIN_L : ch === 'E' ? INK : SKIN_D);
+  }
+  lp(x - d, y - 28, NIT_A); lp(x - 2 * d, y - 28, NIT_A);                                    // topknot
+  lp(x, y - 28, GOLD); lp(x + d, y - 29, GOLD_L); lp(x, y - 30, GOLD_L); lp(x - d, y - 29, GOLD);  // the dragon crown
+  arm(x + d * 3, y - 20, x + d * nx, y + ny, JADE_D, JADE_M, JADE_L, 1);
+  if (mP === M_RAISE) lp(x + d * nx, y + ny - 1, GOLD_L);
+  hint(x - 14, y - 34, x + 14, y + 1);
+  layEnd(mFade, 999);
+}
+function drawFairy() { // Âu Cơ: a white gown under a rose robe, a crown of feathers, long sleeves and a trailing scarf
+  grp = 22;
+  const x = fX - camX, y = fY, d = fD, fly = fFly, kn = fP === F_KNEEL ? 6 : 0, ph = pfr * 0.9;
+  let nx = 2, ny = -12, fx = 1, fy = -12;
+  if (fP === F_FLOAT) { nx = 8; ny = -18; fx = -7; fy = -19; }
+  else if (fP === F_REACH) { nx = 9; ny = -20; }
+  else if (fP === F_KNEEL) { nx = 5; ny = -7; fx = 4; fy = -7; }
+  else if (fP === F_CALL) { nx = 4; ny = -30; fx = -3; fy = -30; }
+  else if (fP === F_WALK) { nx = 2 + (pfr & 1); ny = -12; fx = -1 - (pfr & 1); }
+  else if (fP === F_WED) { nx = 7; ny = -15; }
+  const sy = y - 19 + kn;
+  for (let j = 0; j < 16; j++) { // the scarf, trailing behind in a slow wave
+    const u = j / 15, lx = fly ? -d * (3 + j * 1.3) : -d * (2 + j * 0.35), ly = fly ? -1 + j * 0.5 : j * 0.9;
+    lp(Math.round(x + lx), Math.round(sy + ly + Math.sin(ph + j * 0.6) * (fly ? 1.6 : 0.6) * u), PINK_L);
+  }
+  arm(x - d * 2, sy + 1, x + d * fx, y + fy + kn, ROSE_D, ROSE, PINK_L, 0);
+  for (let j = 1; j <= 5; j++) lp(x + d * fx + Math.round((fly ? -d * j * 0.8 : Math.sin(ph + j) * 0.6)), y + fy + kn + j, j < 3 ? PINK_L : ROSE); // hanging sleeve
+  for (let j = 0; j < 9; j++) lp(x - 2 * d - (fly ? d * (j >> 1) : 0), sy - 1 + j, NIT_A);                          // long hair down her back
+  const rows = 13 - kn, trail = fly ? 5 : 0;
+  for (let r = 0; r < rows; r++) { // the gown: rose robe behind, white gown in front, a gold hem
+    const q = r / Math.max(1, rows - 1), hw = Math.round(2.5 + q * (kn ? 5 : 3.5)), sh = -d * Math.round(q * q * trail) + (fly && r === rows - 1 ? ((pfr & 1) ? d : 0) : 0);
+    const yy = y - rows + 1 + r, l = x - hw + sh, rr = x + hw + sh;
+    for (let xx = l; xx <= rr; xx++) {
+      const fr = ((xx - l) / Math.max(1, rr - l) - 0.5) * d + 0.5;
+      lp(xx, yy, r === rows - 1 ? GOLD : fr > 0.5 ? (fr < 0.62 ? CREAM : WHITE) : xx === (d > 0 ? l : rr) ? ROSE_D : (r % 4 === 2 && fr < 0.3 ? ROSE_D : ROSE));
+    }
+  }
+  for (let xx = x - 3; xx <= x + 3; xx++) lp(xx, y - 13 + kn, GOLD);                         // the sash
+  lp(x + d * 2, y - 12 + kn, GOLD); lp(x + d * 2, y - 11 + kn, GOLD_L);
+  for (let r = 0; r < 7; r++) { // bodice
+    const yy = y - 20 + kn + r, hw = r === 0 ? 3 : 2;
+    for (let xx = x - hw; xx <= x + hw; xx++) lp(xx, yy, r < 3 && xx === x ? WHITE : (xx - x) * d > 0 ? PINK_L : (xx - x) * d < -1 ? ROSE_D : ROSE);
+  }
+  lp(x, y - 21 + kn, SKIN_D);
+  const ht = y - 26 + kn;
+  for (let r = 0; r < 5; r++) for (let j = 0; j < 5; j++) {
+    const ch = F_HEAD[r * 5 + j];
+    if (ch !== '.') lp(x + (j - 2) * d, ht + r, ch === 'H' ? NIT_A : ch === 'S' ? SKIN_L : INK);
+  }
+  lp(x + d, ht + 3, ROSE);                                                                     // a touch of rouge
+  for (let j = -1; j <= 1; j++) lp(x + j * d, ht, GOLD);                                       // the feather crown
+  line(lay, x, ht - 1, x - d, ht - 5, WHITE); lp(x - d, ht - 6, GOLD_L);
+  line(lay, x - d, ht - 1, x - 3 * d, ht - 4, WHITE); lp(x - 3 * d, ht - 5, GOLD_L);
+  line(lay, x + d, ht - 1, x + d, ht - 4, WHITE); lp(x + d, ht - 5, GOLD_L);
+  arm(x + d * 2, sy + 1, x + d * nx, y + ny + kn, ROSE_D, ROSE, PINK_L, 1);
+  for (let j = 1; j <= 5; j++) lp(x + d * nx + Math.round(fly ? -d * j * 0.8 : Math.sin(ph + j + 1) * 0.6), y + ny + kn + j, j < 3 ? PINK_L : ROSE);
+  if (crownHeld) for (let j = -2; j <= 2; j++) { const cx = crownX - camX; lp(cx + j, crownY, GOLD); lp(cx + j, crownY - 1, WHITE); lp(cx + Math.round(j * 1.5), crownY - 2, WHITE); lp(cx + j * 2, crownY - 3, GOLD_L); } // the feather crown
+  hint(x - 26, y - 36, x + 26, y + 2);
+  layEnd(fHide ? 0 : fFade, 999);
+}
+function drawKing() { // the first Hùng King: a red robe, arms raised, a great crown of feathers
+  grp = 23;
+  const x = HX - camX, y = HTOP + 2;
+  if (x < -16 || x > W + 16) return;
+  for (let r = 0; r < 9; r++) { const hw = 2 + Math.round(r / 8 * 2), yy = y - 9 + r; for (let xx = x - hw; xx <= x + hw; xx++) lp(xx, yy, r === 8 ? GOLD : xx === x ? GOLD : xx === x - hw ? ROSE_D : RED); }
+  for (let r = 0; r < 4; r++) for (let xx = x - 2; xx <= x + 2; xx++) lp(xx, y - 13 + r, r === 0 && Math.abs(xx - x) < 2 ? GOLD : xx === x - 2 ? ROSE_D : RED);
+  if (kgArms) { capsule(lay, x - 2, y - 12, 1.1, x - 5, y - 18, 0.9, ROSE_D, RED, AMBER); capsule(lay, x + 2, y - 12, 1.1, x + 5, y - 18, 0.9, ROSE_D, RED, AMBER); lp(x - 5, y - 19, SKIN_L); lp(x + 5, y - 19, SKIN_L); }
+  else { capsule(lay, x - 2, y - 12, 1.1, x - 1, y - 8, 0.9, ROSE_D, RED, AMBER); capsule(lay, x + 2, y - 12, 1.1, x + 1, y - 8, 0.9, ROSE_D, RED, AMBER); lp(x, y - 8, SKIN_L); }
+  for (let xx = x - 1; xx <= x + 1; xx++) { lp(xx, y - 17, NIT_A); lp(xx, y - 16, SKIN_L); lp(xx, y - 15, xx === x ? SKIN_L : INK); lp(xx, y - 14, xx === x ? SKIN_D : SKIN_L); }
+  lp(x - 2, y - 16, NIT_A); lp(x + 2, y - 16, NIT_A); lp(x - 2, y - 15, NIT_A); lp(x + 2, y - 15, NIT_A);
+  if (crownOn) { // seven feathers fanned round a gold band
+    for (let xx = x - 2; xx <= x + 2; xx++) lp(xx, y - 18, GOLD);
+    for (let k = -3; k <= 3; k++) {
+      const a = k * 0.42, len = 7 - Math.abs(k);
+      for (let j = 1; j <= len; j++) lp(Math.round(x + Math.sin(a) * (j + 1)), Math.round(y - 18 - Math.cos(a) * j), j === len ? GOLD_L : WHITE);
+    }
+  } else { lp(x, y - 18, NIT_A); lp(x, y - 19, NIT_A); }
+  hint(x - 12, y - 28, x + 12, y + 1);
+  layEnd(kgFade, 999);
+}
+function drawActor() {
+  own.fill(0); pid = 0;
+  if (kgOn) drawKing();
+  if (mOn && mFade > 0) drawMan();
+  if (dOn && dFade > 0) drawDragon();
+  if (fOn) drawFairy();
+}
+
+function drawSac() { // a pearly sac of light, pulsing, then opening like a flower
+  const x = SACX - camX, y = SACY - 4, r = sacR + ((pfr >> 1) & 1) * 0.6, ry = r * 0.8, o = Math.round(sacOpen * 3);
+  lighten(x, SACY, Math.round(5 + r));
+  for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) for (let dx = -Math.ceil(r) - o; dx <= Math.ceil(r) + o; dx++) {
+    const side = dx < 0 ? -1 : 1, ex = dx - side * o, q = (ex * ex) / (r * r) + (dy * dy) / (ry * ry);
+    if (q > 1 || (o > 0 && Math.abs(dx) < o && dy < ry * 0.3)) continue;
+    const c = q > 0.7 ? SKY_C : ex * 0.5 + dy < -r * 0.5 ? WHITE : q < 0.25 ? GOLD_L : PINK_L;
+    plot(buf, x + dx, y + dy, sacGlow > 0.5 && q < 0.12 ? WHITE : c);
+  }
+  if (o > 0) for (let dx = -o + 1; dx < o; dx++) plot(buf, x + dx, y - 1, GOLD_L);
+}
+function drawPops() { // each egg cracks in a pop of light
+  const t = TT - ST0[HATCH];
+  for (let k = 0; k < NK; k++) {
+    const a = t - 6 - HR[k];
+    if (a < 0 || a > 8) continue;
+    const x = EX[k] - camX, y = EY[k] - 2;
+    if (a < 3) { plot(buf, x, y, WHITE); for (let j = 1; j <= 2; j++) { plot(buf, x + j, y, GOLD_L); plot(buf, x - j, y, GOLD_L); plot(buf, x, y - j, GOLD_L); } }
+    else { const r = a - 1; plot(buf, x + r, y, GOLD); plot(buf, x - r, y, GOLD); plot(buf, x, y - r, GOLD); plot(buf, x + r - 1, y - r + 1, GOLD_D); plot(buf, x - r + 1, y - r + 1, GOLD_D); }
+  }
+}
+function drumTex(tex, tw, rows, v, a, rot) {
+  const u = ((a * tw | 0) + rot) % tw;
+  return tex[v * tw + u];
+}
+function drawDrum() { // the bronze face: star, zigzag, the scene band, circles, the Lạc birds, ticks, the rim
+  const rS = (WS * (1920 - TT) / 1920 | 0), rB = (TT * WB * 2 / 1920 | 0), rC = (TT * WC / 1920 | 0), R = drumR;
+  for (let i = 0; i < N; i++) {
+    const d = DD[i];
+    if (d < R - 3) continue;
+    const x = i % W, y = i / W | 0;
+    if (d < R) { const e = R - d; buf[i] = e < 1 ? WHITE : e < 2 ? GOLD_L : (x + y) & 1 ? GOLD : AMBER; continue; }
+    const r = d | 0, a = DA[i];
+    let c;
+    if (r < 10) {
+      const q = a * 14 + starRot, f = q - Math.floor(q) - 0.5, w = 0.5 * (1 - (d - 2.2) / 7.8);
+      c = d < 1.6 ? WHITE : d < 2.8 ? GOLD_L : Math.abs(f) < w ? (f < 0 ? GOLD_L : GOLD) : Math.abs(f) < w + 0.07 ? BRZ_D : d > 6 && Math.abs(f) > 0.4 ? BRZ_D : BRZ_M;
+      for (let l = 0; l < flare; l++) c = LIGHTEN[c];
+    } else if (r < 12) c = r === 10 ? BRZ_D : GOLD_D;
+    else if (r < 15) c = drumTex(TZ, WZ, 3, r - 12, a, 0);
+    else if (r === 15 || r === 26 || r === 30 || r === 40) c = GOLD_D;
+    else if (r < 26) c = drumTex(TS, WS, 10, r - 16, a, rS);
+    else if (r < 30) c = drumTex(TC, WC, 3, r - 27, a, rC);
+    else if (r < 40) c = drumTex(TB, WB, 9, r - 31, a, rB);
+    else if (r < 44) c = drumTex(TO, WO, 3, r - 41, a, 0);
+    else if (d < 45) c = BRZ_D;
+    else if (d < 50) c = d < 46 ? GOLD_D : d > 48.5 ? BRZ_D : BRZ_M;                     // the drum's shoulder beyond the face
+    else c = d < 51 ? BRZ_D : INK;
+    if (flare > 1 && d < 12 + flare * 3 && r >= 10) c = LIGHTEN[c];
+    buf[i] = SHEEN[i] && d < 50 ? LIGHTEN[c] : c;
+  }
+}
+function drawFlyers() { // the world's people, houses, boats and birds streaming back into their bands
+  const t = flyT;
+  for (let n = 0; n < NK + NHS + NBT + NB + 1; n++) {
+    let s0, sx, sy, rad;
+    if (n < NK) { if (!KV[n]) continue; s0 = flyStart(n); sx = KX[n] - camX; sy = KY[n] - 4; rad = 21; }
+    else if (n < NK + NHS) { const h = n - NK; s0 = 10 + h * 6; sx = HSX[h] - camX; sy = HSY[h] - 12; rad = 21; }
+    else if (n < NK + NHS + NBT) { const b = n - NK - NHS; s0 = 8 + b * 4; sx = bQX[b] - camX; sy = bQY[b] - 2; rad = 21; }
+    else if (n < NK + NHS + NBT + NB) { const k = n - NK - NHS - NBT; s0 = 20 + k * 3; sx = BRX[k] - camX; sy = BRY[k]; rad = 35; }
+    else { s0 = 30; sx = fX - camX; sy = fY - 14; rad = 0; }
+    if (sx < -4 || sx > W + 4 || t < s0) continue;
+    const u = (t - s0) / 26;
+    const dx = sx - DCX, dy = sy - DCY, l = Math.hypot(dx, dy) || 1, ex = DCX + dx / l * rad, ey = DCY + dy / l * rad;
+    const cx = (sx + ex) / 2 - dy / l * 14, cy = (sy + ey) / 2 + dx / l * 14;
+    if (u >= 1) {
+      if (u < 1.35 && d2d(ex, ey)) { const x = Math.round(ex), y = Math.round(ey); plot(buf, x, y, WHITE); plot(buf, x + 1, y, GOLD_L); plot(buf, x - 1, y, GOLD_L); plot(buf, x, y - 1, GOLD_L); plot(buf, x, y + 1, GOLD_L); }
+      continue;
+    }
+    for (let j = 2; j >= 0; j--) {
+      const p = ease(u - j * 0.05), v = 1 - p;
+      const x = Math.round(v * v * sx + 2 * v * p * cx + p * p * ex), y = Math.round(v * v * sy + 2 * v * p * cy + p * p * ey);
+      plot(buf, x, y, j === 0 ? WHITE : j === 1 ? GOLD_L : GOLD);
+      if (j === 0 && n >= NK) { plot(buf, x + 1, y, GOLD_L); plot(buf, x, y - 1, GOLD_L); }
+    }
+  }
+}
+function d2d(x, y) {
+  return Math.hypot(x - DCX, y - DCY) >= drumR - 1;
+}
+function drawWind() { // gusts streaming across the plain as the children shoot up
+  const t = stT;
+  for (let k = 0; k < 12; k++) {
+    const y = 52 + k * 3 + (k & 1), v = 3 + (k % 3), len = 6 + (k % 4) * 3, x0 = ((t * v + k * 53) % 220) - 40;
+    if (t > 84 && x0 > 60) continue;
+    for (let j = 0; j < len; j++) { const x = x0 + j; if (x >= 0 && x < W && y < H) buf[y * W + x] = j > len - 3 ? WHITE : SKY_C; }
+  }
+}
+function drawOver() {
+  drawPeople(true);
+  if (splitT >= 18 && splitT < 66) { // the one line the hundred part along
+    const reach = Math.min(18, (splitT - 18) * 0.75), fade = 1 - clamp01((splitT - 48) / 18);
+    for (let j = 0; j <= reach; j++) { const x = 159 - camX + (j >> 3), y = 71 + j; if (dith(x, y, fade)) { plot(buf, x, y, j > reach - 2 ? WHITE : GOLD_L); plot(buf, x + 1, y, GOLD); } }
+  }
+  if (windT >= 0) drawWind();
+  if (sacR > 0.5) drawSac();
+  if (state === HATCH) drawPops();
+  drawParticles(false);
+  drawParticles(true);
+  if (drumOn) drawDrum();
+  if (flyT >= 0) drawFlyers();
+}
+// #endregion
+
+// #region ENGINE boot
+checkContract();
+buildBackground();
+resize();
+addEventListener('resize', resize);
+const seek = /^#t=(\d+)(?:&crop=(\d+),(\d+),(\d+),(\d+))?$/.exec(location.hash);
+if (seek) {
+  if (seek[2]) {
+    cropX = Math.min(+seek[2], W - 1); cropY = Math.min(+seek[3], H - 1);
+    cropW = Math.max(1, Math.min(+seek[4], W - cropX)); cropH = Math.max(1, Math.min(+seek[5], H - cropY));
+    resize();
+  }
+  // #t=N: simulate and render ticks 0..N (so errors on any of them surface), then hold tick N.
+  // Passing the loop length also checks the seam: the actor at that tick must match tick 0.
+  const loop = DUR.reduce((a, b) => a + b, 0), first = new Uint8Array(N);
+  for (let t = 0, end = +seek[1]; t <= end; t++) {
+    update();
+    render();
+    if (t === 0) first.set(spr);
+    if (t === loop) {
+      let diff = 0;
+      for (let i = 0; i < N; i++) diff += first[i] !== spr[i];
+      if (diff) console.error(`pixel-anims seam: actor differs by ${diff} px between tick 0 and tick ${loop}`);
+    }
+  }
+} else {
+  clock[0] = performance.now();
+  requestAnimationFrame(frame);
+  // Same-origin pages drive the loop through iframe.contentWindow.pixelAnims: pause() holds the frame, play() resumes,
+  // and seek(t, rate) runs `rate` steps a frame forward to tick t of the loop (wrapping), then plays on.
+  const loop = DUR.reduce((a, b) => a + b, 0);
+  window.pixelAnims = Object.freeze({
+    get tick() { return tick; }, loop,
+    get paused() { return ctl[0] === 1; }, get seeking() { return ctl[1] > 0; },
+    pause() { ctl[0] = 1; }, play() { ctl[0] = 0; },
+    seek(t, rate = 10) { ctl[1] = ((t - tick) % loop + loop) % loop; ctl[2] = Math.min(loop, Math.max(1, Math.floor(rate) || 1)); ctl[0] = 0; },
+  });
+}
+// #endregion
+})();
+</script>

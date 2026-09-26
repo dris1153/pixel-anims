@@ -1,4 +1,5 @@
 import { t } from './i18n/i18n.js';
+import { tokenMs } from './tokens.js';
 
 // Every .copy button copies the code/p text of its .cmd or .prompt block.
 export function setupCopy() {
@@ -17,7 +18,7 @@ function swapLabel(label, text) {
     label.textContent = text;
     return;
   }
-  const dur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--duration-quick')) || 150;
+  const dur = tokenMs('--duration-quick', 150);
   clearTimeout(label.swapTimer);
   label.classList.add('is-exit');
   label.swapTimer = setTimeout(() => {
