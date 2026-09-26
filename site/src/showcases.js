@@ -9,6 +9,42 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "durga-slays-mahishasura",
+    tags: ["humanoid", "creature", "magic", "dusk"],
+    country: "in",
+    title: "Durga Slays Mahishasura",
+    still: 1122,
+    res: [160, 90],
+    loop: 28,
+    states: ["idol", "conquest", "gods", "tejas", "durga", "weapons", "lion", "army", "buffalo", "shapes", "slay", "praise", "pandal", "dhunuchi", "visarjan", "return"],
+    kind: "Made with the skill",
+    note: "The Hooghly bank and the heaven of the gods are two worlds baked once and swapped per pixel by a Bayer-jittered radius, so the vision opens out of the freshly painted eyes of the idol and folds back into the pandal around her, while the goddess is one drawing seen through palette tables: raw clay in the workshop, pure light as the radiance of the gods becomes her, and painted red and gold on her lion.",
+    prompt:
+      "Pixel art the Hindu legend of the goddess Durga slaying the buffalo demon Mahishasura, from the Devi Mahatmya, " +
+      "framed by the Durga Puja festival of Bengal, 160×90, one fixed shot, 28-second seamless loop, 16 states. " +
+      "Scene: two worlds in one frame, crossfading: the bank of the Hooghly river in Kolkata at an autumn dusk, with " +
+      "a bamboo workshop, a festival pandal and lamps on the water, and the heaven of the gods on golden clouds, with " +
+      "snowy Himalayan peaks and a battle plain below. Keep the frame readable: the goddess and one wonder at a time. " +
+      "1. idol: at an autumn dusk in a bamboo workshop on the riverbank, an artisan paints the eyes of a clay idol of " +
+      "Durga, and the eyes begin to glow. 2. conquest: the glow opens into the legend: Mahishasura, the buffalo " +
+      "demon, storms Indra's heaven with his horned army and the gods flee across the golden clouds. 3. gods: Brahma, " +
+      "Vishnu and Shiva stand in fury, and fiery radiance streams from their brows. 4. tejas: the radiance of all the " +
+      "gods pours together into one blazing mountain of light. 5. durga: from the light the goddess takes form, " +
+      "ten-armed, in a red sari and a golden crown, with a third eye on her brow. 6. weapons: god after god hands her " +
+      "a weapon: a trident, a discus, a conch, a thunderbolt, a bow, a sword, each flashing into one of her hands. 7. " +
+      "lion: a lion from the snowy mountains of Himavat bounds down, she mounts it and laughs, and the worlds " +
+      "tremble. 8. army: the demon army charges, her lion leaps among them, and her arrows and whirling discus " +
+      "scatter them. 9. buffalo: Mahishasura charges as a giant buffalo, horns lowered, tossing mountains with his " +
+      "horns. 10. shapes: he changes shape again and again: a lion, a warrior with a sword, an elephant dragging at " +
+      "her lion with its trunk, and back into the buffalo. 11. slay: she leaps and pins him with her foot, and as he " +
+      "rises half out of the buffalo she strikes with her trident; he falls in a burst of light. 12. praise: the gods " +
+      "shower flowers, conches sound, and heaven rejoices. 13. pandal: the vision folds back into the idol, now " +
+      "enthroned in a glowing festival pandal as dhak drummers beat. 14. dhunuchi: dancers swing smoking clay incense " +
+      "burners in circles to the drums. 15. visarjan: at dusk the idol is carried down to the river on shoulders " +
+      "among lamps and cheering, as the crowd cries \"come again next year\". 16. return: the idol sinks into the river " +
+      "and the clay melts into the ripples, and on the bank a new idol stands waiting for its eyes.",
+  },
+  {
     slug: "sadko-sea-tsar",
     tags: ["humanoid", "magic", "underwater", "dusk"],
     country: "ru",

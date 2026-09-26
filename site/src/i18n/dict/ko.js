@@ -169,6 +169,7 @@ export default {
   "country.ie": "아일랜드", "country.no": "노르웨이", "country.dk": "덴마크", "country.fi": "핀란드", "country.de": "독일", "country.es": "스페인",
   "country.it": "이탈리아", "country.fr": "프랑스", "country.us": "미국", "country.mx": "멕시코", "country.br": "브라질", "country.pe": "페루",
   "country.nz": "뉴질랜드", "country.other": "기타",
+  "title.durga-slays-mahishasura": "두르가, 마히샤수라를 무찌르다",
   "title.sadko-sea-tsar": "사드코와 바다의 황제",
   "title.amaterasu-heavenly-rock-cave": "아마테라스와 하늘의 바위굴",
   "title.hansan-turtle-ship-1592": "한산도 대첩, 1592",

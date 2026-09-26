@@ -169,6 +169,7 @@ export default {
   "country.ie": "爱尔兰", "country.no": "挪威", "country.dk": "丹麦", "country.fi": "芬兰", "country.de": "德国", "country.es": "西班牙",
   "country.it": "意大利", "country.fr": "法国", "country.us": "美国", "country.mx": "墨西哥", "country.br": "巴西", "country.pe": "秘鲁",
   "country.nz": "新西兰", "country.other": "其他",
+  "title.durga-slays-mahishasura": "杜尔迦诛杀摩西娑修罗",
   "title.sadko-sea-tsar": "萨特阔与海王",
   "title.amaterasu-heavenly-rock-cave": "天照大神与天岩户",
   "title.hansan-turtle-ship-1592": "闲山岛海战，1592年",
