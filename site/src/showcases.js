@@ -9,6 +9,41 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "hansan-turtle-ship-1592",
+    tags: ["humanoid", "projectile", "impact", "day"],
+    country: "kr",
+    title: "The Battle of Hansan Island, 1592",
+    still: 888,
+    res: [160, 90],
+    loop: 20,
+    states: ["dawn", "strait", "lure", "open", "drum", "crane", "turtle", "cannon", "fire", "rout", "victory", "return"],
+    kind: "Made with the skill",
+    note: "The crane wing is one ellipse whose span widens while every ship eases along its own slot, so the wings sweep round the enemy with their tips last and their foam wakes draw the arc on the water, and the slope of Hansan is redrawn over the fleet waiting behind it.",
+    prompt:
+      "Pixel art the Battle of Hansan Island, 1592, Admiral Yi Sun-sin's great victory with the turtle ships, 160×90, " +
+      "one fixed shot, 20-second seamless loop, 12 states. Scene: a high view from the pine-covered ridge of Hansan " +
+      "Island over the southern sea of Korea, seen at a three-quarter angle from above so the sea is a wide plane. At " +
+      "the far left, the mouth of the narrow Gyeonnaeryang strait between rocky islands; open water in the middle; " +
+      "the island's slope with pines in the right foreground, where the Korean fleet waits hidden. The light runs " +
+      "from a summer dawn through a bright morning, a sky dark with battle smoke and a red sunset to a moonlit night " +
+      "and back to dawn. Keep the frame readable: one manoeuvre at a time. 1. dawn: at summer dawn Admiral Yi Sun-sin " +
+      "in armor stands on the two-deck command pavilion of his panokseon flagship beside a war drum and a command " +
+      "flag; his fleet waits hidden behind the island. 2. strait: from the narrow strait at the left, the Japanese " +
+      "fleet streams out, ship after ship under square sails. 3. lure: five Korean panokseon row out toward them, " +
+      "fire one volley, then turn and flee toward the open sea, and the enemy gives chase. 4. open: the chase spills " +
+      "out of the strait into the wide water before Hansan Island. 5. drum: on the flagship the war drum booms and " +
+      "signal flags run up, and the hidden fleet surges out from behind the island. 6. crane: the Korean ships wheel " +
+      "into a great crane-wing arc, its two wings sweeping round to close on the enemy fleet. 7. turtle: a turtle " +
+      "ship bursts forward, its dragon head pouring smoke, its iron-spiked roof gleaming, oars churning, and it rams " +
+      "into the enemy line. 8. cannon: all along the arc the cannons fire in a rolling broadside, flashes and puffs " +
+      "of smoke, cannonballs splashing among the ships. 9. fire: fire arrows streak across the water, enemy ships " +
+      "catch fire, sails burn and masts fall, and smoke towers into the sky. 10. rout: the surviving ships break away " +
+      "and flee back toward the strait, burning wreckage drifting on the water. 11. victory: at sunset Yi's fleet " +
+      "gathers in line, flags streaming, sailors raising their oars in a cheer as the sea glows red. 12. return: " +
+      "night falls, the fires die and the smoke drifts away, the ships slip back behind the island, and the sea lies " +
+      "calm under the moon until dawn, ready to begin again.",
+  },
+  {
     slug: "con-rong-chau-tien",
     tags: ["humanoid", "creature", "magic", "dawn"],
     country: "vn",
