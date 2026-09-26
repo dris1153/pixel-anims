@@ -9,6 +9,41 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "amaterasu-heavenly-rock-cave",
+    tags: ["humanoid", "magic", "impact", "night"],
+    country: "jp",
+    title: "Amaterasu and the Heavenly Rock Cave",
+    still: 1018,
+    res: [160, 90],
+    loop: 20,
+    states: ["heaven", "storm", "hide", "dark", "gather", "birds", "mirror", "dance", "laugh", "peek", "open", "return"],
+    kind: "Made with the skill",
+    note: "Heaven is drawn once in daylight and remapped pixel by pixel through palette tables, so the storm, the total dark, the torch and bonfire pools, the blade from the crack and the gold flooding out of the cave are all light passing over the same scene, until a band of cloud wipes it back to the first morning.",
+    prompt:
+      "Pixel art the Japanese myth of Amaterasu and the Heavenly Rock Cave, from the Kojiki, 160×90, one fixed shot, " +
+      "20-second seamless loop, 12 states. Scene: Takamagahara, the High Plain of Heaven, above a sea of golden " +
+      "clouds: at the left, the heavenly river Ama-no-Yasukawa with its stony bed and terraced rice fields of heaven, " +
+      "and the sacred weaving hall; in the middle, an open ground where a sakaki tree will stand; at the right, a " +
+      "cliff with the Heavenly Rock Cave, its mouth closed by a great boulder door. The light runs from blazing gold " +
+      "through storm and total darkness pricked by torches to a blinding return of the sun. Keep the frame readable: " +
+      "one god and one wonder at a time. 1. heaven: golden light fills heaven; Amaterasu, the sun goddess, a halo of " +
+      "sunrays behind her, weaves at her loom in the sacred weaving hall while the rice fields of heaven shine green. " +
+      "2. storm: her brother Susanoo storms through in a gale, smashing the ridges of the rice fields and hurling a " +
+      "piebald horse through the roof of the weaving hall; the weaving maidens flee. 3. hide: Amaterasu flees into " +
+      "the Heavenly Rock Cave, the great stone door grinds shut behind her, and her light goes out. 4. dark: darkness " +
+      "falls over heaven and earth, and evil spirits swarm through it buzzing like summer flies. 5. gather: by " +
+      "torchlight the eight hundred myriad gods gather on the riverbed of the heavenly river, and wise Omoikane " +
+      "ponders a plan. 6. birds: the long-crowing birds are brought and crow all together into the dark. 7. mirror: a " +
+      "great sakaki tree is set up before the cave, hung with the sacred Yata mirror, strings of magatama jewels and " +
+      "white cloth streamers. 8. dance: Ame-no-Uzume leaps onto an overturned tub and dances wildly, stamping, her " +
+      "sleeves and sakaki leaves flying. 9. laugh: the gods roar with laughter until heaven shakes and the torches " +
+      "flare. 10. peek: the stone door opens a crack, a blade of light cuts across the dark, and the mirror held up " +
+      "to it catches her reflection in a blinding flash. 11. open: strong Tajikarao seizes the door and flings it far " +
+      "away as Amaterasu steps out; light floods all of heaven, and a sacred shimenawa rope is stretched across the " +
+      "cave mouth. 12. return: clouds drift across heaven, and when they pass the cave stands quiet again, its door " +
+      "back in place, and Amaterasu weaves once more in the high golden sun.",
+  },
+  {
     slug: "hansan-turtle-ship-1592",
     tags: ["humanoid", "projectile", "impact", "day"],
     country: "kr",

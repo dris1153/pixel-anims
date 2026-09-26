@@ -169,6 +169,7 @@ export default {
   "country.ie": "ไอร์แลนด์", "country.no": "นอร์เวย์", "country.dk": "เดนมาร์ก", "country.fi": "ฟินแลนด์", "country.de": "เยอรมนี", "country.es": "สเปน",
   "country.it": "อิตาลี", "country.fr": "ฝรั่งเศส", "country.us": "สหรัฐอเมริกา", "country.mx": "เม็กซิโก", "country.br": "บราซิล", "country.pe": "เปรู",
   "country.nz": "นิวซีแลนด์", "country.other": "อื่น ๆ",
+  "title.amaterasu-heavenly-rock-cave": "อามาเตราสึกับถ้ำศิลาสวรรค์",
   "title.hansan-turtle-ship-1592": "ยุทธนาวีเกาะฮันซัน ค.ศ. 1592",
   "title.con-rong-chau-tien": "ลูกหลานมังกรและนางฟ้า",
   "title.pangu-separates-heaven-earth": "ผานกู่แยกฟ้าดิน",
