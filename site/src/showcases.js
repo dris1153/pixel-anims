@@ -227,6 +227,7 @@ export const SHOWCASES = [
   },
   {
     slug: "con-rong-chau-tien",
+    featured: true,
     tags: ["humanoid", "creature", "magic", "dawn"],
     country: "vn",
     title: "Children of the Dragon and the Fairy",
@@ -1569,7 +1570,6 @@ export const SHOWCASES = [
   },
   {
     slug: "lac-long-quan-sea-demon",
-    featured: true,
     tags: ["humanoid", "creature", "projectile", "magic", "dusk"],
     country: "vn",
     title: "Lac Long Quan Slays Ngu Tinh",
