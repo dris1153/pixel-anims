@@ -9,6 +9,41 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "cuoi-banyan-moon",
+    tags: ["humanoid", "creature", "magic", "night"],
+    country: "vn",
+    title: "Chu Cuoi on the Moon",
+    still: 1320,
+    res: [160, 90],
+    loop: 24,
+    states: ["woods", "tiger", "leaves", "dig", "heal", "wed", "warn", "dirty", "uproot", "grab", "fly", "moon", "lanterns", "return"],
+    kind: "Made with the skill",
+    note: "The world is baked once two screens tall and one integer camera rides up with the uprooted banyan, while the moon lives on its own far layer sliding a quarter as fast, so the same disc rises behind the village, fills the sky when the tree lands on it, and hangs over the roofs where Cuội and his banyan, redrawn in the shadow tone of the moon, become the dark shapes children look for at Mid-Autumn.",
+    prompt:
+      "Pixel art the Vietnamese folk tale of Chú Cuội and the magic banyan tree that carried him to the moon, 160×90, " +
+      "24-second seamless loop, 14 states. The camera glides vertically: the world is two screens tall, with the " +
+      "forest and village below and the night sky and full moon above; the camera rests at the bottom, at the top or " +
+      "halfway, and glides with the flying tree. Scene: below, an old forest with a great banyan at the left, and a " +
+      "village of thatched houses with Cuội's home at the right; above, clouds, a starry night sky and a huge full " +
+      "moon. The light runs from dawn through day and dusk to a moonlit Mid-Autumn night and back to dawn. Keep the " +
+      "frame readable: Cuội and one wonder at a time. 1. woods: at dawn Cuội, a young woodcutter with an axe on his " +
+      "shoulder, chops wood in the old forest. 2. tiger: a tiger cub leaps at him and he strikes it down; the tigress " +
+      "roars back and he scrambles up a tree to hide. 3. leaves: the tigress chews leaves from a banyan and presses " +
+      "them to her cub, and the cub comes back to life in a green glow. 4. dig: when the tigers have gone, Cuội digs " +
+      "up the banyan, roots and all, and carries it home to plant beside his house. 5. heal: villagers come to him, " +
+      "and every leaf he lays on the sick glows as they rise healed. 6. wed: he brings the rich man's daughter back " +
+      "to life and marries her amid red firecracker paper. 7. warn: Cuội points at the roots and warns his wife: " +
+      "water it only with clean water. 8. dirty: she forgets and pours a bucket of dirty water at the foot of the " +
+      "tree. 9. uproot: the ground cracks, the roots tear free, and the banyan shudders and lifts off the ground. 10. " +
+      "grab: Cuội runs home just in time, hooks his axe into a root and is lifted off his feet. 11. fly: the camera " +
+      "rises with the tree over the village roofs, through the clouds and into the starry sky, Cuội clinging to its " +
+      "roots as the village shrinks below. 12. moon: the banyan lands on the moon, and Cuội sits at its foot with the " +
+      "blue Earth far away. 13. lanterns: the camera sinks halfway: below, children parade star lanterns and a lion " +
+      "dance through the village for the Mid-Autumn Festival, while above the full moon hangs over the roofs with " +
+      "Cuội and his tree outlined on it. 14. return: the moon sets, dawn comes to the forest, the banyan stands in " +
+      "the woods again, and Cuội returns to chop wood.",
+  },
+  {
     slug: "durga-slays-mahishasura",
     tags: ["humanoid", "creature", "magic", "dusk"],
     country: "in",
@@ -1577,21 +1612,6 @@ export const SHOWCASES = [
       "Pixel art Egyptian sun priest: kneel before an obelisk, raise a golden ankh, the sun disc rises behind the " +
       "pyramids and the hieroglyphs on the obelisk light up one by one, a beam strikes the ankh, then the glow fades as " +
       "the priest bows. Desert temple at dusk, 128×96.",
-  },
-  {
-    slug: "cuoi-banyan-moon",
-    tags: ["humanoid", "magic", "space"],
-    country: "vn",
-    title: "Chu Cuoi on the Moon",
-    still: 240,
-    res: [128, 96],
-    loop: 8,
-    states: ["idle", "slip", "rise", "jump", "pull", "pat", "sit"],
-    kind: "Made with the skill",
-    prompt:
-      "Pixel art Chu Cuoi on the moon: sit under the magic banyan tree, its roots slip free and the tree starts " +
-      "drifting upward, jump and grab a hanging root, pull the tree back down and pat the soil, sit again. Moon " +
-      "surface with the Earth low on the horizon and star lanterns drifting past, Mid-Autumn night, 128×96.",
   },
   {
     slug: "oni-taiko-drummer",

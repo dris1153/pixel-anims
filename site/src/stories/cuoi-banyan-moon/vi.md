@@ -1,5 +1,6 @@
 ---
 origin: Việt Nam · Truyện cổ tích về mặt trăng đêm Trung thu
+note: Thế giới được dựng sẵn một lần, cao hai màn hình, và một camera số nguyên bay lên theo cây đa bật gốc; còn mặt trăng nằm trên một lớp xa riêng, trượt chậm bằng một phần tư, nên cùng một vầng trăng mọc sau lũy tre làng, phủ kín bầu trời khi cây đáp xuống, rồi treo trên mái nhà, nơi Cuội và cây đa được vẽ lại bằng màu bóng của trăng, thành những hình tối mà trẻ con vẫn ngước tìm mỗi dịp Trung Thu.
 ---
 
 ## legend
@@ -20,10 +21,17 @@ Và chú Cuội ở lại đó mãi đến bây giờ. Khi trăng tròn, ta có 
 
 ## beats
 
-- idle: Chú Cuội ngồi dưới gốc đa trên cung trăng, Trái Đất nằm thấp nơi chân trời, những chiếc đèn ông sao trôi ngang qua.
-- slip: Rễ cây đa tuột khỏi đất trên mặt trăng, y như ngày xưa chúng bật khỏi mặt đất dưới trần gian.
-- rise: Cây bắt đầu lơ lửng bay lên, như thể lại muốn bay vút lên trời thêm lần nữa.
-- jump: Chú Cuội nhảy lên túm lấy một chiếc rễ lòng thòng, y như lần chú túm lấy nó vào ngày cây đưa chú bay đi.
-- pull: Chú đưa tay níu từng đoạn, kéo cây đa lớn trở xuống mặt đất.
-- pat: Chú vùi rễ trở lại và vỗ vỗ cho đất chặt quanh gốc cây.
-- sit: Chú lại ngồi xuống dưới gốc đa, nơi người ta vẫn tìm chú mỗi đêm Trung thu.
+- woods: Lúc bình minh trong khu rừng già, Cuội, anh tiều phu trẻ trong làng, vung rìu đốn củi.
+- tiger: Một con hổ con xông tới vồ, Cuội giơ rìu đánh chết nó, nhưng hổ mẹ gầm vang trở về, anh vội leo tót lên cây để trốn.
+- leaves: Trong lúc Cuội nấp trên cây, hổ mẹ nhai lá đa rồi đắp cho hổ con, và hổ con sống lại trong một vầng sáng xanh lục.
+- dig: Đợi hổ đi xa, Cuội đào cả gốc lẫn rễ cây đa, vác về trồng bên cạnh nhà.
+- heal: Dân làng tìm đến, chiếc lá đa nào Cuội đặt lên người bệnh cũng sáng lên, và người bệnh đứng dậy khỏe mạnh.
+- wed: Cuội cứu sống cô con gái phú ông rồi cưới nàng làm vợ giữa mưa xác pháo đỏ.
+- warn: Cuội chỉ vào rễ cây, dặn vợ: chỉ được tưới cây bằng nước sạch, nếu không cây sẽ bay lên trời.
+- dirty: Nhưng vợ Cuội quên mất, một hôm nàng đổ cả xô nước bẩn vào gốc cây.
+- uproot: Lập tức mặt đất nứt toác, rễ cây bật tung, cây đa rùng mình rồi bắt đầu lơ lửng bay lên.
+- grab: Cuội chạy về vừa kịp, móc lưỡi rìu vào một chiếc rễ để níu cây lại, nhưng cây nhấc bổng anh lên khỏi mặt đất.
+- fly: Máy quay bay lên theo cây đa, qua những mái nhà trong làng, xuyên qua mây vào bầu trời đầy sao, còn Cuội vẫn bám chặt lấy rễ cây.
+- moon: Cây đa đáp xuống cung trăng, chú Cuội ngồi dưới gốc, Trái Đất xanh và quê nhà giờ đã ở tít đằng xa.
+- lanterns: Máy quay hạ xuống lưng chừng: phía dưới, trẻ em rước đèn ông sao và múa lân khắp làng đón Tết Trung thu, phía trên, trăng rằm in bóng chú Cuội và cây đa.
+- return: Trăng lặn, bình minh về trên khu rừng, cây đa lại đứng giữa rừng như xưa, Cuội vung rìu đốn củi, và câu chuyện lại bắt đầu từ đầu.
