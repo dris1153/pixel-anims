@@ -169,6 +169,7 @@ export default {
   "country.ie": "Irlanda", "country.no": "Noruega", "country.dk": "Dinamarca", "country.fi": "Finlandia", "country.de": "Alemania", "country.es": "España",
   "country.it": "Italia", "country.fr": "Francia", "country.us": "EE. UU.", "country.mx": "México", "country.br": "Brasil", "country.pe": "Perú",
   "country.nz": "Nueva Zelanda", "country.other": "Otro",
+  "title.con-rong-chau-tien": "Hijos del dragón y del hada",
   "title.pangu-separates-heaven-earth": "Pangu separa el cielo y la tierra",
   "title.forging-the-sampo": "La forja del Sampo",
   "title.vesuvius-79-pompeii": "Vesubio, año 79",

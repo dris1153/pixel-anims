@@ -169,6 +169,7 @@ export default {
   "country.ie": "아일랜드", "country.no": "노르웨이", "country.dk": "덴마크", "country.fi": "핀란드", "country.de": "독일", "country.es": "스페인",
   "country.it": "이탈리아", "country.fr": "프랑스", "country.us": "미국", "country.mx": "멕시코", "country.br": "브라질", "country.pe": "페루",
   "country.nz": "뉴질랜드", "country.other": "기타",
+  "title.con-rong-chau-tien": "용의 자손, 선녀의 후손",
   "title.pangu-separates-heaven-earth": "반고의 천지개벽",
   "title.forging-the-sampo": "삼포를 벼리다",
   "title.vesuvius-79-pompeii": "베수비오산, 서기 79년",
