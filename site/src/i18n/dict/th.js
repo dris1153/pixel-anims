@@ -171,6 +171,7 @@ export default {
   "country.ie": "ไอร์แลนด์", "country.no": "นอร์เวย์", "country.dk": "เดนมาร์ก", "country.fi": "ฟินแลนด์", "country.de": "เยอรมนี", "country.es": "สเปน",
   "country.it": "อิตาลี", "country.fr": "ฝรั่งเศส", "country.us": "สหรัฐอเมริกา", "country.mx": "เม็กซิโก", "country.br": "บราซิล", "country.pe": "เปรู",
   "country.nz": "นิวซีแลนด์", "country.other": "อื่น ๆ",
+  "title.heracles-twelve-labors": "สิบสองภารกิจของเฮราคลีส",
   "title.durga-slays-mahishasura": "พระแม่ทุรคาปราบมหิษาสูร",
   "title.sadko-sea-tsar": "ซัดโกกับราชาแห่งท้องทะเล",
   "title.amaterasu-heavenly-rock-cave": "อามาเตราสึกับถ้ำศิลาสวรรค์",

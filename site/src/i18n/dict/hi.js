@@ -171,6 +171,7 @@ export default {
   "country.ie": "आयरलैंड", "country.no": "नॉर्वे", "country.dk": "डेनमार्क", "country.fi": "फ़िनलैंड", "country.de": "जर्मनी", "country.es": "स्पेन",
   "country.it": "इटली", "country.fr": "फ़्रांस", "country.us": "अमेरिका", "country.mx": "मेक्सिको", "country.br": "ब्राज़ील", "country.pe": "पेरू",
   "country.nz": "न्यूज़ीलैंड", "country.other": "अन्य",
+  "title.heracles-twelve-labors": "हेराक्लीज़ के बारह कारनामे",
   "title.durga-slays-mahishasura": "महिषासुरमर्दिनी दुर्गा",
   "title.sadko-sea-tsar": "सादको और सागर का ज़ार",
   "title.amaterasu-heavenly-rock-cave": "अमातेरासु और स्वर्ग की शिला-गुफा",
