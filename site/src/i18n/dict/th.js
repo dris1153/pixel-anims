@@ -138,6 +138,8 @@ export default {
   "pause": "หยุด",
   "play.label": "เล่น {title}",
   "pause.label": "หยุด {title}",
+  "step.prev": "สถานะก่อนหน้า",
+  "step.next": "สถานะถัดไป",
   "anim.title": "{title}: แอนิเมชันพิกเซลอาร์ตแบบสด",
   "card.details": "ดูรายละเอียด",
   "card.details.sr": " ของ {title}",

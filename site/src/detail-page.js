@@ -9,7 +9,7 @@ import { t } from './i18n/i18n.js';
 import './i18n/switcher.js';
 import { loadStory, mountStory } from './story/story.js';
 import { mountTimeline } from './timeline/timeline.js';
-import { collapsible } from './collapse.js';
+import { clampText, collapsible } from './collapse.js';
 
 setupCopy();
 const fromPath = /^\/showcase\/([a-z0-9-]+)\/?$/.exec(location.pathname)?.[1]; // /showcase/<slug>/; ?s= is the old form
@@ -30,7 +30,9 @@ function render(s, i) {
   frame.style.aspectRatio = `${s.res[0]} / ${s.res[1]}`;
   const iframe = frame.querySelector('iframe');
   iframe.title = t('anim.title', { title: s.title });
-  const player = mountPlayer(frame, iframe, animUrl(s), s.still, s.title);
+  let timeline = null; // mounted once the story settles; the step buttons do nothing before that
+  const step = dir => timeline?.neighbor(dir).then(ticks => player.seekTo(ticks, { keep: true, jump: dir < 0 })).catch(() => {});
+  const player = mountPlayer(frame, iframe, animUrl(s), s.still, s.title, step);
   fitFrame(frame, s.res);
 
   const kind = page.querySelector('.kind');
@@ -64,10 +66,11 @@ function render(s, i) {
 
   const toState = ticks => { player.seekTo(ticks); frame.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' }); };
   loadStory(s).catch(() => null).then(story => { // the story is optional: without it the timeline shows states only
-    const timeline = mountTimeline(s, page.querySelector('.timeline'), { beats: story?.beats, lang: story?.use, seek: toState });
+    timeline = mountTimeline(s, page.querySelector('.timeline'), { beats: story?.beats, lang: story?.use, seek: toState });
     player.onTick(timeline.setNow);
     if (story) mountStory(page, story);
-  }).catch(() => {}); // a broken timeline or story leaves its panel hidden, never the page
+  }).catch(() => {}) // a broken timeline or story leaves its panel hidden, never the page
+    .then(() => { if (s.note) clampText(note, 2); }); // once the story has set its language
 }
 
 function link(a, s) {

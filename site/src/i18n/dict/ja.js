@@ -138,6 +138,8 @@ export default {
   "pause": "一時停止",
   "play.label": "{title}を再生",
   "pause.label": "{title}を一時停止",
+  "step.prev": "前のステート",
+  "step.next": "次のステート",
   "anim.title": "{title}: ライブのピクセルアートアニメーション",
   "card.details": "詳細を見る",
   "card.details.sr": "({title})",

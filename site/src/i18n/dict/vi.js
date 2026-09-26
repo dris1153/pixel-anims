@@ -138,6 +138,8 @@ export default {
   "pause": "Dừng",
   "play.label": "Phát {title}",
   "pause.label": "Dừng {title}",
+  "step.prev": "Trạng thái trước",
+  "step.next": "Trạng thái sau",
   "anim.title": "{title}: hoạt hình pixel art chạy trực tiếp",
   "card.details": "Xem chi tiết",
   "card.details.sr": " về {title}",

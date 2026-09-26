@@ -1,9 +1,10 @@
-/* collapse.js: a block resting on its first line, and the Show more / Show less toggle under it. */
+/* collapse.js: a block resting on its first line (or --clamp-lines lines), and the Show more / Show less toggle under it. */
 .clamp { overflow: hidden; }
 .clamp.is-clamped { cursor: pointer; }
 .clamp.is-clamped > :not(:first-child) { display: none; }
 .clamp.is-clamped > :first-child {
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; overflow: hidden; margin-bottom: 0;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--clamp-lines, 1); line-clamp: var(--clamp-lines, 1);
+  overflow: hidden; margin-bottom: 0;
 }
 .clamp-toggle {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 4px 0;
@@ -16,3 +17,8 @@
 }
 .clamp-toggle[aria-expanded="true"]::after { rotate: 180deg; }
 .clamp-toggle:hover { color: var(--cyan-l); }
+
+/* clampText(): the toggle as a word of the paragraph, in its own font */
+p.is-clamped { cursor: pointer; }
+.more-link { padding: 0; font: inherit; text-transform: lowercase; color: var(--cyan); background: none; border: 0; }
+.more-link:hover { color: var(--cyan-l); text-decoration: underline; text-underline-offset: 3px; }
