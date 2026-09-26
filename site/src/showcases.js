@@ -2047,5 +2047,5 @@ export const posterUrl = s => `/posters/${s.slug}.png`;
 // The #t=N seek mode renders tick N once and stops, so a paused frame costs no loop. The engine reads the hash only
 // at boot, and a hash-only src change does not reload the iframe, so the tick goes in the query too.
 export const stillOf = (file, tick = 60) => `${file}?still=${tick}#t=${tick}`;
-export const detailUrl = s => `/showcase/detail/?s=${s.slug}`;
+export const detailUrl = s => `/showcase/${s.slug}/`;
 export const metaLine = s => `${s.res[0]}×${s.res[1]} · ${t('meta.loop', { n: s.loop })} · ${s.states.join(' → ')}`;

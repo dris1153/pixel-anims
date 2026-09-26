@@ -1,17 +1,22 @@
 #!/usr/bin/env node
-// Render tick 0 of every site/public/anims page to site/public/posters/<slug>.png at 1x through headless Chrome, so a
-// showcase tile has a picture the moment the page loads while its live iframe boots. Run it after adding or changing
-// a showcase: `pnpm posters` (all) or `pnpm posters <slug>...`. Needs Node 22+ (global WebSocket) and Chrome or Edge.
-// `--art` renders the site's backdrop scenes instead: site/art/<name>.html to site/public/art/<name>.png.
+// Render two pictures of every site/public/anims page into site/public/posters through headless Chrome:
+// - <slug>.png, tick 0 at 1x, so a showcase tile has a picture the moment the page loads while its live iframe boots
+//   (the iframe starts at tick 0 too, so its fade-in does not jump);
+// - <slug>.og.png, the entry's still tick at 1200×630, the link-preview thumbnail of its detail page.
+// Run it after adding or changing a showcase: `pnpm posters` (all) or `pnpm posters <slug>...`. Needs Node 22+ (global
+// WebSocket) and Chrome or Edge. `--art` renders the site's backdrop scenes instead: site/art/<name>.html to
+// site/public/art/<name>.png.
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { readShowcases } from './showcase-data.mjs';
 
 const site = join(dirname(fileURLToPath(import.meta.url)), '..');
 const art = process.argv.includes('--art'), args = process.argv.slice(2).filter(a => a !== '--art');
 const anims = join(site, art ? 'art' : 'public/anims'), posters = join(site, art ? 'public/art' : 'public/posters');
+const stills = new Map(art ? [] : readShowcases(site).map(s => [s.slug, s.still]));
 const slugs = args.length ? args : readdirSync(anims).filter(f => f.endsWith('.html')).map(f => f.slice(0, -5));
 const browser = [
   process.env.CHROME_PATH,
@@ -56,21 +61,27 @@ for (const slug of slugs) {
   if (!existsSync(file)) fail(`Not found: ${file}`);
   const size = /const W = (\d+), H = (\d+)/.exec(readFileSync(file, 'utf8'));
   if (!size) fail(`${slug}: no literal "const W = <w>, H = <h>"`);
-  const [w, h] = [+size[1], +size[2]];
-  await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
-  errors.length = 0;
-  const loaded = new Promise(r => { const on = e => { if (JSON.parse(e.data).method === 'Page.loadEventFired') { ws.removeEventListener('message', on); r(); } }; ws.addEventListener('message', on); });
-  await send('Page.navigate', { url: `${pathToFileURL(file).href}?still#t=0` });
-  await loaded;
-  await sleep(50);
-  if (errors.length) fail(`${slug}: ${errors[0]}`);
-  const shot = await send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: w, height: h, scale: 1 } });
-  writeFileSync(join(posters, `${slug}.png`), Buffer.from(shot.result.data, 'base64'));
-  console.log(`${slug}.png ${w}x${h}`);
+  await render(file, `${slug}.png`, +size[1], +size[2], 0);
+  // the engine's integer scale fits the art into 1200×630 and fills the rest with the page's background colour
+  if (!art) await render(file, `${slug}.og.png`, 1200, 630, stills.get(slug) ?? 60);
 }
 ws.close();
 proc.kill();
 rmSync(profile, { recursive: true, force: true, maxRetries: 5 });
+
+async function render(file, name, w, h, tick) {
+  await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+  errors.length = 0;
+  const loaded = new Promise(r => { const on = e => { if (JSON.parse(e.data).method === 'Page.loadEventFired') { ws.removeEventListener('message', on); r(); } }; ws.addEventListener('message', on); });
+  // the tick goes in the query too: a hash-only change is a same-document navigation that fires no load event
+  await send('Page.navigate', { url: `${pathToFileURL(file).href}?still=${tick}#t=${tick}` });
+  await loaded;
+  await sleep(50);
+  if (errors.length) fail(`${name}: ${errors[0]}`);
+  const shot = await send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: w, height: h, scale: 1 } });
+  writeFileSync(join(posters, name), Buffer.from(shot.result.data, 'base64'));
+  console.log(`${name} ${w}x${h}`);
+}
 
 function fail(msg) {
   console.error(msg);
