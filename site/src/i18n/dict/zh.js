@@ -138,6 +138,8 @@ export default {
   "pause": "暂停",
   "play.label": "播放 {title}",
   "pause.label": "暂停 {title}",
+  "step.prev": "上一个状态",
+  "step.next": "下一个状态",
   "anim.title": "{title}:实时像素动画",
   "card.details": "查看详情",
   "card.details.sr": "({title})",

@@ -138,6 +138,8 @@ export default {
   "pause": "रोकें",
   "play.label": "{title} चलाएँ",
   "pause.label": "{title} रोकें",
+  "step.prev": "पिछली अवस्था",
+  "step.next": "अगली अवस्था",
   "anim.title": "{title}: लाइव पिक्सेल आर्ट एनिमेशन",
   "card.details": "विवरण देखें",
   "card.details.sr": " ({title})",

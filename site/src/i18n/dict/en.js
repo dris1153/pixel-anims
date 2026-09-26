@@ -132,6 +132,8 @@ export default {
   "pause": "Pause",
   "play.label": "Play {title}",
   "pause.label": "Pause {title}",
+  "step.prev": "Previous state",
+  "step.next": "Next state",
   "anim.title": "{title}: live pixel art animation",
   "card.details": "View details",
   "card.details.sr": " for {title}",

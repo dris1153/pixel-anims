@@ -128,7 +128,12 @@ export function mountTimeline(s, box, { beats, lang, seek }) {
     tip.dataset.show = 'false';
     tip.setAttribute('aria-hidden', 'true');
   }
-  return { setNow };
+  // The state after the playhead's (dir 1) or before it (dir -1), wrapping round the loop.
+  const neighbor = dir => {
+    const k = Math.max(0, spans.findIndex(([a, b]) => lastTick >= a && lastTick < b));
+    return stateTicks(s, (k + dir + items.length) % items.length);
+  };
+  return { setNow, neighbor };
 }
 
 async function stateTicks(s, k) { // the state's first tick, and its first settled pose (for a still)

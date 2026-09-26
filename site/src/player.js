@@ -1,23 +1,35 @@
 // The detail page's preview: the live anim driven through its engine control (window.pixelAnims, same origin). Pause
 // holds the frame and Play resumes it; seekTo() fast-forwards to a state and plays on, faster the farther it has to go.
-// Reduced motion starts on the still frame and jumps instead of fast-forwarding.
+// The ⏮/⏭ buttons ask onStep(-1 | 1) for the neighbouring state. Reduced motion starts on the still frame and jumps
+// instead of fast-forwarding.
 import { calm, el } from './cards.js';
 import { stillOf } from './showcases.js';
 import { t } from './i18n/i18n.js';
+import { icon } from './icons.js';
 
-export function mountPlayer(frame, iframe, file, still, title) {
-  const button = el('button', 'play');
-  button.type = 'button';
+export function mountPlayer(frame, iframe, file, still, title, onStep) {
+  const ctl = (cls, name, key) => {
+    const b = el('button', cls);
+    b.type = 'button';
+    if (name) { b.append(icon(name)); b.title = t(key); b.setAttribute('aria-label', t(key)); }
+    return b;
+  };
+  const controls = el('div', 'controls');
+  const prev = ctl('ctl', 'prev', 'step.prev'), button = ctl('ctl play'), next = ctl('ctl', 'next', 'step.next');
+  prev.addEventListener('click', () => onStep(-1));
+  next.addEventListener('click', () => onStep(1));
+  controls.append(prev, button, next);
   const badge = el('span', 'ff-badge');
   badge.hidden = true;
   badge.setAttribute('aria-hidden', 'true');
-  frame.append(button, badge);
+  frame.append(controls, badge);
 
   let playing = !calm, live = false, stillTick = still, pending = null; // pending: a seek waiting for the live page
   let hold = false; // pause again once a seek lands (a seek always sets the loop running)
   const api = () => (live ? iframe.contentWindow?.pixelAnims : null);
   const label = () => {
-    button.textContent = t(playing ? 'pause' : 'play');
+    button.replaceChildren(icon(playing ? 'pause' : 'play'));
+    button.title = t(playing ? 'pause' : 'play');
     button.setAttribute('aria-label', t(playing ? 'pause.label' : 'play.label', { title }));
   };
   const goLive = () => { live = true; iframe.src = file; };
@@ -63,12 +75,13 @@ export function mountPlayer(frame, iframe, file, still, title) {
 
   return {
     onTick: fn => { watchers.push(fn); if (last >= 0) fn(last); }, // a late watcher still gets the current tick
-    // start: the state's first tick (live); settled: its first settled pose (the still shown under reduced motion)
-    seekTo({ start, settled }) {
+    // start: the state's first tick (live); settled: its first settled pose (the still shown under reduced motion).
+    // keep: stay paused if paused (a step lands on the settled pose and holds it); jump: arrive at once, no fast-forward.
+    seekTo({ start, settled }, { keep = false, jump = false } = {}) {
       if (calm && !live) { showStill(settled); return; }
-      if (!calm) { playing = true; label(); }
+      if (!calm && !keep) { playing = true; label(); }
       const a = api();
-      if (a) { run(a, calm && !playing ? settled : start, calm); return; } // a held frame shows the settled pose
+      if (a) { run(a, !playing && (calm || keep) ? settled : start, calm || jump); return; } // a held frame shows the settled pose
       pending = start;
       if (!live) goLive(); // a load already under way picks the seek up
     },

@@ -2,6 +2,7 @@ import { animUrl, countryOf, detailUrl, metaLine, posterUrl, stillOf } from './s
 import { flag } from './flags.js';
 import { addTilt } from './tilt.js';
 import { t } from './i18n/i18n.js';
+import { icon } from './icons.js';
 
 export const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -20,7 +21,8 @@ export function addPlayToggle(frame, iframe, file, still, title, playing) {
   const set = (on, load = true) => {
     live = on;
     if (load) iframe.src = on ? file : stillOf(file, still);
-    button.textContent = t(on ? 'pause' : 'play');
+    button.replaceChildren(icon(on ? 'pause' : 'play'));
+    button.title = t(on ? 'pause' : 'play');
     button.setAttribute('aria-label', t(on ? 'pause.label' : 'play.label', { title }));
   };
   button.addEventListener('click', () => set(!live));

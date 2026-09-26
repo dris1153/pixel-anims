@@ -138,6 +138,8 @@ export default {
   "pause": "일시정지",
   "play.label": "{title} 재생",
   "pause.label": "{title} 일시정지",
+  "step.prev": "이전 상태",
+  "step.next": "다음 상태",
   "anim.title": "{title}: 실시간 픽셀 아트 애니메이션",
   "card.details": "자세히 보기",
   "card.details.sr": " ({title})",

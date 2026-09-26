@@ -138,6 +138,8 @@ export default {
   "pause": "إيقاف",
   "play.label": "تشغيل {title}",
   "pause.label": "إيقاف {title}",
+  "step.prev": "الحالة السابقة",
+  "step.next": "الحالة التالية",
   "anim.title": "{title}: رسوم متحركة بفن البكسل، مباشرة",
   "card.details": "عرض التفاصيل",
   "card.details.sr": " عن {title}",

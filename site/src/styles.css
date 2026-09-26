@@ -417,15 +417,24 @@ h1 {
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.play {
+.play, .controls { /* a tile's lone play toggle, or the detail preview's ⏮ ⏯ ⏭ group */
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 1;
-  padding: 6px 9px;
-  font: 700 0.7rem var(--display);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+}
+.controls {
+  display: flex;
+  gap: 4px;
+}
+.controls .play {
+  position: static;
+}
+.play, .ctl {
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  line-height: 0;
   color: var(--text);
   background: rgba(7, 10, 28, 0.85);
   border: 2px solid var(--line-l);
@@ -435,11 +444,11 @@ h1 {
     border-color var(--duration-quick) var(--ease-smooth-out),
     transform var(--duration-quick) var(--ease-smooth-out);
 }
-.play:hover {
+:is(.play, .ctl):hover {
   border-color: var(--gold);
   color: var(--gold);
 }
-.play:active {
+:is(.play, .ctl):active {
   transform: translate(1px, 1px);
 }
 

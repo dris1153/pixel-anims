@@ -138,6 +138,8 @@ export default {
   "pause": "Pausa",
   "play.label": "Reproducir {title}",
   "pause.label": "Pausar {title}",
+  "step.prev": "Estado anterior",
+  "step.next": "Estado siguiente",
   "anim.title": "{title}: animación de pixel art en vivo",
   "card.details": "Ver detalles",
   "card.details.sr": " de {title}",
