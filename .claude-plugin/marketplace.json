@@ -6,6 +6,7 @@
     {
       "name": "pixel-anims",
       "source": "./",
+      "version": "1.0.0",
       "description": "Single-file HTML pixel-art sprite animations with built-in snapshot QA"
     }
   ]

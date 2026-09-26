@@ -1,5 +1,6 @@
 {
   "name": "pixel-anims",
+  "version": "1.0.0",
   "description": "Build polished single-file HTML pixel-art sprite animations: any character, a looping action, a 16-bit look, and self-QA through tick snapshots.",
   "author": {
     "name": "dris1153"
