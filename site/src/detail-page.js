@@ -9,7 +9,7 @@ import { t } from './i18n/i18n.js';
 import './i18n/switcher.js';
 import { loadStory, mountStory } from './story/story.js';
 import { mountTimeline } from './timeline/timeline.js';
-import { collapsible } from './collapse.js';
+import { clampText, collapsible } from './collapse.js';
 
 setupCopy();
 const fromPath = /^\/showcase\/([a-z0-9-]+)\/?$/.exec(location.pathname)?.[1]; // /showcase/<slug>/; ?s= is the old form
@@ -69,7 +69,8 @@ function render(s, i) {
     timeline = mountTimeline(s, page.querySelector('.timeline'), { beats: story?.beats, lang: story?.use, seek: toState });
     player.onTick(timeline.setNow);
     if (story) mountStory(page, story);
-  }).catch(() => {}); // a broken timeline or story leaves its panel hidden, never the page
+  }).catch(() => {}) // a broken timeline or story leaves its panel hidden, never the page
+    .then(() => { if (s.note) clampText(note, 2); }); // once the story has set its language
 }
 
 function link(a, s) {
