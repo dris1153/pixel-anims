@@ -171,6 +171,7 @@ export default {
   "country.ie": "Ireland", "country.no": "Na Uy", "country.dk": "Đan Mạch", "country.fi": "Phần Lan", "country.de": "Đức", "country.es": "Tây Ban Nha",
   "country.it": "Ý", "country.fr": "Pháp", "country.us": "Mỹ", "country.mx": "Mexico", "country.br": "Brazil", "country.pe": "Peru",
   "country.nz": "New Zealand", "country.other": "Khác",
+  "title.heracles-twelve-labors": "Mười hai kỳ công của Heracles",
   "title.durga-slays-mahishasura": "Nữ thần Durga diệt quỷ trâu Mahishasura",
   "title.sadko-sea-tsar": "Sadko và Vua Biển",
   "title.amaterasu-heavenly-rock-cave": "Amaterasu và hang đá trời",

@@ -171,6 +171,7 @@ export default {
   "country.ie": "アイルランド", "country.no": "ノルウェー", "country.dk": "デンマーク", "country.fi": "フィンランド", "country.de": "ドイツ", "country.es": "スペイン",
   "country.it": "イタリア", "country.fr": "フランス", "country.us": "アメリカ", "country.mx": "メキシコ", "country.br": "ブラジル", "country.pe": "ペルー",
   "country.nz": "ニュージーランド", "country.other": "その他",
+  "title.heracles-twelve-labors": "ヘラクレスの十二の功業",
   "title.durga-slays-mahishasura": "ドゥルガーのマヒシャースラ退治",
   "title.sadko-sea-tsar": "サトコと海の王",
   "title.amaterasu-heavenly-rock-cave": "アマテラスの天岩戸",

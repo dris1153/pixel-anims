@@ -9,6 +9,43 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "heracles-twelve-labors",
+    tags: ["humanoid", "creature", "melee", "interior"],
+    country: "gr",
+    title: "The Twelve Labors of Heracles",
+    still: 372,
+    res: [160, 90],
+    loop: 28,
+    states: ["vase", "oracle", "lion", "hydra", "hind", "boar", "stables", "birds", "bull", "mares", "belt", "cattle", "apples", "cerberus", "olympus", "return"],
+    kind: "Made with the skill",
+    note: "The frieze is one strip of fourteen painted panels wrapped round the belly through an asin() lookup under a lamp sheen that never moves, so the amphora really turns as each labor faces front and comes alive, while the heads of the Hydra, the diverted rivers, the Stymphalian birds and the stars of the Kneeler are carried from the same panel coordinates off the painting onto the glaze and into the dark room.",
+    prompt:
+      "Pixel art the Twelve Labors of Heracles from Greek myth, told on a turning Attic black-figure amphora, 160×90, " +
+      "one fixed shot, 28-second seamless loop, 16 states. Scene: a tall black-figure amphora stands on a stone " +
+      "plinth in a dark room, lit warm by an oil lamp. Its terracotta body is ringed with meander and tongue borders " +
+      "and palmettes on the neck. Around the belly runs one continuous painted frieze of the hero's deeds. The vase " +
+      "turns slowly, and whichever scene faces front comes alive: its black figures, with incised lines and touches " +
+      "of purple-red and white, move like a living vase painting. At the climaxes the painting spills off the frieze " +
+      "onto the glaze. Keep the frame readable: one labor facing front at a time. 1. vase: the amphora glows out of " +
+      "the dark in the lamplight and begins to turn, its meander border catching the light. 2. oracle: at Delphi the " +
+      "Pythia sits on her tripod in rising vapor and sends Heracles, kneeling, to serve King Eurystheus. 3. lion: " +
+      "Heracles wrestles the Nemean lion bare-handed, strangles it, and throws its hide over his shoulders. 4. hydra: " +
+      "he hacks at the many-headed Hydra; two heads spring up for each one he cuts, spilling past the frieze border, " +
+      "until Iolaus sears the necks with a torch. 5. hind: he chases the golden-antlered hind of Artemis across the " +
+      "frieze and catches it. 6. boar: he drives the Erymanthian boar into deep snow and lifts it onto his shoulders. " +
+      "7. stables: he digs a channel and turns two rivers through the Augean stables; the painted water pours over " +
+      "the frieze edge and runs down the glaze. 8. birds: he shakes Athena's bronze rattles and the bronze-feathered " +
+      "Stymphalian birds burst up off the vase in a flock; his arrows bring them down. 9. bull: he grapples the " +
+      "Cretan bull by the horns and forces it to its knees. 10. mares: he tames the man-eating mares of Diomedes and " +
+      "leads them off bridled. 11. belt: Hippolyta, queen of the Amazons, hands him her war belt. 12. cattle: he " +
+      "drives the red cattle of three-bodied Geryon home and raises two great pillars at the edge of the world. 13. " +
+      "apples: he holds up the sky on his shoulders while Atlas brings back the golden apples of the Hesperides. 14. " +
+      "cerberus: in the underworld he drags the three-headed hound Cerberus up into the light. 15. olympus: flames " +
+      "rise from the pyre on Mount Oeta and Athena's chariot carries him up to Olympus; the figure turns to stars and " +
+      "becomes a constellation on the glaze. 16. return: the lamplight softens and the vase turns full circle back to " +
+      "Delphi, ready to tell the tale again.",
+  },
+  {
     slug: "cuoi-banyan-moon",
     tags: ["humanoid", "creature", "magic", "night"],
     country: "vn",
@@ -190,6 +227,7 @@ export const SHOWCASES = [
   },
   {
     slug: "con-rong-chau-tien",
+    featured: true,
     tags: ["humanoid", "creature", "magic", "dawn"],
     country: "vn",
     title: "Children of the Dragon and the Fairy",
@@ -1532,7 +1570,6 @@ export const SHOWCASES = [
   },
   {
     slug: "lac-long-quan-sea-demon",
-    featured: true,
     tags: ["humanoid", "creature", "projectile", "magic", "dusk"],
     country: "vn",
     title: "Lac Long Quan Slays Ngu Tinh",

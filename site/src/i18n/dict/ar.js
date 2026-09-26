@@ -171,6 +171,7 @@ export default {
   "country.ie": "أيرلندا", "country.no": "النرويج", "country.dk": "الدنمارك", "country.fi": "فنلندا", "country.de": "ألمانيا", "country.es": "إسبانيا",
   "country.it": "إيطاليا", "country.fr": "فرنسا", "country.us": "الولايات المتحدة", "country.mx": "المكسيك", "country.br": "البرازيل", "country.pe": "بيرو",
   "country.nz": "نيوزيلندا", "country.other": "أخرى",
+  "title.heracles-twelve-labors": "أعمال هرقل الاثنا عشر",
   "title.durga-slays-mahishasura": "دورغا تصرع ماهيشاسورا",
   "title.sadko-sea-tsar": "سادكو وقيصر البحر",
   "title.amaterasu-heavenly-rock-cave": "أماتيراسو وكهف السماء الصخري",
