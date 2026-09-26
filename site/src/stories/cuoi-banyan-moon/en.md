@@ -20,10 +20,17 @@ And there he stays. When the moon is full, you can see the dark shape of a great
 
 ## beats
 
-- idle: Cuội sits under the banyan on the moon, the Earth low on the horizon and star lanterns drifting past.
-- slip: The banyan's roots slip free of the moon's soil, just as they tore loose from the earth long ago.
-- rise: The tree starts to drift upward, as if it wants to fly off into the sky once more.
-- jump: Cuội leaps up and grabs a hanging root, the way he caught it the day it carried him away.
-- pull: Hand over hand he hauls the great tree back down to the ground.
-- pat: He tucks the roots back in and pats the soil firm around the trunk.
-- sit: He settles at the foot of the banyan again, where people look for him every Mid-Autumn night.
+- woods: At dawn in the old forest, Cuội, a young woodcutter from the village, swings his axe and chops wood.
+- tiger: A tiger cub leaps at him and he strikes it down, but the tigress comes roaring back and Cuội scrambles up a tree to hide.
+- leaves: While Cuội hides, the tigress chews banyan leaves and presses them to her cub, and it comes back to life in a green glow.
+- dig: When the tigers have gone, Cuội digs up the banyan, roots and all, and carries it home to plant beside his house.
+- heal: Villagers come to him, and every banyan leaf he lays on the sick glows as they rise up healed.
+- wed: He brings a rich man's daughter back from death and marries her amid showers of red firecracker paper.
+- warn: Cuội points at the roots and warns his wife: water the tree only with clean water, or it will fly away to the sky.
+- dirty: But she forgets, and one day she pours a bucket of dirty water at the foot of the tree.
+- uproot: At once the earth cracks, the roots tear free, and the banyan shudders and begins to lift into the air.
+- grab: Cuội runs home just in time and hooks his axe into a root to hold it, but the tree lifts him off his feet.
+- fly: The camera rises with the tree over the village roofs, through the clouds and into the starry sky, Cuội clinging to its roots.
+- moon: The banyan lands on the moon, and Cuội sits at its foot, far from home, with the blue Earth in the distance.
+- lanterns: The camera sinks halfway: children parade star lanterns and a lion dance for the Mid-Autumn Festival, under a full moon showing Cuội and his banyan.
+- return: The moon sets, and at dawn the banyan stands in the forest once more and Cuội chops wood, as the tale begins again.

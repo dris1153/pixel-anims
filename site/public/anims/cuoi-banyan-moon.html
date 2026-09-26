@@ -2,82 +2,85 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>
-  :root { color-scheme: dark; background: #0a0a1a; }
-  html, body { height: 100%; margin: 0; overflow: hidden; background: #0a0a1a; }
+  :root { color-scheme: dark; background: #120e1c; }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: #120e1c; }
   canvas {
     position: fixed; inset: 0; width: 100%; height: 100%; display: block;
     image-rendering: crisp-edges; image-rendering: pixelated;
   }
 </style>
-<canvas id="view" role="img" aria-label="Pixel art Chu Cuoi on the moon on Mid-Autumn night; he dozes under the magic banyan tree until its roots slip free and it floats up, jumps to grab a hanging root, hauls the tree back down, pats the dust firm and sits again, while star lanterns drift past and the Earth hangs low on the horizon"></canvas>
+<canvas id="view" role="img" aria-label="Pixel art of the Vietnamese folk tale of Chu Cuoi and the magic banyan in a world two screens tall: at dawn the woodcutter Cuoi chops wood in an old forest, strikes down a tiger cub and hides up a tree as the tigress revives her cub with banyan leaves in a green glow; he digs up the banyan and plants it by his thatched house, heals the sick with its glowing leaves and revives and weds the rich man's daughter amid red firecracker paper; he warns her to water it only with clean water, but at dusk she pours a bucket of dirty water on it, the ground cracks and the banyan tears free and lifts off; Cuoi hooks his axe into a root and the camera rises with the tree through the clouds to the full moon, where he sits at its foot with the blue Earth far away; the camera sinks to the village where children parade star lanterns and a lion dance under the moon with Cuoi and his tree outlined on it, and at dawn the banyan stands in the woods again as Cuoi returns to chop wood"></canvas>
 <script>
 'use strict';
 // pixel-anims: keep every ENGINE region verbatim, rewrite every SCENE region for a new subject.
 (() => {
 // #region SCENE config
-const W = 128, H = 96;             // logical resolution
-const GROUND = 80;                 // the moon's surface under the tree
-const FY = GROUND - 1;             // moondust settles here
+const W = 160, H = 90;             // logical resolution
+const FY = H - 1;                  // no single floor on screen: particles are culled at their own world rows in step()
 const POSE_STEP = 6;               // 10 fps pose frames
-const TX = 42;                     // the banyan's trunk
+const WH = 180;                    // the world is two screens tall; camY is the world row at the top of the view
+const GY = 158;                    // the ground: forest floor on the left, village yard on the right
+const CAM_T = 0, CAM_M = 74, CAM_B = 90;
+const MOON_X = 100, MOON_Y = 38, MOON_R = 30, MOON_K = 0.25; // far off, the moon slides a quarter as fast as the world
+const MOON_G = 24;                 // the moon's ground, below its centre, where the banyan lands
 
 // Index 0 must be the darkest ink: the engine uses it for outlines and the letterbox.
 const PAL = [
-  '#0a0a1a',
-  '#0e1438', '#1c2458', '#2c3470',
-  '#fff4c8',
-  '#4a4a66', '#8a88a8', '#c8c4dc',
-  '#2a6ac8', '#4aa84a', '#e8f0ff',
-  '#3a2418', '#6a4428', '#9a6a3a',
-  '#1a4a3a', '#2a7a4a', '#5ab060', '#a8e878',
-  '#e0342a', '#ffd040', '#f08a2a',
-  '#4a2e20', '#8a5a34', '#2a2838',
-  '#a86a4a', '#e8a880', '#1a1420',
-  '#ffffff',
+  '#120e1c',
+  '#161c3e', '#24305e', '#3a4a82', '#6c3c6e', '#d0687a', '#f4a45a', '#7cb4e2', '#c4e2f2', '#fffbea',
+  '#8c7446', '#d2ae62', '#f2d98c', '#fff3c4',
+  '#193628', '#2c663a', '#5a9e46', '#b4e472',
+  '#37313f', '#6a6270', '#a39690',
+  '#4c2c1c', '#845430', '#bc864a', '#e6c46a',
+  '#b06a4c', '#efb68c',
+  '#861a26', '#dc3c2c', '#ec8424', '#3c8cd4', '#554d5c',
 ];
-const INK = 0, SKY0 = 1, SKY1 = 2, SKY2 = 3, STAR = 4, MOON_D = 5, MOON_M = 6, MOON_L = 7,
-  EARTH_B = 8, EARTH_G = 9, EARTH_W = 10, BARK_D = 11, BARK_M = 12, BARK_L = 13,
-  LEAF_D = 14, LEAF_M = 15, LEAF_L = 16, LEAF_H = 17, LANT_R = 18, LANT_Y = 19, LANT_O = 20,
-  SHIRT_D = 21, SHIRT_M = 22, PANTS = 23, SKIN_D = 24, SKIN_L = 25, HAIR = 26, WHITE = 27;
+const INK = 0, NIGHT0 = 1, NIGHT1 = 2, NIGHT2 = 3, PLUM = 4, ROSE = 5, AMBER = 6, DAY = 7, DAY_L = 8, WHITE = 9,
+  MOON_S = 10, MOON_D = 11, MOON_M = 12, MOON_L = 13, LEAF_D = 14, LEAF_M = 15, LEAF_L = 16, LEAF_H = 17,
+  BARK_D = 18, BARK_M = 19, BARK_L = 20, BROWN_D = 21, BROWN_M = 22, BROWN_L = 23, THATCH = 24,
+  SKIN_D = 25, SKIN_L = 26, RED_D = 27, RED = 28, ORANGE = 29, WATER = 30, ROOT = 31;
 
-// One step brighter per ramp; the Earth keeps its colours under a flash.
+// One step brighter per ramp; the night sky brightens toward the day blue, the dusk toward gold.
 const LIGHTEN = Uint8Array.of(
-  SKY0,
-  SKY1, SKY2, SKY2,
-  WHITE,
-  MOON_M, MOON_L, WHITE,
-  EARTH_B, EARTH_G, WHITE,
+  NIGHT0,
+  NIGHT1, NIGHT2, DAY, ROSE, AMBER, THATCH, DAY_L, WHITE, WHITE,
+  MOON_D, MOON_M, MOON_L, WHITE,
+  LEAF_M, LEAF_L, LEAF_H, LEAF_H,
   BARK_M, BARK_L, BARK_L,
-  LEAF_M, LEAF_L, LEAF_H, WHITE,
-  LANT_O, STAR, LANT_Y,
-  SHIRT_M, SHIRT_M, PANTS,
-  SKIN_L, SKIN_L, PANTS,
-  WHITE);
-const RAMP_DUST = Uint8Array.of(MOON_L, MOON_M, MOON_D, SKY1);
-const RAMP_MAGIC = Uint8Array.of(WHITE, STAR, LEAF_H, LEAF_L);
-const RAMPS = [RAMP_DUST, RAMP_MAGIC];
-const RIM = Uint8Array.of(LEAF_H, STAR, WHITE);
-const RIM_BANDS = Uint16Array.of(16, 28, 42);
-const LIGHT = Float32Array.of(-0.6, -0.8);    // sunlight on the moon, from the upper left
-const RIM_OK = new Uint8Array(PAL.length).fill(1);
-const AIR = new Uint8Array(PAL.length);
-AIR[SKY0] = AIR[SKY1] = AIR[SKY2] = 1;
-
-const IDLE = 0, SLIP = 1, RISE = 2, JUMP = 3, PULL = 4, PAT = 5, SIT = 6;
-const DUR = Uint16Array.of(72, 54, 60, 36, 72, 78, 108); // L = 480: lanterns cross in 240/480, bob 120
-const EASE = Uint16Array.of(6, 18, 54, 6, 66, 30, 60);
-const EASE_OUT = Uint8Array.of(0, 1, 0, 0, 0, 0, 0);
-const HIPX = 0, HIPY = 1, LEAN = 2, ARM = 3, LEGS = 4, LOOK = 5, TREE = 6, NP = 7;
-const REST = Float32Array.of(52, 76, -0.6, 0, 1, 0, 0);    // sitting cross-legged against the trunk
-const TARGET = [
-  REST,
-  Float32Array.of(56, 68, 0.2, 0.6, 0, 1, -3),             // jumps up: the roots are slipping
-  Float32Array.of(56, 68, -0.2, 1, 0, 1, -30),             // the tree floats up; he reaches after it
-  Float32Array.of(56, 68, -0.1, 1, 0, 1, -30),             // sample() flies the jump and the catch
-  Float32Array.of(56, 68, 0.1, 1, 0, 0.6, 0),              // hauls it back down
-  Float32Array.of(50, 73, 0.5, 0, 0.5, 0, 0),              // kneels to pat the soil firm
-  REST,
+  BROWN_M, BROWN_L, THATCH, MOON_L,
+  SKIN_L, SKIN_L,
+  RED, ORANGE, THATCH, DAY_L, BARK_M);
+const R_CHIP = 0, R_GLOW = 1, R_DUST = 2, R_PAPER = 3, R_POP = 4, R_MURK = 5, R_MOON = 6, R_WIND = 7, R_LANT = 8,
+  R_ROOT = 9, R_LEAF = 10;
+const RAMPS = [
+  Uint8Array.of(THATCH, BROWN_L, BROWN_M, BROWN_D),
+  Uint8Array.of(WHITE, LEAF_H, LEAF_L, LEAF_M),
+  Uint8Array.of(BROWN_L, BROWN_M, BROWN_D, BROWN_D),
+  Uint8Array.of(RED, RED, RED_D, RED_D),
+  Uint8Array.of(WHITE, THATCH, ORANGE, RED_D),
+  Uint8Array.of(MOON_S, MOON_S, BROWN_M, BROWN_D),
+  Uint8Array.of(MOON_L, MOON_M, MOON_D, MOON_S),
+  Uint8Array.of(DAY_L, BARK_L, NIGHT2, NIGHT2),
+  Uint8Array.of(WHITE, THATCH, AMBER, RED),
+  Uint8Array.of(BARK_L, BROWN_L, BROWN_M, BROWN_D),
+  Uint8Array.of(LEAF_L, LEAF_M, LEAF_M, LEAF_D),
 ];
+const RIM = Uint8Array.of(LEAF_H, MOON_L, WHITE);       // the banyan's magic is green-gold
+const RIM_BANDS = Uint16Array.of(14, 26, 40);          // a big tree: only the edges near the light catch it
+const LIGHT = Float32Array.of(0.6, -0.8);              // sun and moon stand high on the right
+const RIM_OK = new Uint8Array(PAL.length).fill(1);
+RIM_OK[INK] = RIM_OK[WHITE] = RIM_OK[MOON_S] = RIM_OK[ROOT] = 0;
+const AIR = new Uint8Array(PAL.length);
+AIR[NIGHT0] = AIR[NIGHT1] = AIR[NIGHT2] = AIR[PLUM] = AIR[ROSE] = AIR[AMBER] = AIR[DAY] = AIR[DAY_L] = 1;
+
+const WOODS = 0, TIGER = 1, LEAVES = 2, DIG = 3, HEAL = 4, WED = 5, WARN = 6, DIRTY = 7, UPROOT = 8, GRAB = 9,
+  FLY = 10, MOON = 11, LANTERNS = 12, RETURN = 13;
+const DUR = Uint16Array.of(96, 108, 102, 96, 102, 96, 90, 96, 96, 90, 138, 108, 120, 102); // L = 1440
+const EASE = new Uint16Array(14).fill(6);
+const EASE_OUT = new Uint8Array(14);
+const NP = 1;                                   // every beat is scripted per state in sample()
+const REST = Float32Array.of(0);
+const TARGET = Array.from({ length: 14 }, () => REST);
 // #endregion
 
 // #region ENGINE
@@ -391,186 +394,1084 @@ function checkContract() {
 // #endregion
 
 // #region SCENE logic
-// Cuội's head facing right, 7x7: h hair, S skin (eye, mouth and topknot drawn on top)
-const HEAD = ['..hhh..', '.hhhhh.', 'hhhhSSS', 'hhSSSSS', 'hhSSSSS', '.hSSSS.', '..SSS..'];
-// Đèn ông sao: five-point star lantern, 7x7, r red frame, c glowing paper
-const STARL = ['...r...', '...r...', 'rrrcrrr', '.rcccr.', '..rcr..', '.rr.rr.', 'r.....r'];
-const LANTS = Int16Array.of(0, 22, 480, 40, 34, 240, 90, 14, 480, 118, 28, 240); // phase x, base y, crossing period
-const BLOBS = Int8Array.of(-22, -44, 7, -14, -52, 11, 4, -58, 12, 18, -50, 10, -4, -46, 10, 12, -44, 8); // canopy: dx, dy, r
-const AROOT = Int8Array.of(-18, -10, 14, 22);     // hanging roots; he grabs the third
-const BROOT = Int8Array.of(-11, -6, 6, 16);       // roots anchoring it in the dust; the last one reaches his side
 const TWO_PI = Math.PI * 2;
-const headMap = new Uint8Array(49), starMap = new Uint8Array(49), twinkle = new Int16Array(16);
-let hipX = 0, hipY = 0, sx = 0, sy = 0, hx = 0, hy = 0, look = 0, trX = 0, trY = 0, tipX = 0, tipY = 0, caught = 0,
-  nhX = 0, nhY = 0, fhX = 0, fhY = 0, holes = 0, legs = 0, wasDown = false;
+const ST0 = new Uint16Array(15);                        // each state's first tick in the loop
+const WORLD = new Uint8Array(W * WH).fill(EMPTY);       // forest, village and clouds, baked once; EMPTY is open sky
+const SKYM = new Uint8Array(N), MOODM = new Uint8Array(N); // per frame: open sky under this pixel; its mood
+const M_DAWN = 0, M_DAY = 1, M_DUSK = 2, M_NIGHT = 3;
+const SKYB = Uint8Array.of(NIGHT1, PLUM, ROSE, AMBER, DAY, DAY, DAY, DAY_L, NIGHT1, NIGHT2, PLUM, ROSE, NIGHT0, NIGHT0, NIGHT1, NIGHT2);
+const BAND = new Uint8Array(WH), SEAM = new Float32Array(WH);
+const MOODL = [0, 1, 2, 3].map(() => new Uint8Array(PAL.length)); // the baked world through each light
+const ACTL = new Uint8Array(PAL.length);                // the cast by night
+const DARK = new Uint8Array(PAL.length);                // contact shadows
+const MGLOW = new Uint8Array(PAL.length);               // the moon's halo on the sky
+const NSTAR = 70, STX = new Uint8Array(NSTAR), STY = new Uint8Array(NSTAR), STP = new Uint8Array(NSTAR);
+const MB = new Uint8Array(61 * 61), EB = new Uint8Array(15 * 15); // the moon and the far Earth
+const NCR = 6, CRK = new Int16Array(NCR * 20);          // the cracks that open round the roots: 10 points each
+const WINX = Int16Array.of(107, 131, 151);              // lit windows at night
 
-function horizon(x) { return GROUND + Math.round(((x - 50) / 78) ** 2 * 5); }
+// Poses: hip, neck, front hand, back hand, front foot, back foot (from the feet, facing right),
+// then the tool (1 axe in hand, 2 axe in the belt, 3 cane, 4 bucket, 5 bucket tipped), its far end, and the headband tail.
+const P_STAND = 0, P_WALKA = 1, P_WALKB = 2, P_RUNA = 3, P_RUNB = 4, P_CHUP = 5, P_CHMID = 6, P_CHDN = 7, P_STRIKE = 8,
+  P_STARTLE = 9, P_CLIMBA = 10, P_CLIMBB = 11, P_CROUCH = 12, P_DIGUP = 13, P_DIGDN = 14, P_CARRYA = 15, P_CARRYB = 16,
+  P_REACH = 17, P_KNEEL = 18, P_POINT = 19, P_LEAP = 20, P_HANGA = 21, P_HANGB = 22, P_SIT = 23, P_LOOK = 24, P_WED = 25,
+  P_CHEER = 26, P_LAND = 27, P_CLING = 28, P_ROOTA = 29, P_ROOTB = 30, P_HUNCH = 31, P_WSTAND = 32, P_WCARRY = 33,
+  P_WPOUR = 34, P_WSTARTLE = 35, P_WSITFALL = 36, P_WREACH = 37, P_WWALKA = 38, P_WWALKB = 39, P_WBUCKA = 40,
+  P_WBUCKB = 41, P_NOD = 42, P_BEND = 43, P_IDLE = 44, NSK = 16;
+const SK = Int8Array.of(
+  0, -9, 0, -17, 3, -13, -2, -8, 2, 0, -2, 0, 1, -5, -21, 0,
+  0, -9, 1, -17, 3, -13, -3, -9, 4, 0, -3, 0, 1, -4, -21, 1,
+  0, -10, 1, -18, 3, -14, 0, -10, 1, 0, 0, -2, 1, -4, -22, 1,
+  1, -9, 3, -17, 5, -13, -4, -12, 6, 0, -5, -3, 1, -2, -21, 1,
+  1, -10, 3, -18, 5, -14, 2, -11, 0, -3, 0, 0, 1, -2, -22, 1,
+  -1, -9, -2, -17, -4, -24, -5, -23, 3, 0, -3, 0, 1, -11, -19, 0,
+  0, -9, 1, -16, 3, -22, 2, -21, 3, 0, -3, 0, 1, 9, -25, 0,
+  1, -8, 4, -15, 7, -10, 6, -11, 4, 0, -3, 0, 1, 12, -4, 0,
+  1, -8, 4, -15, 8, -10, 7, -11, 5, 0, -4, 0, 1, 14, -7, 0,
+  -1, -9, -2, -17, 3, -21, -4, -20, 2, 0, -3, 0, 1, 6, -27, 2,
+  0, -9, 1, -17, 3, -22, 2, -19, 3, -6, 1, 0, 2, 0, 0, 0,
+  0, -10, 1, -18, 3, -18, 2, -23, 2, -1, 3, -7, 2, 0, 0, 0,
+  0, -5, 2, -12, 5, -8, 4, -6, 3, 0, -2, 0, 2, 0, 0, 0,
+  -1, -8, 1, -15, 2, -20, 1, -18, 3, 0, -3, 0, 1, 3, -29, 0,
+  1, -7, 5, -13, 7, -6, 6, -8, 3, 0, -4, 0, 1, 11, 0, 0,
+  0, -9, 0, -17, 3, -18, 1, -20, 3, 0, -3, 0, 2, 0, 0, 1,
+  0, -10, 0, -18, 3, -19, 1, -21, 0, 0, 1, -2, 2, 0, 0, 1,
+  0, -9, 1, -17, 3, -27, -2, -9, 2, 0, -2, 0, 2, 0, 0, 0,
+  -1, -5, 2, -12, 8, -4, 1, -7, 4, 0, -5, 0, 2, 0, 0, 0,
+  0, -9, 1, -17, 9, -11, -2, -9, 2, 0, -2, 0, 2, 0, 0, 0,
+  0, -10, 1, -18, 3, -26, 1, -25, 3, -3, -3, -1, 1, 3, -33, 2,
+  0, -9, 0, -17, 1, -25, -1, -25, 1, 0, -1, 1, 1, 1, -32, 2,
+  0, -9, 0, -17, 1, -25, -1, -25, 4, -2, -2, 0, 1, 1, -32, 2,
+  -1, -3, -1, -11, 4, -6, 3, -5, 5, 0, 4, 0, 2, 0, 0, 0,
+  0, -9, 0, -17, 3, -19, -2, -8, 2, 0, -2, 0, 2, 0, 0, 0,
+  0, -9, 0, -17, 3, -11, 2, -11, 2, 0, -2, 0, 0, 0, 0, 0,
+  0, -9, 0, -17, 3, -24, -3, -23, 2, 0, -2, 0, 0, 0, 0, 0,
+  0, -6, 2, -13, 5, -8, -3, -9, 4, 0, -3, 0, 2, 0, 0, 2,
+  0, -9, 0, -17, 2, -21, -1, -22, 1, 0, -2, 1, 2, 0, 0, 2,
+  0, -9, 0, -17, 1, -24, 0, -21, 1, -3, -1, 0, 2, 0, 0, 2,
+  0, -9, 0, -17, 1, -21, 0, -24, 0, 0, 1, -4, 2, 0, 0, 2,
+  0, -8, 3, -15, 5, -7, 2, -9, 2, 0, -2, 0, 3, 6, 0, 0,
+  0, -9, 0, -17, 2, -10, 1, -10, 1, 0, -1, 0, 0, 0, 0, 0,
+  0, -9, 0, -17, 4, -8, -1, -10, 1, 0, -1, 0, 4, 0, 0, 0,
+  1, -9, 2, -17, 7, -12, 5, -14, 2, 0, -2, 0, 5, 0, 0, 0,
+  -1, -9, -2, -17, 3, -20, -3, -19, 1, 0, -2, 0, 0, 0, 0, 0,
+  -2, -3, -3, -11, 3, -16, -1, -15, 4, 0, 3, 0, 0, 0, 0, 0,
+  0, -9, 0, -17, 4, -25, 2, -23, 2, 0, -2, 0, 0, 0, 0, 0,
+  0, -9, 0, -17, 3, -10, -2, -10, 3, 0, -2, 0, 0, 0, 0, 0,
+  0, -10, 0, -18, 2, -11, -1, -11, 0, 0, 1, -1, 0, 0, 0, 0,
+  0, -9, 0, -17, 4, -8, -2, -10, 3, 0, -2, 0, 4, 0, 0, 0,
+  0, -10, 0, -18, 4, -9, -1, -11, 0, 0, 1, -1, 4, 0, 0, 0,
+  0, -9, 1, -16, 2, -10, 1, -10, 1, 0, -1, 0, 0, 0, 0, 0,
+  0, -8, 4, -13, 6, -4, 4, -5, 2, 0, -2, 0, 0, 0, 0, 0,
+  0, -9, 0, -17, 2, -10, -2, -9, 2, 0, -2, 0, 2, 0, 0, 0);
+// Costumes: shirt dark, mid, light; trousers dark, mid, light; head; 1 for a long dress
+const C_CUOI = 0, C_OLD = 1, C_WOMAN = 2, C_WIFE = 3, C_RICH = 4;
+const COS = Uint8Array.of(
+  BROWN_D, BROWN_M, BROWN_L, INK, BROWN_D, BROWN_M, 0, 0,
+  NIGHT1, NIGHT2, NIGHT2, BARK_D, BARK_M, BARK_L, 1, 0,
+  PLUM, ROSE, ROSE, INK, NIGHT0, NIGHT1, 2, 0,
+  BROWN_M, BROWN_L, THATCH, INK, NIGHT0, NIGHT1, 3, 1,
+  NIGHT0, NIGHT1, NIGHT2, BARK_D, BARK_M, BARK_L, 4, 1);
+// Head bitmaps facing right: '.' clear, then palette letters
+const HEADS = [
+  ['.hhhh.', 'rrrrrr', 'hhSSSS', 'hhSSkS', '.hSSSS', '.hSSds', '..ss..'],
+  ['..ww..', '.wwww.', 'wwSSSS', 'wwSSkS', '.wSSSS', '.wwwww', '..ww..'],
+  ['.hhhh.', 'hhhhhh', 'hhSSSS', 'hhSSkS', 'hhSSSS', 'hhSSds', 'h.ss..'],
+  ['...nn.', '.nnnnn', 'nnnnSS', 'nnSSkS', 'nnSSSS', '.nSSdS', '..ss..'],
+  ['.nnnn.', 'nnnnnn', 'nnSSSS', 'hhSSkS', '.hSSSS', '.hsssS', '..ss..'],
+];
+const HKEY = { h: NIGHT0, r: RED, S: SKIN_L, s: SKIN_D, k: INK, d: RED_D, w: WHITE, n: INK };
+const HB = new Uint8Array(5 * 42);
+const LANT = ['...r...', '..rcr..', 'rrcccrr', '.rcwcr.', '..rcr..', '.rr.rr.', 'rr...rr'];
+const LION = ['.....GG.....', '...GGRRGG...', '..GRRWWRRG..', '.GRWWRRWWRG.', 'GRRWkRRWkRRG', 'GRRRRRRRRRRG', '.GRDDDDDDRG.', '.WGWDDDDWGW.', '..WWWWWWWW..', '...W.WW.W...'];
+const LKEY = { r: RED, c: THATCH, w: WHITE, R: RED, D: RED_D, G: THATCH, W: WHITE, k: INK };
+const LB = new Uint8Array(49), LNB = new Uint8Array(120);
 
-function buildBackground() {
-  const seed = Uint32Array.of(1508);
-  const rnd = () => { let x = seed[0]; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; seed[0] = x; return seed[0] / 4294967296; };
-  const dith = (x, y, v) => v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
-  const EDGE = [0, 34, 62, 999];
-  for (let y = 0; y < H; y++) {
-    let b = 0;
-    while (y >= EDGE[b + 1]) b++;
-    const seam = b < 2 && y === EDGE[b + 1] - 1; // one dithered row joins each band to the next
-    for (let x = 0; x < W; x++) bg[y * W + x] = SKY0 + b + (seam && dith(x, y, 0.5) ? 1 : 0);
-  }
-  for (let k = 0; k < 34; k++) plot(bg, rnd() * W | 0, rnd() * 70 | 0, rnd() < 0.35 ? STAR : SKY2);
-  for (let k = 0; k < 8; k++) { twinkle[k * 2] = rnd() * W | 0; twinkle[k * 2 + 1] = rnd() * 60 | 0; }
-  for (let dy = -17; dy <= 17; dy++) for (let dx = -17; dx <= 17; dx++) { // the Earth, low on the horizon
-    const d = Math.hypot(dx, dy), x = 106 + dx, y = 88 + dy;
-    if (d > 16.5) continue;
-    const land = Math.sin(dx * 0.45 + 1) + Math.cos(dy * 0.5 - dx * 0.2) > 0.9, cloud = Math.sin(dx * 0.3 + dy * 0.9) > 0.85;
-    plot(bg, x, y, d > 15.5 && dx + dy < 0 ? EARTH_W : cloud ? EARTH_W : land ? EARTH_G : EARTH_B);
-  }
-  for (let x = 0; x < W; x++) { // grey dust plain with a lit lip
-    const top = horizon(x);
-    for (let y = top; y < H; y++) plot(bg, x, y, y === top ? MOON_L : (x * 5 + y * 3) % 17 === 0 ? MOON_D : MOON_M);
-  }
-  for (const [cx, cy, rx] of [[14, 88, 7], [84, 86, 5], [70, 92, 8], [118, 93, 6], [30, 94, 4]]) { // craters
-    for (let dy = -3; dy <= 3; dy++) for (let dx = -rx; dx <= rx; dx++) {
-      const d = (dx / rx) ** 2 + (dy / (rx * 0.35)) ** 2;
-      if (d <= 1) plot(bg, cx + dx, cy + dy, d > 0.6 && dy > 0 ? MOON_L : dy <= 0 ? MOON_D : MOON_M);
-    }
-  }
-  const HMAP = { '.': EMPTY, h: HAIR, S: SKIN_L };
-  HEAD.forEach((row, y) => { for (let x = 0; x < 7; x++) headMap[y * 7 + x] = HMAP[row[x]]; });
-  const LMAP = { '.': EMPTY, r: LANT_R, c: LANT_Y };
-  STARL.forEach((row, y) => { for (let x = 0; x < 7; x++) starMap[y * 7 + x] = LMAP[row[x]]; });
+function dith(x, y, v) {
+  return v * 16 > BAYER[(y & 3) * 4 + (x & 3)];
 }
-
 function ease(u) {
   return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, u)));
 }
 function mix(a, b, e) {
-  return Math.round(a + (b - a) * e);
+  return a + (b - a) * e;
+}
+function clamp01(u) {
+  return Math.max(0, Math.min(1, u));
+}
+function sweep(e, y) { // a change of light comes down the screen as a dithered front six rows deep
+  return e <= 0 ? -1 : e >= 1 ? 16 : (e * (H + 12) - 6 - y) / 6 * 16;
 }
 
-// Freeze the smooth pose onto the pixel grid; the sprite only changes on these frames.
+function buildBackground() {
+  const seed = Uint32Array.of(20260926);
+  const rnd = () => { let x = seed[0]; x ^= x << 13; x ^= x >>> 17; x ^= x << 5; seed[0] = x; return seed[0] / 4294967296; };
+  for (let k = 1; k <= 14; k++) ST0[k] = ST0[k - 1] + DUR[k - 1];
+  const wset = (x, y, c) => { if (x >= 0 && x < W && y >= 0 && y < WH) WORLD[y * W + x] = c; };
+  const map = (lut, pairs) => { for (let j = 0; j < pairs.length; j += 2) lut[pairs[j]] = pairs[j + 1]; };
+  for (let m = 0; m < 4; m++) for (let c = 0; c < PAL.length; c++) MOODL[m][c] = c;
+  map(MOODL[M_DAWN], [DAY_L, ROSE, WHITE, AMBER, DAY, PLUM, LEAF_L, LEAF_M, LEAF_H, LEAF_L, BARK_L, BARK_M, THATCH, BROWN_L]);
+  map(MOODL[M_DUSK], [DAY_L, ROSE, WHITE, AMBER, DAY, PLUM, LEAF_L, LEAF_M, LEAF_H, LEAF_L, BARK_L, BARK_M]);
+  map(MOODL[M_NIGHT], [DAY_L, NIGHT2, WHITE, BARK_L, DAY, NIGHT1, LEAF_H, LEAF_M, LEAF_L, LEAF_M, LEAF_M, LEAF_D, LEAF_D, NIGHT0,
+    BARK_L, BARK_M, BARK_M, BARK_D, BARK_D, INK, BROWN_L, BROWN_M, BROWN_M, BROWN_D, BROWN_D, INK, THATCH, BROWN_M, WATER, NIGHT2]);
+  for (let c = 0; c < PAL.length; c++) { ACTL[c] = DARK[c] = c; MGLOW[c] = LIGHTEN[c]; }
+  MGLOW[NIGHT2] = NIGHT2;
+  map(ACTL, [LEAF_H, LEAF_L, LEAF_L, LEAF_M, BARK_L, BARK_M, BROWN_L, BROWN_M, THATCH, BROWN_L, SKIN_L, SKIN_D, SKIN_D, BROWN_M,
+    RED, RED_D, ORANGE, BROWN_L, WHITE, BARK_L]);
+  map(DARK, [LEAF_H, LEAF_L, LEAF_L, LEAF_M, LEAF_M, LEAF_D, LEAF_D, INK, BROWN_L, BROWN_M, BROWN_M, BROWN_D, BROWN_D, INK,
+    THATCH, BROWN_L, BARK_L, BARK_M, DAY, NIGHT2, DAY_L, DAY, NIGHT1, NIGHT0, NIGHT2, NIGHT1, MOON_M, MOON_D, MOON_D, MOON_S]);
+  const BT = [0, 56, 96, 126, GY];
+  for (let y = 0; y < WH; y++) {
+    let b = 0;
+    while (b < 3 && y >= BT[b + 1]) b++;
+    BAND[y] = b; SEAM[y] = b < 3 && y >= BT[b + 1] - 3 ? (y - BT[b + 1] + 4) / 4 : 0;
+  }
+
+  // Cloud banks: lit tops, shadowed bellies
+  const CL = [[10, 68, 13, 4], [26, 66, 10, 5], [42, 69, 9, 3], [114, 84, 10, 4], [130, 81, 12, 5], [147, 84, 11, 4], [162, 82, 8, 4],
+    [26, 100, 11, 3], [44, 97, 12, 4], [62, 100, 9, 3], [118, 108, 9, 3], [134, 106, 8, 3], [80, 58, 8, 3], [92, 60, 6, 2]];
+  for (const [cx, cy, rx, ry] of CL) for (let dy = -ry; dy <= ry; dy++) for (let dx = -rx; dx <= rx; dx++) {
+    const v = dx * dx / (rx * rx) + dy * dy / (ry * ry);
+    if (v > 1) continue;
+    wset(cx + dx, cy + dy, dy < -ry * 0.4 && v > 0.35 ? WHITE : dy > ry * 0.45 ? DAY : DAY_L);
+  }
+  // Far hills, then the bamboo hedges round the village
+  for (let x = 0; x < W; x++) {
+    const top = Math.round(136 + 4 * Math.sin(x * 0.045 + 1) + 2.5 * Math.sin(x * 0.13 + 2) + Math.sin(x * 0.31));
+    for (let y = top; y < GY; y++) wset(x, y, DAY);
+    if (x >= 86) {
+      const ht = Math.round(GY - 9 - 2.5 * Math.abs(Math.sin(x * 0.21)) - 2 * Math.abs(Math.sin(x * 0.53 + 1)));
+      for (let y = ht; y < GY; y++) wset(x, y, (x * 3 + y * 5) % 7 === 0 ? LEAF_L : y === ht ? LEAF_L : LEAF_M);
+    }
+  }
+  // The old forest: three great trees, the right one with a low bough to hide on
+  const leaf = (x, y, cx, cy, r) => {
+    const dx = x - cx, dy = y - cy, f = (dx * 0.6 - dy * 0.8) / r, n = (x * 7 + y * 13) % 11;
+    return n === 0 ? LEAF_D : f > 0.45 ? ((x * 5 + y * 3) % 9 === 0 ? LEAF_H : LEAF_L) : f < -0.3 ? LEAF_D : n < 3 ? LEAF_L : LEAF_M;
+  };
+  const trunk = (x0, x1, y0) => {
+    for (let y = y0; y < GY; y++) {
+      const fl = y > GY - 5 ? GY - y < 2 ? 2 : 1 : 0;
+      for (let x = x0 - fl; x <= x1 + fl; x++)
+        wset(x, y, x === x0 - fl ? BARK_D : x >= x1 - 1 + fl ? BARK_L : (x + (y >> 2)) % 3 === 0 ? BARK_D : BARK_M);
+    }
+  };
+  trunk(3, 8, 110); trunk(31, 37, 108); trunk(62, 67, 112);
+  for (let x = 51; x <= 63; x++) { const y = 131 - (x > 58 ? (x - 58) >> 1 : 0); wset(x, y, BARK_L); wset(x, y + 1, BARK_M); wset(x, y + 2, BARK_D); }
+  for (let j = 0; j <= 12; j++) { wset(34 - j, 118 - Math.round(j * 0.67), BARK_M); wset(35 + j, 116 - Math.round(j * 0.73), BARK_M); }
+  const CR = [[5, 104, 14], [-4, 112, 9], [16, 100, 10], [33, 98, 16], [22, 108, 9], [46, 104, 11], [64, 108, 12], [56, 116, 7], [72, 112, 6]];
+  for (const [cx, cy, r] of CR) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (dx * dx + dy * dy > r * r || (dy > r * 0.55 && (cx + dx + cy + dy) & 1 && dx * dx + dy * dy > r * r * 0.7)) continue;
+    wset(cx + dx, cy + dy, leaf(cx + dx, cy + dy, cx, cy, r));
+  }
+  for (let k = 0; k < 16; k++) { // hanging vines and ferns
+    const x = 2 + (rnd() * 68 | 0), y0 = 112 + (rnd() * 8 | 0), len = 4 + (rnd() * 8 | 0);
+    for (let j = 0; j < len; j++) if (WORLD[(y0 + j) * W + x] === EMPTY) wset(x, y0 + j, j === len - 1 ? LEAF_L : LEAF_M);
+  }
+  // Bamboo at the village edge
+  for (const [bx, top, lean] of [[74, 106, 3], [77, 102, 5], [80, 110, 4], [83, 104, 6], [86, 114, 3]]) {
+    for (let y = top; y < GY; y++) {
+      const u = (GY - y) / (GY - top), x = bx + Math.round(lean * u * u);
+      wset(x, y, (y - top) % 6 === 0 ? LEAF_D : LEAF_L); wset(x + 1, y, (y - top) % 6 === 0 ? LEAF_D : LEAF_M);
+      if ((y - top) % 6 === 0 && y < GY - 20) {
+        const s = (y >> 1) & 1 ? 1 : -1;
+        for (let j = 1; j <= 4; j++) wset(x + s * (j + 1), y + (j >> 1) - 1, j === 4 ? LEAF_M : LEAF_L);
+      }
+    }
+  }
+  // Thatched houses: mud walls, posts, a door, barred windows, a hipped roof of straw
+  const house = (x0, x1, wall, ridge, door) => {
+    for (let y = wall; y < GY; y++) for (let x = x0; x <= x1; x++) {
+      const post = x === x0 || x === x1 || (x - x0) % 12 === 0;
+      wset(x, y, post ? (x === x1 ? BROWN_M : BROWN_D) : y < wall + 2 ? BROWN_M : (x * 5 + y * 3) % 13 === 0 ? BROWN_M : BROWN_L);
+    }
+    if (door) for (let y = GY - 10; y < GY; y++) for (let x = door; x <= door + 5; x++) wset(x, y, x === door || x === door + 5 || y === GY - 10 ? BROWN_D : INK);
+    for (let x = x0 - 3; x <= x1 + 3; x++) wset(x, wall - 1, BROWN_M);
+    const half = (x1 - x0) / 2 + 3, cx = (x0 + x1) / 2;
+    for (let y = ridge; y < wall - 1; y++) {
+      const u = (y - ridge) / (wall - 1 - ridge), hw = mix(half - 7, half, u);
+      for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++)
+        wset(x, y, y === ridge ? BROWN_M : y === wall - 2 ? BROWN_L : (x + ((y - ridge) >> 1) * 3) % 5 === 0 ? BROWN_L : x > cx + hw - 3 ? BROWN_L : THATCH);
+    }
+    wset(Math.round(cx - half + 7) - 1, ridge - 1, BROWN_M); wset(Math.round(cx + half - 7) + 1, ridge - 1, BROWN_M);
+  };
+  house(104, 140, GY - 12, GY - 26, 119);
+  house(148, 178, GY - 11, GY - 24, 0);
+  for (const x of WINX) for (let y = GY - 9; y <= GY - 6; y++) for (let dx = 0; dx < 4; dx++) wset(x + dx, y, dx & 1 ? BROWN_D : INK);
+  for (let y = GY - 7; y < GY; y++) { // the water jar by the door
+    const hw = y === GY - 7 ? 2 : y < GY - 1 ? 3 : 2;
+    for (let x = 142 - hw; x <= 142 + hw; x++) wset(x, y, y === GY - 7 ? BROWN_D : x === 142 + hw ? BROWN_L : x < 141 ? BROWN_D : BROWN_M);
+  }
+  // Ground: the forest floor and the swept yard, a dike, then a strip of paddy
+  for (let y = GY; y < WH; y++) for (let x = 0; x < W; x++) {
+    const d = y - GY, yard = x > 84 + (d >> 1) || (x > 78 + (d >> 1) && dith(x, y, (x - 78 - (d >> 1)) / 6));
+    let c;
+    if (d >= 15) c = y === GY + 15 ? LEAF_L : (y & 1) ? ((x + y) % 5 === 0 ? DAY_L : DAY) : (x * 3 + y) % 4 < 2 ? LEAF_L : LEAF_M;
+    else if (d === 14) c = LEAF_M;
+    else if (yard) c = d === 0 ? THATCH : d >= 3 && d <= 5 ? ((x * 7 + y) % 9 === 0 ? BROWN_L : THATCH) : (x * 5 + y * 3) % 11 === 0 ? BROWN_M : BROWN_L;
+    else c = d === 0 ? ((x * 5) % 7 === 0 ? LEAF_M : LEAF_L) : (x * 7 + y * 5) % 23 === 0 ? BROWN_D : (x * 3 + y * 7) % 13 === 0 ? LEAF_L : d > 9 && (x + y) % 4 === 0 ? LEAF_D : LEAF_M;
+    wset(x, y, c);
+  }
+  for (let k = 0; k < 18; k++) { // ferns and tufts in the forest
+    const x = rnd() * 76 | 0, h = 2 + (rnd() * 3 | 0);
+    for (let j = 1; j <= h; j++) { wset(x, GY - j, j === h ? LEAF_L : LEAF_M); if (j === h - 1) { wset(x - 1, GY - j, LEAF_M); wset(x + 1, GY - j - 1, LEAF_L); } }
+  }
+  for (let y = GY - 4; y < GY; y++) for (let x = 45; x <= 53; x++) // the chopping stump
+    wset(x, y, y === GY - 4 ? (x === 49 ? BROWN_M : THATCH) : x === 45 ? BROWN_D : x === 53 ? BROWN_L : (x + y) % 3 === 0 ? BROWN_D : BROWN_M);
+  for (const [x, y] of [[56, GY - 2], [59, GY - 2], [57, GY - 4]]) { wset(x, y, THATCH); wset(x + 1, y, BROWN_L); wset(x, y + 1, BROWN_M); wset(x + 1, y + 1, BROWN_D); }
+
+  for (let s = 0; s < NSTAR; s++) { STX[s] = rnd() * W | 0; STY[s] = 2 + (rnd() * 126 | 0); STP[s] = rnd() * 24 | 0; }
+  // The moon, lit from the upper left, its ground a band of dust along the bottom
+  for (let dy = -30; dy <= 30; dy++) for (let dx = -30; dx <= 30; dx++) {
+    const d = Math.hypot(dx, dy), i = (dy + 30) * 61 + dx + 30;
+    if (d > MOON_R + 0.4) { MB[i] = EMPTY; continue; }
+    const lit = Math.hypot(dx + 3, dy + 3);
+    let c = lit > MOON_R + 1.6 ? MOON_D : d > MOON_R - 1.2 && dx + dy < 0 ? MOON_L : MOON_M;
+    for (const [mx, my, mr] of [[-17, -9, 5], [15, 5, 6], [19, -13, 3.5], [-12, 10, 4], [8, -20, 3]])
+      { const h = Math.hypot(dx - mx, (dy - my) * 1.2); if (h < mr * 0.7 || (h < mr && (dx + dy) & 1)) c = MOON_D; }
+    if (dy >= MOON_G) c = dy === MOON_G ? MOON_L : (dx * 5 + dy * 3) % 7 === 0 ? MOON_S : MOON_D;
+    MB[i] = c;
+  }
+  for (let dy = -7; dy <= 7; dy++) for (let dx = -7; dx <= 7; dx++) { // the blue Earth, far off
+    const d = Math.hypot(dx, dy), i = (dy + 7) * 15 + dx + 7;
+    if (d > 7.2) { EB[i] = EMPTY; continue; }
+    const land = Math.sin(dx * 0.7 + 1) + Math.cos(dy * 0.8 - dx * 0.3) > 1.05, cloud = Math.sin(dx * 0.5 + dy * 1.3) > 0.9;
+    EB[i] = dx - dy > 7 ? NIGHT2 : cloud ? WHITE : land ? LEAF_L : d > 6.3 && dx + dy < -3 ? DAY_L : WATER;
+  }
+  for (let k = 0; k < NCR; k++) { // cracks run out along the ground from the roots
+    let x = 92 + (k < 3 ? -3 : 3), y = GY + (k % 3), dir = k < 3 ? -1 : 1;
+    for (let j = 0; j < 10; j++) {
+      CRK[k * 20 + j * 2] = x; CRK[k * 20 + j * 2 + 1] = y;
+      x += dir * (1 + (rnd() * 2 | 0)); y += rnd() < 0.3 ? 1 : rnd() < 0.15 ? -1 : 0; y = Math.max(GY, Math.min(GY + 9, y));
+    }
+  }
+  for (let h = 0; h < 5; h++) for (let r = 0; r < 7; r++) for (let c = 0; c < 6; c++) {
+    const ch = HEADS[h][r][c];
+    HB[h * 42 + r * 6 + c] = ch === '.' ? EMPTY : HKEY[ch];
+  }
+  for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) { const ch = LANT[r][c]; LB[r * 7 + c] = ch === '.' ? EMPTY : LKEY[ch]; }
+  for (let r = 0; r < 10; r++) for (let c = 0; c < 12; c++) { const ch = LION[r][c]; LNB[r * 12 + c] = ch === '.' ? EMPTY : LKEY[ch]; }
+}
+// Camera: start and end stop per state, and the ticks the glide takes
+const CAM_A = Int16Array.of(CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_T, CAM_T, CAM_M);
+const CAM_Z = Int16Array.of(CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_B, CAM_T, CAM_T, CAM_M, CAM_B);
+const PAN1 = Uint8Array.of(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 126, 1, 84, 66);
+const CHOP = Uint8Array.of(P_CHUP, P_CHUP, P_CHDN, P_CHMID);
+const T_WALKA = 0, T_WALKB = 1, T_STAND = 2, T_ROAR = 3, T_REACH = 4, T_CHEW = 5, T_NUZZLE = 6, T_LEAP = 7, T_LIE = 8,
+  T_SIT = 9, T_RUNA = 10, T_RUNB = 11;
+const MX0 = 92, MXC = 114, MS = 0.85;                             // on the moon: the banyan's trunk, and where Cuội sits
+let TT = 0, pfr = 0, camY = CAM_B, camS = CAM_B;
+let moodA = M_DAWN, moodB = M_DAWN, moodE = 0, actE = 0;
+let moonOn = 0, moonDY = 0, silE = 0, earthV = 0, windV = 0;
+let trOn = 1, trX = 16, trY = GY, trS = 0.5, trBall = 0, trShake = 0, trFade = 1, trMoon = 0, trFly = 0, trSway = 0;
+let rtX = 0, rtY = 0;                                  // the tip of the root Cuội hooks, written by banyan()
+let cOn = 1, cX = 40, cY = GY, cK = P_CHUP, cDir = 1, cFade = 1, cMoon = 0, cFly = 0, leafOn = 0, cBelt = 0;
+let wOn = 0, wX = 0, wY = GY, wK = P_WSTAND, wDir = -1, wFade = 1, wLie = 0, bucketOut = 0;
+let fOn = 0, fX = 146, fK = P_WSTAND, fFade = 1, vFade = 1;
+const VON = new Uint8Array(2), VX = new Int16Array(2), VK = new Uint8Array(2), VD = new Int8Array(2);
+let cubOn = 0, cubX = 0, cubY = GY, cubK = T_LIE, cubDir = 1, tgOn = 0, tgX = 0, tgK = T_STAND, tgDir = 1, tgLeaf = 0;
+let glowOn = 0, glowX = 0, glowY = 0, glowR = 0, bubK = -1, crackE = 0, pitE = 0, puddle = 0, holeE = 0;
+let crackOn = 0, strA = 0, strB = 0, parOn = 0, parX = 0, parFade = 1, roarT = -1, hookT = -1, pourOn = 0;
+let srcWX = 0, srcWY = 0, srcFly = 0;
+
+function camAt(s, t) {
+  return Math.round(mix(CAM_A[s], CAM_Z[s], ease(t / PAN1[s])));
+}
+function moonCY() { // the moon's centre on screen: far off, it slides a quarter as fast as the world
+  return Math.round(MOON_Y - camY * MOON_K) + moonDY;
+}
+function cuoi(x, y, k, dir) {
+  cOn = 1; cX = Math.round(x); cY = Math.round(y); cK = k; cDir = dir;
+}
+function wife(x, y, k, dir) {
+  wOn = 1; wX = Math.round(x); wY = Math.round(y); wK = k; wDir = dir;
+}
+function forestTree() {
+  trOn = 1; trX = 16; trY = GY; trS = 0.5;
+}
+function homeTree() {
+  trOn = 1; trX = 92; trY = GY; trS = 1;
+}
+function axeSrc() {
+  const o = cK * NSK;
+  srcWX = cX + SK[o + 13] * cDir; srcWY = cY + SK[o + 14];
+}
+function moonSrc() {
+  srcWX = MOON_X + 14; srcWY = moonCY() - 14 + camY; srcFly = 0;
+}
+function glowAt(x, y, r) {
+  glowOn = 1; glowX = x; glowY = y; glowR = r; srcWX = x; srcWY = y;
+}
+
+// Freeze the scripted beat onto the pixel grid; the sprites only change on these frames.
 function sample() {
   snap.set(pose);
-  trY = Math.round(pose[TREE]);
-  trX = state === SLIP ? Math.round(Math.sin(stT * 1.1)) : state === RISE ? Math.round(Math.sin(stT * 0.1)) : 0; // it shudders, then drifts
-  tipX = TX + trX + AROOT[2]; tipY = GROUND + trY - 10;
-  hipX = Math.round(pose[HIPX]); hipY = Math.round(pose[HIPY]);
-  caught = 0;
-  if (state === JUMP) { // crouch, spring up, catch the root
-    if (stT < 6) hipY += 3;
-    else { const u = Math.min(1, (stT - 6) / 12); hipY = Math.round(68 - (68 - (tipY + 20)) * Math.sin(u * Math.PI / 2)); caught = stT >= 18 ? 1 : 0; }
+  const s = state, t = stT;
+  TT = ST0[s] + t; pfr = TT / POSE_STEP | 0; camS = camAt(s, t);
+  moodA = moodB = M_DAY; moodE = 0; actE = 0;
+  moonOn = 0; moonDY = 0; silE = 0; earthV = 0; windV = 0;
+  homeTree(); trBall = 0; trShake = 0; trFade = 1; trMoon = 0; trFly = 0; trSway = 0;
+  cOn = 0; cFade = 1; cMoon = 0; cFly = 0; leafOn = 0; cBelt = 0;
+  wOn = 0; wFade = 1; wLie = 0; bucketOut = 0; fOn = 0; fFade = 1; vFade = 1; VON.fill(0); VD.fill(-1);
+  cubOn = 0; tgOn = 0; tgLeaf = 0; glowOn = 0; bubK = -1; crackE = 0; pitE = 0; puddle = 0; holeE = 0;
+  crackOn = 0; parOn = 0; parFade = 1; roarT = -1; hookT = -1; pourOn = 0; srcFly = 0;
+  rim = 1;
+  const walk = pfr & 1 ? P_WALKB : P_WALKA, run = pfr & 1 ? P_RUNB : P_RUNA, carry = pfr & 1 ? P_CARRYB : P_CARRYA;
+  const tw = pfr & 1 ? T_WALKB : T_WALKA, tr = pfr & 1 ? T_RUNB : T_RUNA;
+  if (s === WOODS) {
+    moodA = M_DAWN; moodE = ease((t - 24) / 60);
+    forestTree(); cuoi(40, GY, CHOP[pfr & 3], 1); axeSrc();
+  } else if (s === TIGER) {
+    forestTree();
+    if (t < 18) cuoi(40, GY, CHOP[pfr & 3], 1);
+    else if (t < 24) cuoi(40, GY, P_STARTLE, -1);
+    else if (t < 30) cuoi(40, GY, P_CHUP, -1);
+    else if (t < 42) cuoi(40, GY, P_STRIKE, -1);
+    else if (t < 60) cuoi(40, GY, P_STAND, -1);
+    else if (t < 66) cuoi(40, GY, P_STARTLE, -1);
+    else if (t < 78) cuoi(mix(40, 60, (t - 66) / 12), GY, run, 1);
+    else if (t < 102) cuoi(60, GY - Math.round(28 * ease((t - 78) / 24)), pfr & 1 ? P_CLIMBB : P_CLIMBA, 1);
+    else cuoi(57, 130, P_CROUCH, -1);
+    if (t >= 6 && t < 18) { cubOn = 1; cubX = Math.round(mix(-10, 14, (t - 6) / 12)); cubY = GY; cubK = tr; cubDir = 1; }
+    else if (t >= 18 && t < 30) { const u = (t - 18) / 12; cubOn = 1; cubX = Math.round(mix(14, 30, u)); cubY = GY - Math.round(10 * Math.sin(Math.PI * u)); cubK = T_LEAP; cubDir = 1; }
+    else if (t >= 30 && t < 36) { cubOn = 1; cubX = 27; cubY = GY - 3; cubK = T_LIE; cubDir = 1; }
+    else if (t >= 36) { cubOn = 1; cubX = 26; cubY = GY; cubK = T_LIE; cubDir = 1; }
+    if (t >= 48) {
+      tgOn = 1; tgDir = 1;
+      if (t < 60) { tgX = Math.round(mix(-30, 8, (t - 48) / 12)); tgK = tw; }
+      else if (t < 84) { tgX = 8; tgK = T_ROAR; roarT = t - 60; }
+      else { tgX = 8; tgK = T_STAND; }
+    }
+    axeSrc();
+  } else if (s === LEAVES) {
+    forestTree(); cuoi(57, 130, P_CROUCH, -1);
+    tgOn = 1; tgDir = 1; cubOn = 1; cubDir = 1; cubX = 26; cubY = GY; cubK = T_LIE;
+    if (t < 36) { tgX = 6; tgK = pfr & 1 ? T_CHEW : T_REACH; }
+    else if (t < 54) { tgX = Math.round(mix(6, 15, (t - 36) / 18)); tgK = tw; tgLeaf = 1; }
+    else if (t < 84) { tgX = 15; tgK = T_NUZZLE; tgLeaf = t < 66 ? 1 : 0; }
+    else if (t < 90) { tgX = 15; tgK = T_STAND; }
+    else { tgX = Math.round(mix(15, 10, (t - 90) / 12)); tgK = tw; tgDir = -1; }
+    if (t >= 72) cubK = t < 84 ? T_SIT : t < 90 ? T_STAND : tr;
+    if (t >= 90) { cubX = Math.round(mix(26, 20, (t - 90) / 12)); cubDir = -1; }
+    if (t >= 54 && t < 90) glowAt(28, GY - 3, t < 72 ? 4 + ((t - 54) >> 2) : 9 - ((t - 72) >> 2));
+    else { srcWX = 28; srcWY = GY - 3; }
+    rim = t >= 54 && t < 90 ? 2 : 1;
+  } else if (s === DIG) {
+    if (t < 36) {
+      tgOn = 1; tgDir = -1; tgX = Math.round(mix(10, -40, t / 36)); tgK = tw;
+      cubOn = 1; cubDir = -1; cubX = Math.round(mix(20, -26, t / 34)); cubY = GY; cubK = tr;
+    }
+    if (t < 12) { const u = t / 12; cuoi(mix(57, 52, u), mix(130, GY, u * u), P_LEAP, -1); }
+    else if (t < 18) cuoi(52, GY, P_LAND, -1);
+    else if (t < 30) cuoi(mix(52, 26, (t - 18) / 12), GY, run, -1);
+    else if (t < 54) cuoi(26, GY, ((t - 30) / 6 | 0) & 1 ? P_DIGDN : P_DIGUP, -1);
+    else if (t < 60) cuoi(26, GY, P_KNEEL, -1);
+    else cuoi(mix(26, 76, (t - 60) / 36), GY, carry, 1);
+    if (t < 54) forestTree();
+    else if (t < 60) { forestTree(); trBall = 1; trY = GY - 3; }
+    else { trS = 0.5; trBall = 1; trX = cX + 2; trY = cY - 21 + (cK === P_CARRYB ? -1 : 0); }
+    holeE = t >= 54 ? 1 : 0;
+    if (t < 54) axeSrc(); else { srcWX = trX; srcWY = trY - 16; }
+  } else if (s === HEAL) {
+    holeE = 1; cBelt = 1;
+    if (t < 18) { cuoi(mix(76, 86, t / 18), GY, carry, 1); trS = 0.5; trBall = 1; trX = cX + 2; trY = cY - 21 + (cK === P_CARRYB ? -1 : 0); }
+    else {
+      trS = 0.5 + 0.5 * ease((t - 24) / 24);
+      if (t < 24) cuoi(86, GY, P_KNEEL, 1);
+      else if (t < 40) cuoi(84, GY, P_IDLE, 1);
+      else if (t < 48) { cuoi(96, GY, P_REACH, 1); leafOn = t >= 44 ? 1 : 0; }
+      else if (t < 54) { cuoi(mix(96, 106, (t - 48) / 6), GY, walk, 1); leafOn = 1; }
+      else if (t < 66) { cuoi(106, GY, P_KNEEL, 1); leafOn = t < 60 ? 1 : 0; }
+      else if (t < 72) cuoi(106, GY, P_IDLE, 1);
+      else if (t < 78) { cuoi(mix(106, 120, (t - 72) / 6), GY, walk, 1); leafOn = 1; }
+      else if (t < 90) { cuoi(120, GY, P_KNEEL, 1); leafOn = t < 84 ? 1 : 0; }
+      else cuoi(120, GY, P_IDLE, 1);
+    }
+    const hb = pfr & 1;
+    VON[0] = VON[1] = 1;
+    VX[0] = Math.round(t < 84 ? mix(172, 114, clamp01(t / 36)) : mix(114, 138, (t - 84) / 18));
+    VK[0] = t < 36 ? P_HUNCH : t < 66 ? P_SIT : t < 72 ? P_STAND : t < 84 ? P_CHEER : hb ? P_WALKB : P_WALKA;
+    if (t >= 84) VD[0] = 1;
+    VX[1] = Math.round(mix(186, 128, clamp01((t - 6) / 36))); VK[1] = t < 42 ? P_HUNCH : t < 90 ? P_SIT : t < 96 ? P_STAND : P_CHEER;
+    if (t >= 54 && t < 72) glowAt(114, GY - 5, 3 + ((t - 54) >> 2));
+    else if (t >= 78 && t < 96) glowAt(128, GY - 5, 3 + ((t - 78) >> 2));
+    else { srcWX = 92; srcWY = GY - 30; }
+    rim = glowOn ? 2 : 1;
+  } else if (s === WED) {
+    cBelt = 1;
+    if (t < 12) {
+      const w = pfr & 1 ? P_WALKB : P_WALKA;
+      VON[0] = VON[1] = 1; VX[0] = Math.round(138 + 1.3 * t); VX[1] = Math.round(128 + 1.3 * t); VK[0] = VK[1] = w; VD[0] = VD[1] = 1; vFade = 1 - ease(t / 12);
+    }
+    fOn = 1; fX = 152; fFade = ease((t - 12) / 12); fK = t >= 54 ? ((pfr & 1) ? P_CHEER : P_WSTAND) : P_WSTAND;
+    if (t < 36) { wOn = 1; wLie = 1; wX = 134; wY = GY; wFade = ease((t - 6) / 12); }
+    else if (t < 44) wife(134, GY, P_SIT, -1);
+    else if (t < 48) wife(134, GY, P_WSTAND, -1);
+    else wife(132, GY, P_WED, -1);
+    if (t < 12) cuoi(mix(120, 124, t / 12), GY, P_IDLE, 1);
+    else if (t < 30) { cuoi(124, GY, P_KNEEL, 1); leafOn = t < 24 ? 1 : 0; }
+    else cuoi(124, GY, t < 48 ? P_IDLE : P_WED, 1);
+    if (t >= 18 && t < 42) glowAt(136, GY - 3, t < 30 ? 3 + ((t - 18) >> 2) : 8);
+    else { srcWX = 122; srcWY = GY - 20; }
+    if (t >= 48) { crackOn = 1; const n = Math.min(14, (t - 48) / 3 | 0); strA = 10 - (n + 1 >> 1); strB = 10 - (n >> 1); srcWX = 122; srcWY = GY - 16; }
+    else { crackOn = 1; strA = strB = 10; }
+    rim = glowOn || (t >= 48 && t < 90) ? 2 : 1;
+  } else if (s === WARN) {
+    moodA = M_DAY; moodB = M_DUSK; moodE = ease(t / 90);
+    fOn = t < 12 ? 1 : 0; fX = 152; fK = P_WSTAND; fFade = 1 - ease(t / 12);
+    moonOn = 1; moonDY = Math.round(84 - 64 * ease((t - 24) / 66));
+    if (t < 18) wife(mix(132, 110, t / 18), GY, pfr & 1 ? P_WWALKB : P_WWALKA, -1);
+    else wife(110, GY, t >= 50 && t < 66 && (pfr & 1) ? P_NOD : P_WSTAND, -1);
+    if (t < 18) cuoi(mix(124, 100, t / 18), GY, walk, -1);
+    else if (t < 42) cuoi(100, GY, P_POINT, -1);
+    else if (t < 66) cuoi(100, GY, t < 48 ? P_IDLE : P_POINT, 1);
+    else { cuoi(mix(100, 64, (t - 66) / 24), GY, walk, -1); cFade = 1 - ease((t - 76) / 14); }
+    cBelt = t < 66 ? 1 : 0;
+    if (t >= 24 && t < 44) bubK = 0; else if (t >= 50 && t < 70) bubK = 1;
+    srcWX = 100; srcWY = GY - 30;
+  } else if (s === DIRTY) {
+    moodA = M_DUSK; moodB = M_NIGHT; moodE = ease(t / 72); actE = ease((t - 30) / 48);
+    moonOn = 1; moonDY = Math.round(20 - 20 * ease(t / 60));
+    if (t < 18) wife(mix(110, 134, t / 18), GY, pfr & 1 ? P_WWALKB : P_WWALKA, 1);
+    else if (t < 30) wife(134, GY, P_BEND, 1);
+    else if (t < 54) wife(mix(134, 108, (t - 30) / 24), GY, pfr & 1 ? P_WBUCKB : P_WBUCKA, -1);
+    else if (t < 60) wife(108, GY, P_WCARRY, -1);
+    else if (t < 78) { wife(108, GY, P_WPOUR, -1); pourOn = t < 76 ? 1 : 0; }
+    else { wife(112, GY, P_WSTARTLE, -1); bucketOut = 1; }
+    puddle = ease((t - 62) / 16);
+    if (t >= 78) { trShake = pfr & 1 ? 1 : -1; }
+    moonSrc();
+  } else if (s === UPROOT) {
+    moodA = moodB = M_NIGHT; actE = 1; moonOn = 1; bucketOut = 1;
+    puddle = 1 - ease((t - 36) / 12);
+    crackE = ease(t / 36); pitE = t >= 36 ? 1 : 0;
+    trShake = t < 36 ? (pfr & 1 ? 1 : -1) * (t >= 24 ? 2 : 1) : (pfr % 3 === 0 ? 1 : 0);
+    if (t >= 36) { trBall = 1; trY = GY - Math.round(22 * ease((t - 36) / 42)); trSway = (pfr >> 1) & 1; }
+    wife(t < 36 ? 112 : 118, GY, t < 36 ? P_WSTARTLE : P_WSITFALL, -1);
+    if (t >= 60) cuoi(-14 + (t - 60) * 1.3, GY, run, 1);
+    moonSrc();
+  } else if (s === GRAB) {
+    moodA = moodB = M_NIGHT; actE = 1; moonOn = 1; bucketOut = 1; crackE = 1; pitE = 1;
+    trBall = 1; trSway = (pfr >> 1) & 1;
+    trY = t < 42 ? GY - 22 - Math.round(20 * ease(t / 42)) : GY - 42 - Math.round(12 * ease((t - 42) / 48));
+    if (t < 42) trY += (pfr & 1);
+    trShake = t < 42 && (pfr & 1) ? 1 : 0;
+    wife(118, GY, t < 42 ? P_WSITFALL : P_WREACH, -1);
+    rootTip();
+    if (t < 30) cuoi(mix(33, 80, t / 30), GY, run, 1);
+    else if (t < 42) { const u = (t - 30) / 12; cuoi(mix(80, rtX - 1, u), GY - Math.round(8 * Math.sin(Math.PI * u * 0.5)), P_LEAP, 1); }
+    else hangFrom(t);
+    if (t >= 42) hookT = t - 42;
+    if (t >= 30 && t < 54) axeSrc(); else moonSrc();
+  } else if (s === FLY) {
+    moodA = moodB = M_NIGHT; actE = 1; moonOn = 1; windV = ease(t / 18) * (1 - ease((t - 110) / 28));
+    trBall = 1; trFly = 1; trSway = (pfr >> 1) & 1; trX = MX0; trS = mix(1, MS, ease(t / 120));
+    const sb = 14 + 31 * ease(t / 40) - 5 * ease((t - 100) / 38);
+    trY = Math.round(sb) + camS;
+    earthV = ease((t - 96) / 42);
+    rootTip();
+    hangFrom(t + 90); cFly = 1;
+    moonSrc(); srcFly = 0;
+  } else if (s === MOON) {
+    moodA = moodB = M_NIGHT; moonOn = 1; earthV = 1; actE = 1 - ease(t / 24);
+    trBall = t < 54 ? 1 : 0; trX = MX0; trS = MS; trSway = t < 24 ? (pfr >> 1) & 1 : 0;
+    trY = t < 12 ? 40 - Math.round(2 * t / 12) : t < 24 ? 38 : Math.round(mix(38, MOON_Y + MOON_G, ease((t - 24) / 30)));
+    if (t < 12) { rootTip(); hangFrom(t + 228); }
+    else if (t < 18) cuoi(MX0 + 2, MOON_Y + MOON_G, P_LAND, 1);
+    else if (t < 36) cuoi(mix(MX0 + 2, MXC + 2, (t - 18) / 18), MOON_Y + MOON_G, walk, 1);
+    else if (t < 60) cuoi(MXC + 2, MOON_Y + MOON_G, t < 48 ? P_STAND : P_LOOK, -1);
+    else cuoi(MXC, MOON_Y + MOON_G, P_SIT, -1);
+    srcWX = 130; srcWY = 10; rim = 1;
+  } else if (s === LANTERNS) {
+    moodA = moodB = M_NIGHT; moonOn = 1; earthV = 1 - ease(t / 24); silE = ease(t / 36);
+    trX = MX0; trS = MS; trMoon = 1; trFade = 1 - silE; trOn = trFade > 0 ? 1 : 0;
+    cuoi(MXC, 0, P_SIT, -1); cMoon = 1; cFade = 1 - silE; cOn = cFade > 0 ? 1 : 0;
+    parOn = 1; parX = Math.round(-20 + 1.3 * t);
+    srcWX = parX - 20; srcWY = GY - 22;
+  } else {
+    moodA = M_NIGHT; moodB = M_DAWN; moodE = ease((t - 12) / 72);
+    moonOn = 1; moonDY = Math.round(110 * ease(t / 84)); silE = 1;
+    forestTree(); trFade = ease((t - 36) / 30); trOn = trFade > 0 ? 1 : 0;
+    holeE = 1 - ease((t - 36) / 30); pitE = crackE = 1 - ease((t - 24) / 48);
+    parOn = 1; parX = Math.round(136 + 1.3 * t);
+    if (t >= 48 && t < 84) cuoi(mix(-12, 40, (t - 48) / 36), GY, walk, 1);
+    else if (t >= 84 && t < 90) cuoi(40, GY, P_STAND, 1);
+    else if (t >= 90) cuoi(40, GY, P_CHUP, 1);
+    srcWX = parX - 20; srcWY = GY - 22;
   }
-  if (state === PULL) caught = 1;
-  if (caught) { hipX = tipX - 1; hipY = Math.min(68, tipY + 20); }           // hangs until his feet find the dust
-  const down = caught && hipY >= 68;
-  if (down && !wasDown) for (let k = 0; k < 6; k++) spawn(BURST, 24 + rand() * 12, hipX + (rand() - 0.5) * 6, GROUND - 1, (rand() - 0.5) * 0.9, -0.3 - rand() * 0.4, 0); // a slow puff of moondust
-  wasDown = down;
-  if (state === IDLE) hipY += (stT / 36 | 0) & 1;                          // dozing
-  legs = pose[LEGS] < 0 ? 0 : pose[LEGS];
-  if (caught && hipY < 68) legs = 0;
-  sx = hipX + Math.round(pose[LEAN] * 6); sy = hipY - 10;
-  look = pose[LOOK] > 0.5 ? 1 : 0;
-  hx = sx - 3 - look; hy = sy - 8;
-  const arm = pose[ARM];
-  nhX = mix(hipX + 6, sx + 2, arm); nhY = mix(hipY - 3, sy - 10, arm);   // hand on the knee, or up after the tree
-  fhX = mix(hipX - 5, sx - 1, arm); fhY = mix(hipY + 1, sy - 10, arm);   // other hand propping him up
-  if (caught) { nhX = tipX; nhY = tipY; fhX = tipX - 1; fhY = tipY + 2; }
-  if (state === PAT) { // three pats on the loose dust
-    const up = stT >= 30 && stT < 66 && ((stT - 30) / 6 | 0) % 2 === 0;
-    nhX = hipX + 8; nhY = GROUND - 1 - (up ? 4 : 0); fhX = hipX + 3; fhY = hipY - 1;
-  }
-  holes = trY < -1 || state === PULL ? 4 : state === PAT ? Math.max(0, 4 - (stT >= 36 ? 1 : 0) - (stT >= 48 ? 1 : 0) - (stT >= 60 ? 2 : 0)) : 0;
-  srcX = TX + trX + 2; srcY = GROUND + trY - 50;                         // the magic lives in the canopy
-  rim = state === SLIP || state === RISE || state === JUMP ? 2 : 1;
 }
-
+function rootTip() { // the root Cuội hooks, in world rows: under the root ball, swaying
+  rtX = trX + Math.round(3 * trS) + trShake + (trSway ? 1 : 0);
+  rtY = trY + Math.round(9 * trS);
+}
+// Hanging from the hooked root; from 24 ticks into the flight he climbs up to hug the root ball.
+function hangFrom(u) {
+  if (u < 114) cuoi(rtX - 1, rtY + 32, (pfr & 1) ? P_HANGB : P_HANGA, 1);
+  else if (u < 162) { const e = ease((u - 114) / 48); cuoi(rtX - 1, rtY + 32 - Math.round(17 * e), (pfr & 1) ? P_ROOTB : P_ROOTA, 1); }
+  else cuoi(rtX - 1, rtY + 15, P_CLING, 1);
+}
+const pWL = new Float32Array(MAXP);                     // per particle: the world row it lands on
+function sp(kind, life, x, y, vx, vy, ramp, wl) {
+  const i = spawn(kind, life, x, y, vx, vy, ramp);
+  pWL[i] = wl;
+  return i;
+}
+function burstAt(x, y, n, v, ramp, wl) { // x, y on screen; wl the world row the bits land on
+  for (let k = 0; k < n; k++) {
+    const a = rand() * TWO_PI, sv = v * (0.4 + rand() * 0.8);
+    sp(BURST, 14 + rand() * 18, x, y, Math.cos(a) * sv, Math.sin(a) * sv - v * 0.6, ramp, wl);
+  }
+}
 function step() {
+  const nc = camAt(state, stT), dc = nc - camY;
+  camY = nc;
+  if (dc) for (let i = 0; i < MAXP; i++) if (pKind[i]) { py[i] -= dc; pqy[i] -= dc; } // particles live in the world
   if (tick % POSE_STEP === 0) sample();
-  const cy = GROUND + trY - 50, bx = TX + trX;
-  if ((state === SLIP || state === RISE || state === JUMP) && stT % 3 === 0) spawn(MOTE, 24 + rand() * 20, bx - 20 + rand() * 40, cy + 6 - rand() * 18, 0, (rand() - 0.5) * 0.3, 1);
-  if ((state === IDLE || state === SIT) && stT >= 10 && stT % 20 === 10) spawn(MOTE, 30 + rand() * 20, bx - 18 + rand() * 36, cy + rand() * 10, 0, 0.1, 1);
-  if (state === SLIP && stT >= 12 && stT <= 30 && stT % 6 === 0) // the roots tear loose
-    for (let k = 0; k < 4; k++) spawn(BURST, 20 + rand() * 16, TX + BROOT[k], GROUND - 1, (rand() - 0.5) * 0.8, -0.5 - rand() * 0.7, 0);
-  if (state === PAT && (stT === 36 || stT === 48 || stT === 60)) for (let k = 0; k < 5; k++) spawn(BURST, 16 + rand() * 10, hipX + 8, GROUND - 1, (rand() - 0.5) * 0.8, -0.3 - rand() * 0.4, 0);
-}
-
-function limb(ax, ay, bx, by, l1, l2, side, r0, r1, r2, dark, base, light) {
-  joint(ax, ay, bx, by, l1, l2, side);
-  capsule(spr, ax, ay, r0, jx, jy, r1, dark, base, light);
-  capsule(spr, jx, jy, r1, bx, by, r2, dark, base, light);
-}
-function rootLine(x0, y0, x1, y1, c) { // roots vanish below the surface while planted
-  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
-  for (let s = 0; s <= n; s++) {
-    const x = Math.round(x0 + (x1 - x0) * s / n), y = Math.round(y0 + (y1 - y0) * s / n);
-    if (y < GROUND) { plot(spr, x, y, c); plot(spr, x + 1, y, BARK_D); }
+  srcX = srcWX; srcY = srcWY - (srcFly ? camS : camY);
+  const s = state, t = stT, cy = camY, gy = GY - cy, T = ST0[s] + t;
+  if ((s === WOODS || (s === TIGER && t < 18)) && T % 24 === 12) burstAt(52, gy - 5, 7, 1.3, R_CHIP, GY);
+  if (s === TIGER) {
+    if (t === 30) { shakeT = 8; burstAt(27, gy - 6, 8, 1.2, R_DUST, GY); burstAt(27, gy - 7, 5, 1.6, R_POP, GY); }
+    if (t === 60) shakeT = 10;
+    if (t > 78 && t < 102 && t % 6 === 0) sp(BURST, 16, 62, cY - cy - 10, 0.3, 0, R_ROOT, GY);
+  } else if (s === LEAVES) {
+    if (t > 2 && t < 36 && t % 4 === 0) sp(BURST, 30 + rand() * 20, 20 + rand() * 4, gy - 19, (rand() - 0.5) * 0.6, -0.2, R_LEAF, GY);
+    if (t >= 54 && t < 78 && t % 2 === 0) spawnOrbit(9 + rand() * 6, 0.08 + rand() * 0.04, 0.95, 0, TWO_PI, R_GLOW);
+    if (t === 72) { for (let k = 0; k < 22; k++) sp(MOTE, 30 + rand() * 30, 22 + rand() * 12, gy - 2 - rand() * 8, 0, -0.25 - rand() * 0.3, R_GLOW, 999); }
+    if (t > 72 && t < 90 && t % 3 === 0) sp(MOTE, 24 + rand() * 20, 22 + rand() * 12, gy - 3, 0, -0.3, R_GLOW, 999);
+  } else if (s === DIG) {
+    if (t === 2) for (let k = 0; k < 5; k++) sp(BURST, 40, 52 + rand() * 12, 126 - cy, (rand() - 0.5) * 0.4, 0, R_LEAF, GY);
+    if (t === 12) burstAt(52, gy - 1, 8, 0.9, R_DUST, GY);
+    if (t === 36 || t === 48) burstAt(15, gy - 1, 10, 1.3, R_DUST, GY);
+    if (t === 54) { burstAt(16, gy - 2, 16, 1.6, R_DUST, GY); burstAt(16, gy - 2, 6, 1.2, R_ROOT, GY); }
+    if (t > 60 && t % 6 === 3) sp(BURST, 20, trX - 2 + rand() * 4, trY - cy + 3, 0, 0.2, R_DUST, GY);
+  } else if (s === HEAL) {
+    if (t === 18) burstAt(92, gy - 1, 10, 1, R_DUST, GY);
+    if (t >= 24 && t < 56 && t % 3 === 0) sp(MOTE, 30 + rand() * 20, 92 + (rand() - 0.5) * 40 * trS, gy - 12 - rand() * 30 * trS, 0, -0.2, R_GLOW, 999);
+    if (glowOn && t % 2 === 0) spawnOrbit(8 + rand() * 5, 0.08 + rand() * 0.04, 0.95, 0, TWO_PI, R_GLOW);
+    if (t === 66 || t === 90) for (let k = 0; k < 14; k++) sp(MOTE, 30 + rand() * 20, srcX - 5 + rand() * 10, gy - 4 - rand() * 12, 0, -0.3 - rand() * 0.2, R_GLOW, 999);
+  } else if (s === WED) {
+    if (glowOn && t % 2 === 0) spawnOrbit(8 + rand() * 5, 0.08 + rand() * 0.04, 0.95, 0, TWO_PI, R_GLOW);
+    if (t === 36) for (let k = 0; k < 16; k++) sp(MOTE, 30 + rand() * 20, 130 + rand() * 12, gy - 2 - rand() * 10, 0, -0.3 - rand() * 0.2, R_GLOW, 999);
+    if (t >= 48 && t < 90 && (t - 48) % 3 === 0) {
+      const k = (t - 48) / 3 | 0, x = k & 1 ? 139 : 106, n = k & 1 ? strB : strA, y = gy - 13 + n * 1;
+      burstAt(x, y, 5, 1.4, R_POP, GY);
+      for (let j = 0; j < 7; j++) sp(BURST, 50 + rand() * 40, x, y, (rand() - 0.5) * 2.2, -0.8 - rand() * 1.2, R_PAPER, GY);
+      shakeT = Math.max(shakeT, 2);
+    }
+  } else if (s === DIRTY) {
+    if (pourOn) {
+      for (let k = 0; k < 2; k++) sp(BURST, 16 + rand() * 8, wX - 11, gy - 12 + rand() * 2, -0.5 - rand() * 0.4, -0.1 - rand() * 0.3, R_MURK, GY);
+      if (t > 66 && t % 3 === 0) burstAt(94 + rand() * 4, gy - 1, 3, 0.9, R_MURK, GY);
+    }
+    if (t >= 78 && t % 4 === 0) sp(BURST, 40 + rand() * 20, 92 + (rand() - 0.5) * 40, gy - 20 - rand() * 18, (rand() - 0.5) * 0.5, 0, R_LEAF, GY);
+  } else if (s === UPROOT) {
+    if (t < 36 && t % 6 === 3) for (let k = 0; k < NCR; k++) {
+      const j = Math.min(9, Math.round(crackE * 9)), x = CRK[k * 20 + j * 2], y = CRK[k * 20 + j * 2 + 1];
+      if (rand() < 0.5) burstAt(x, y - cy - 1, 2, 0.8, R_DUST, GY);
+    }
+    if (t === 12 || t === 24) shakeT = Math.max(shakeT, 4);
+    if (t === 36) { shakeT = 16; burstAt(92, gy - 2, 30, 2, R_DUST, GY); burstAt(92, gy - 3, 14, 1.8, R_ROOT, GY); }
+    if (t > 36 && t % 3 === 0) sp(BURST, 24, trX - 4 + rand() * 8, trY - cy + 4, 0, 0.3, R_DUST, GY);
+  } else if (s === GRAB) {
+    if (t % 3 === 0) sp(BURST, 24, trX - 4 + rand() * 8, trY - cy + 4, 0, 0.3, R_DUST, GY);
+    if (t === 42) { shakeT = 6; burstAt(rtX, rtY - cy, 7, 1.3, R_POP, GY); burstAt(rtX, rtY - cy, 5, 1, R_ROOT, GY); }
+  } else if (s === FLY) {
+    if (windV > 0.2 && t % 2 === 0) {
+      sp(TRAIL, 14 + rand() * 10, rand() * W, rand() * H, 0, 2.5 + rand() * 1.5, R_WIND, 999);
+    }
+    if (t % 5 === 0) sp(BURST, 30, trX - 4 + rand() * 8, trY - camS + 4, 0, 0.4, R_DUST, 999);
+    if (t % 9 === 4) sp(MOTE, 40, trX + (rand() - 0.5) * 40, trY - camS - 10 - rand() * 30, 0, 0.6, R_WIND, 999);
+  } else if (s === MOON) {
+    if (t === 12) burstAt(cX, MOON_Y + MOON_G - 1, 10, 0.9, R_MOON, MOON_Y + MOON_G);
+    if (t === 54) { shakeT = 6; burstAt(MX0, MOON_Y + MOON_G - 1, 20, 1.2, R_MOON, MOON_Y + MOON_G); }
+    if (t > 60 && t % 10 === 5) sp(MOTE, 40 + rand() * 30, 76 + rand() * 48, MOON_Y + MOON_G - 1, 0, -0.1, R_MOON, 999);
+  } else if (s === LANTERNS || s === RETURN) {
+    if (parOn && t % 8 === 3) { const k = 1 + (t >> 3) % 3, x = parX - 14 - k * 12 + 6; sp(MOTE, 30, x, gy - 21, 0, -0.15, R_LANT, 999); }
+    if (s === RETURN && t >= 36 && t < 60 && t % 3 === 0) sp(MOTE, 20 + rand() * 16, 16 + (rand() - 0.5) * 22, gy - 4 - rand() * 20, 0, -0.2, R_GLOW, 999);
   }
+  for (let i = 0; i < MAXP; i++) if (pKind[i] === BURST && pvy[i] > 0 && py[i] + camY > pWL[i]) pKind[i] = 0;
 }
-
-function drawTree() {
-  const bx = TX + trX, by = GROUND + trY;
-  for (let k = 0; k < 4; k++) rootLine(bx + (k < 2 ? -2 : 2), by - 3, bx + BROOT[k], by + 6, BARK_M);
-  for (let y = by - 46; y <= by; y++) { // trunk, flaring at the foot
-    if (y >= GROUND) continue;
-    const hw = y > by - 6 ? Math.round(3 + (y - by + 6) * 0.6) : 3;
-    for (let x = bx - hw; x <= bx + hw; x++) plot(spr, x, y, x === bx - hw ? BARK_L : x >= bx + hw - 1 ? BARK_D : (x + (y >> 2)) % 3 === 0 ? BARK_D : BARK_M);
-  }
-  line(spr, bx - 2, by - 40, bx - 12, by - 48, BARK_M); line(spr, bx + 2, by - 42, bx + 12, by - 50, BARK_M); // boughs
-  for (let k = 0; k < 4; k++) { // hanging roots; the one he holds runs to his hands
-    const ax = bx + AROOT[k], ay = by - 40, ex = k === 2 ? tipX : ax, ey = k === 2 ? tipY : by - 10 - (k & 1) * 4;
-    line(spr, ax, ay, ex, ey, BARK_M);
-  }
-  for (let b = 0; b < BLOBS.length; b += 3) { // leafy crown, a few leaves glowing
-    const cx = bx + BLOBS[b], cy = by + BLOBS[b + 1], r = BLOBS[b + 2];
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-      if (dx * dx + dy * dy > r * r) continue;
-      const x = cx + dx, y = cy + dy, lit = dx + dy < -r * 0.6, shade = dx + dy > r * 0.5;
-      plot(spr, x, y, (x * 7 + y * 11) % 23 === 0 && dy < 0 ? LEAF_H : (x * 3 + y * 5) % 7 === 0 ? LEAF_D : lit ? LEAF_L : shade ? LEAF_D : LEAF_M);
+// The world into buf through the light of the hour; open sky takes the mood's bands.
+function drawWorld() {
+  for (let y = 0; y < H; y++) {
+    const wy = y + camY, ro = y * W, rw = wy * W, band = BAND[wy], seam = SEAM[wy] * 16, fr = sweep(moodE, y);
+    for (let x = 0; x < W; x++) {
+      const i = ro + x, m = fr > BAYER[(wy & 3) * 4 + (x & 3)] ? moodB : moodA;
+      let c = WORLD[rw + x];
+      MOODM[i] = m;
+      if (c === EMPTY) {
+        SKYM[i] = 1;
+        c = SKYB[m * 4 + Math.min(3, band + (seam > BAYER[((wy + 2) & 3) * 4 + ((x + 1) & 3)] ? 1 : 0))];
+      } else { SKYM[i] = 0; c = MOODL[m][c]; }
+      buf[i] = c;
     }
   }
 }
-
-function drawActor() {
-  drawTree();
-  for (let s = -1; s <= 1; s += 2) { // legs: planted, folded, or dangling
-    const fx = mix(hipX + s * 2, hipX + (s > 0 ? 4 : 1), legs), fy = Math.min(GROUND - 1, mix(hipY + 11, hipY + 3, legs));
-    limb(hipX + s, hipY + 1, fx, fy, 6, 6, -1, 1.8, 1.6, 1.4, HAIR, PANTS, SKY2);
-    plot(spr, fx, fy, SKIN_D); plot(spr, fx + 1, fy, SKIN_D);
+function drawStars() {
+  for (let k = 0; k < NSTAR; k++) {
+    const y = STY[k] - camY, x = STX[k];
+    if (y < 1 || y >= H - 1 || x < 1 || x >= W - 1) continue;
+    const i = y * W + x;
+    if (!SKYM[i] || MOODM[i] !== M_NIGHT) continue;
+    const ph = (tick + STP[k] * 5) % 120, big = k % 9 === 0;
+    buf[i] = ph < 6 ? WHITE : big ? MOON_L : k % 3 === 0 ? MOON_M : BARK_L;
+    if (big && ph < 6) { buf[i - 1] = buf[i + 1] = buf[i - W] = buf[i + W] = BARK_L; }
   }
-  limb(sx - 1, sy + 1, fhX, fhY, 5, 5, 1, 1.3, 1.2, 1, SHIRT_D, SHIRT_D, SHIRT_M);        // far arm
-  rect(spr, fhX - 1, fhY - 1, 2, 2, SKIN_D);
-  capsule(spr, hipX, hipY, 3, sx, sy + 2, 3.4, SHIRT_D, SHIRT_M, SHIRT_M);                 // áo bà ba
-  plot(spr, sx + 2, sy + 4, SHIRT_D); plot(spr, sx + 2, sy + 7, SHIRT_D);                 // buttons
-  for (let r = 0; r < 7; r++) {
-    for (let c = 0; c < 7; c++) {
-      const v = headMap[r * 7 + c];
-      if (v !== EMPTY) plot(spr, hx + c, hy + r, v);
+}
+function drawMoon() {
+  if (!moonOn) return;
+  const cy = moonCY();
+  if (cy - 38 >= H) return;
+  for (let dy = -38; dy <= 38; dy++) {
+    const y = cy + dy;
+    if (y < 0 || y >= H) continue;
+    for (let dx = -38; dx <= 38; dx++) {
+      const x = MOON_X + dx, i = y * W + x;
+      if (x < 0 || x >= W || !SKYM[i]) continue;
+      const d2 = dx * dx + dy * dy, m = d2 <= 900 ? MB[(dy + 30) * 61 + dx + 30] : EMPTY;
+      if (m !== EMPTY) buf[i] = m;
+      else if (d2 <= 1156 || (d2 <= 1444 && ((x + y) & 1))) buf[i] = MGLOW[buf[i]];
     }
   }
-  plot(spr, hx + 5, hy + 3 - look, INK); plot(spr, hx + 5, hy + 5, SKIN_D);             // eye, mouth
-  plot(spr, hx + 3, hy - 1, HAIR); plot(spr, hx + 3, hy - 2, HAIR); plot(spr, hx + 2, hy - 1, HAIR); // topknot
-  limb(sx + 1, sy + 1, nhX, nhY, 5, 5, 1, 1.4, 1.2, 1.1, SHIRT_D, SHIRT_M, SHIRT_M);      // near arm
-  rect(spr, nhX - 1, nhY - 1, 2, 2, SKIN_L);
 }
-
+function drawEarth() {
+  if (earthV <= 0) return;
+  const ex = 24, ey = 18 - Math.round(camY * 0.1);
+  for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
+    const x = ex + dx, y = ey + dy;
+    if (y < 0 || y >= H || !SKYM[y * W + x] || !dith(x, y, earthV)) continue;
+    const c = dx >= -7 && dx <= 7 && dy >= -7 && dy <= 7 ? EB[(dy + 7) * 15 + dx + 7] : EMPTY;
+    if (c !== EMPTY) buf[y * W + x] = c;
+    else if (dx * dx + dy * dy <= 72 && ((x + y) & 1)) buf[y * W + x] = LIGHTEN[buf[y * W + x]];
+  }
+}
+// Cuội and his banyan as the shadows on the moon's face
+function drawSilhouette() {
+  if (silE <= 0 || !moonOn) return;
+  const cy = moonCY(), gy = cy + MOON_G;
+  if (cy - MOON_R >= H) return;
+  banyan(MX0, gy, MS, 0, 0);
+  human(MXC, gy, P_SIT, -1, C_CUOI);
+  for (let y = Math.max(0, cy - 31); y <= Math.min(H - 1, cy + 31); y++) for (let x = MOON_X - 31; x <= MOON_X + 31; x++) {
+    const i = y * W + x, c = lay[i];
+    if (c === EMPTY) continue;
+    lay[i] = EMPTY;
+    const dx = x - MOON_X, dy = y - cy;
+    if (!SKYM[i] || dx * dx + dy * dy > 870 || !dith(x, y, silE)) continue;
+    buf[i] = c === LEAF_H || c === LEAF_L || c === SKIN_L ? MOON_D : MOON_S;
+  }
+}
+function shadowAt(x, w) {
+  const y = GY - camY;
+  if (y < 0 || y >= H) return;
+  for (let dx = -w; dx <= w; dx++) if (x + dx >= 0 && x + dx < W) buf[y * W + x + dx] = DARK[buf[y * W + x + dx]];
+}
+function bplot(x, y, c, v) { // a backdrop pixel, dithered in by v
+  if (x >= 0 && x < W && y >= 0 && y < H && (v >= 1 || dith(x, y + camY, v))) buf[y * W + x] = c;
+}
+function drawGround() {
+  const gy = GY - camY;
+  if (gy < -30 || gy >= H + 4) return;
+  if (holeE > 0) {
+    for (let dx = -5; dx <= 5; dx++) { bplot(16 + dx, gy, Math.abs(dx) > 3 ? BROWN_D : INK, holeE); if (Math.abs(dx) < 4) bplot(16 + dx, gy + 1, Math.abs(dx) > 2 ? BROWN_D : INK, holeE); }
+    for (let dx = 0; dx <= 5; dx++) { bplot(23 + dx, gy - 1, dx === 0 || dx === 5 ? BROWN_M : BROWN_L, holeE); if (dx > 0 && dx < 5) bplot(23 + dx, gy - 2, dx === 2 ? BROWN_L : BROWN_M, holeE); }
+  }
+  if (puddle > 0) {
+    const rx = 2 + 9 * puddle;
+    for (let dy = 0; dy <= 2; dy++) for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+      const v = dx * dx / (rx * rx) + dy * dy / 4;
+      if (v <= 1) bplot(93 + dx, gy + dy, v > 0.7 ? BROWN_D : (dx + dy * 3 + 40) % 7 === 0 ? BARK_L : MOON_S, 1);
+    }
+  }
+  if (crackE > 0) for (let k = 0; k < NCR; k++) {
+    const n = state === RETURN ? 9 : Math.round(crackE * 9), v = state === RETURN ? crackE : 1;
+    for (let j = 0; j < n; j++) {
+      const x0 = CRK[k * 20 + j * 2], y0 = CRK[k * 20 + j * 2 + 1] - camY, x1 = CRK[k * 20 + j * 2 + 2], y1 = CRK[k * 20 + j * 2 + 3] - camY;
+      for (let x = Math.min(x0, x1); x <= Math.max(x0, x1); x++) {
+        const y = x1 === x0 ? y0 : Math.round(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
+        bplot(x, y, INK, v); bplot(x, y + 1, BROWN_D, v); if (y > gy) bplot(x, y - 1, THATCH, v);
+      }
+    }
+  }
+  if (pitE > 0) {
+    for (let dy = -1; dy <= 3; dy++) for (let dx = -9; dx <= 9; dx++) {
+      const v = dx * dx / 81 + (dy - 1) * (dy - 1) / 5;
+      if (v > 1) continue;
+      bplot(92 + dx, gy + dy, dy < 0 ? (dx & 1 ? BROWN_L : BROWN_M) : v > 0.55 ? BROWN_D : INK, pitE);
+    }
+  }
+  if (bucketOut) {
+    for (let dx = 0; dx < 5; dx++) for (let dy = 0; dy < 4; dy++)
+      bplot(102 + dx, gy - 4 + dy, dx === 0 ? MOON_S : dx === 2 || dx === 4 ? BROWN_D : dy === 0 ? BROWN_L : BROWN_M, 1);
+  }
+  if (crackOn) for (let k = 0; k < 2; k++) {
+    const x = k ? 139 : 106, n = k ? strB : strA;
+    bplot(x, gy - 14, RED_D, 1);
+    for (let j = 0; j < n; j++) { bplot(x, gy - 13 + j, j & 1 ? RED_D : RED, 1); if (!(j & 1)) bplot(x + 1, gy - 13 + j, j % 4 === 0 ? THATCH : RED_D, 1); }
+  }
+  for (let k = 0; k < WINX.length; k++) {
+    const i = (gy - 8) * W + WINX[k];
+    if (gy - 8 < 0 || gy - 8 >= H || (MOODM[i] !== M_NIGHT && MOODM[i] !== M_DUSK)) continue;
+    for (let y = gy - 9; y <= gy - 6; y++) for (let dx = 0; dx < 4; dx += 2) bplot(WINX[k] + dx, y, y === gy - 9 ? THATCH : AMBER, 1);
+  }
+  if (cOn && !cMoon && !cFly && cY === GY) shadowAt(cX, cK === P_KNEEL ? 5 : 3);
+  if (wOn && wY === GY) shadowAt(wX, wLie ? 8 : 3);
+  if (tgOn) shadowAt(tgX, 9);
+  if (cubOn && cubY === GY) shadowAt(cubX, 5);
+  if (trOn && !trBall && !trMoon && trY === GY) shadowAt(trX, Math.round(8 * trS));
+  if (glowOn) lighten(glowX, glowY - camY, glowR + 3);
+  if (parOn) for (let k = 1; k < 4; k++) {
+    const lx = parX - 14 - k * 12 + 6, r = 6 + (((tick >> 3) + k) & 1);
+    lanternGlow(lx, gy - 20, r); lighten(lx - 2, gy, 5);
+  }
+}
+function lanternGlow(cx, cy, r) { // warm on open sky, one LIGHTEN step on walls and leaves
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const x = cx + dx, y = cy + dy, d2 = dx * dx + dy * dy;
+    if (x < 0 || x >= W || y < 0 || y >= H || d2 > r * r) continue;
+    const i = y * W + x, core = d2 <= r * r * 0.3;
+    if (!core && ((x + y) & 1) && d2 > r * r * 0.55) continue;
+    buf[i] = SKYM[i] ? (core ? ROSE : PLUM) : LIGHTEN[buf[i]];
+  }
+}
 function drawUnder() {
-  const tw = (tick / 30 | 0) & 1;
-  for (let k = 0; k < 8; k++) if ((k & 1) === tw) plot(buf, twinkle[k * 2], twinkle[k * 2 + 1], WHITE); // twinkling
-  for (let k = 0; k < LANTS.length; k += 3) { // star lanterns drifting right to left, bobbing
-    const x = W + 10 - Math.round((LANTS[k] + tick * 148 / LANTS[k + 2]) % 148), y = LANTS[k + 1] + Math.round(Math.sin(tick * TWO_PI / 120 + k) * 2);
-    if (x < -8 || x > W + 8) continue;
-    halo(x, y, 7, LANT_O, SKY2);
-    for (let i = 0; i < 49; i++) if (starMap[i] !== EMPTY) plot(buf, x - 3 + i % 7, y - 3 + (i / 7 | 0), starMap[i]);
-    plot(buf, x, y + 4, LANT_O); plot(buf, x, y + 5, LANT_Y);                              // tassel
+  drawWorld();
+  drawStars();
+  drawMoon();
+  drawEarth();
+  drawSilhouette();
+  drawGround();
+}
+// The cast goes part by part through lay; an ink line parts two groups where they meet.
+const lay = new Uint8Array(N).fill(EMPTY), own = new Uint8Array(N), GRP = new Uint8Array(64);
+let pid = 0, grp = 0;
+function endPart(x0, y0, x1, y1, fade) {
+  x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W - 1, x1); y1 = Math.min(H - 1, y1);
+  GRP[++pid] = grp;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = y * W + x;
+    let c = lay[i];
+    if (c === EMPTY) continue;
+    lay[i] = EMPTY;
+    if (fade < 1 && !dith(x, y + camY, fade)) continue;
+    if (actE > 0 && sweep(actE, y) > BAYER[((y + camY) & 3) * 4 + (x & 3)]) c = ACTL[c];
+    spr[i] = c; own[i] = pid;
   }
-  for (let k = 0; k < holes; k++) { // pits where the roots came up
-    const x = TX + BROOT[k];
-    hline(buf, x - 1, x + 2, GROUND, MOON_D); plot(buf, x, GROUND + 1, MOON_D); plot(buf, x + 1, GROUND + 1, MOON_D);
+  for (let y = Math.max(1, y0 - 1); y <= Math.min(H - 2, y1 + 1); y++) for (let x = Math.max(1, x0 - 1); x <= Math.min(W - 2, x1 + 1); x++) {
+    const i = y * W + x;
+    if (!own[i] || own[i] === pid || GRP[own[i]] === grp) continue;
+    if (own[i - 1] === pid || own[i + 1] === pid || own[i - W] === pid || own[i + W] === pid) spr[i] = INK;
   }
 }
+function lp(x, y, c) {
+  plot(lay, x, y, c);
+}
+function over(x, y, c) { // recolour a pixel already in the part
+  if (x >= 0 && x < W && y >= 0 && y < H && lay[y * W + x] !== EMPTY) lay[y * W + x] = c;
+}
+function limb(ax, ay, bx, by, l1, l2, side, r0, r1, r2, d, m, l) {
+  joint(ax, ay, bx, by, l1, l2, side);
+  capsule(lay, ax, ay, r0, jx, jy, r1, d, m, l);
+  capsule(lay, jx, jy, r1, bx, by, r2, d, m, l);
+}
+function hand(x, y) {
+  lp(x, y, SKIN_L); lp(x + 1, y, SKIN_L); lp(x, y + 1, SKIN_D);
+}
+function foot(x, y, dir) {
+  lp(x, y, SKIN_D); lp(x + dir, y, SKIN_D);
+}
+function axeAt(x0, y0, x1, y1, dir) { // the handle from the grip out to the head, the blade facing forward and down
+  const dx = x1 - x0, dy = y1 - y0, len = Math.sqrt(dx * dx + dy * dy) || 1, ux = dx / len, uy = dy / len;
+  line2(lay, Math.round(x0 - ux * 2), Math.round(y0 - uy * 2), x1, y1, BROWN_L, BROWN_D);
+  let px = -uy, py = ux;
+  if (px * dir + py < 0) { px = -px; py = -py; }
+  for (let j = 0; j <= 3; j++) for (let w = 0; w <= 1; w++)
+    lp(Math.round(x1 + px * j - ux * w), Math.round(y1 + py * j - uy * w), j === 3 ? WHITE : j === 0 ? BARK_D : BARK_L);
+  lp(Math.round(x1 - px), Math.round(y1 - py), BARK_M);
+}
+function bucket(x, y, tip, dir) {
+  if (!tip) {
+    for (let dx = 0; dx < 5; dx++) for (let dy = 0; dy < 4; dy++)
+      lp(x + dx, y + dy, dy === 0 ? (dx === 0 || dx === 4 ? BARK_L : MOON_S) : dy === 2 ? BARK_L : dx === 4 ? BROWN_M : BROWN_D);
+    lp(x + 2, y - 1, BROWN_D);
+  } else {
+    for (let j = 0; j < 5; j++) for (let w = 0; w < 4; w++)
+      lp(x + j * dir, y - 1 + w - (j >> 1), j === 4 ? (w === 0 || w === 3 ? BARK_L : MOON_S) : j === 2 ? BARK_L : BROWN_D);
+  }
+}
+function human(bx, by, k, dir, cos) {
+  const o = k * NSK, ci = cos * 8;
+  const hx = bx + SK[o] * dir, hy = by + SK[o + 1], nx = bx + SK[o + 2] * dir, ny = by + SK[o + 3];
+  const fhx = bx + SK[o + 4] * dir, fhy = by + SK[o + 5], bhx = bx + SK[o + 6] * dir, bhy = by + SK[o + 7];
+  const ffx = bx + SK[o + 8] * dir, ffy = by + SK[o + 9], bfx = bx + SK[o + 10] * dir, bfy = by + SK[o + 11];
+  const tx = bx + SK[o + 13] * dir, ty = by + SK[o + 14], tail = SK[o + 15];
+  const sd = COS[ci], sm = COS[ci + 1], sl = COS[ci + 2], pd = COS[ci + 3], pm = COS[ci + 4], pl = COS[ci + 5];
+  const head = COS[ci + 6], dress = COS[ci + 7], hero = cos === C_CUOI;
+  let tool = SK[o + 12];
+  if (!hero && tool <= 2) tool = 0;
+  if (hero && cBelt && tool === 1) tool = 2;
+  if (tool === 3 && cos !== C_OLD) tool = 0;
+  if (tool === 2) axeAt(hx - dir, hy + 3, nx - 3 * dir, ny - 3, -dir);  // slung across his back
+  if (!dress) { limb(hx - dir, hy, bfx, bfy, 5, 5, -dir, 1.6, 1.3, 1.2, pd, pd, pm); foot(bfx, bfy, dir); }
+  limb(nx - dir, ny + 2, bhx, bhy, 4.5, 4.5, dir, 1.3, 1.2, 1.1, sd, sd, sm); hand(bhx, bhy);
+  const mx = (ffx + bfx) >> 1;
+  if (dress) { capsule(lay, hx, hy - 1, 2.8, mx, by - 1, 4, pd, pm, pl); foot(ffx, ffy, dir); foot(bfx, bfy, -dir); }
+  capsule(lay, hx, hy - 1, 3, nx, ny + 2, 3.2, sd, sm, sl);
+  if (dress) capsule(lay, hx, hy, 3, Math.round((hx + mx) / 2), Math.round((hy + by) / 2), 3.4, sd, sm, sl); // the four panels
+  if (hero) for (let x = hx - 3; x <= hx + 3; x++) over(x, hy - 1, RED_D);
+  if (cos === C_WIFE) { // the red bodice, and a green sash knotted in front
+    over(nx + dir, ny + 2, RED); over(nx + dir, ny + 3, RED); over(nx + 2 * dir, ny + 3, RED); over(nx, ny + 3, RED);
+    for (let x = hx - 3; x <= hx + 3; x++) over(x, hy - 1, LEAF_L);
+    lp(hx + 3 * dir, hy, LEAF_L); lp(hx + 3 * dir, hy + 1, LEAF_M);
+  }
+  if (!dress) { limb(hx + dir, hy, ffx, ffy, 5, 5, -dir, 1.7, 1.4, 1.2, pd, pm, pl); foot(ffx, ffy, dir); }
+  for (let r = 0; r < 7; r++) for (let c = 0; c < 6; c++) {
+    const v = HB[head * 42 + r * 6 + c];
+    if (v !== EMPTY) lp(dir > 0 ? nx - 2 + c : nx + 2 - c, ny - 7 + r, v);
+  }
+  if (hero) { // the headband's knot: hanging, streaming back, or blown up
+    const kx = nx - 3 * dir, ky = ny - 6;
+    lp(kx, ky, RED);
+    if (tail === 1) { lp(kx - dir, ky, RED); lp(kx - 2 * dir, ky + 1, RED_D); }
+    else if (tail === 2) { lp(kx - dir, ky - 1, RED); lp(kx - dir, ky - 2, RED_D); }
+    else { lp(kx, ky + 1, RED); lp(kx - dir, ky + 2, RED_D); }
+  }
+  limb(nx + dir, ny + 2, fhx, fhy, 4.5, 4.5, dir, 1.4, 1.3, 1.1, sd, sm, sl); hand(fhx, fhy);
+  if (tool === 1) axeAt(fhx, fhy, tx, ty, dir);
+  else if (tool === 3) line(lay, fhx, fhy + 1, tx, ty, BROWN_M);
+  else if (tool === 4) bucket(fhx - 2, fhy + 1, 0, dir);
+  else if (tool === 5) bucket(fhx, fhy, 1, dir);
+  if (hero && leafOn) { lp(fhx + dir, fhy - 1, LEAF_H); lp(fhx + 2 * dir, fhy - 2, LEAF_L); lp(fhx + dir, fhy - 2, LEAF_L); }
+}
+function lying(x, y) { // the rich man's daughter on a straw mat, head to the right, eyes closed
+  for (let dx = -10; dx <= 10; dx++) lp(x + dx, y, dx & 1 ? THATCH : BROWN_L);
+  capsule(lay, x - 8, y - 2, 1.5, x - 2, y - 2, 2.1, INK, NIGHT0, NIGHT1);
+  capsule(lay, x - 2, y - 2, 2.2, x + 3, y - 2, 2.4, BROWN_M, BROWN_L, THATCH);
+  over(x + 2, y - 4, RED); over(x + 1, y - 4, RED); over(x - 1, y - 2, LEAF_L);
+  lp(x - 9, y - 2, SKIN_D); lp(x - 9, y - 1, SKIN_D);
+  rect(lay, x + 5, y - 4, 4, 3, SKIN_L);
+  hline(lay, x + 5, x + 9, y - 5, INK); lp(x + 9, y - 4, INK); lp(x + 9, y - 3, INK); lp(x + 9, y - 2, INK);
+  lp(x + 6, y - 3, SKIN_D); lp(x + 7, y - 3, SKIN_D);
+}
+function tiger(x, y, k, dir, s) { // the tigress, or at s ~0.55 her cub
+  if (k === T_LIE) {
+    capsule(lay, x - 5 * s * dir, y - 3 * s, 3 * s, x + 4 * s * dir, y - 3 * s, 3.2 * s, BROWN_M, ORANGE, THATCH);
+    line(lay, x - 6 * s * dir, y - 2, x - 12 * s * dir, y - 1, ORANGE);
+    for (let j = -1; j <= 1; j++) for (let r = 0; r < 3; r++) over(Math.round(x + j * 3 * s * dir), Math.round(y - 5 * s) + r, INK);
+    disc(Math.round(x + 8 * s * dir), Math.round(y - 3 * s), 3 * s, ORANGE, lay);
+    lp(Math.round(x + 9 * s * dir), Math.round(y - 4 * s), INK); lp(Math.round(x + 8 * s * dir), Math.round(y - 4 * s), INK);
+    lp(Math.round(x + 11 * s * dir), Math.round(y - 2 * s), WHITE);
+    for (let j = -1; j <= 1; j += 2) { lp(Math.round(x + j * 3 * s), y, ORANGE); lp(Math.round(x + j * 3 * s + dir), y, BROWN_M); }
+    return;
+  }
+  let lift = 0, hdx = 0, hdy = 0, mouth = 0, fa = 0, fb = 0, ba = 0, bb = 0, rear = 0;
+  if (k === T_WALKA) { fa = 2; fb = -1; ba = -1; bb = 2; }
+  else if (k === T_WALKB) { fa = -1; fb = 2; ba = 2; bb = -1; }
+  else if (k === T_RUNA || k === T_LEAP) { fa = 4; fb = 3; ba = -4; bb = -3; lift = k === T_LEAP ? 3 : 1; }
+  else if (k === T_RUNB) { fa = -2; fb = -1; ba = 2; bb = 3; }
+  else if (k === T_ROAR) { hdx = 1; hdy = -4; mouth = 1; lift = 1; }
+  else if (k === T_REACH || k === T_CHEW) { lift = 6; hdx = 1; hdy = -7; rear = 1; mouth = k === T_CHEW ? 1 : 0; }
+  else if (k === T_NUZZLE) { lift = -1; hdx = 1; hdy = 7; }
+  const sit = k === T_SIT;
+  const hipx = x - (sit ? 3 : 8) * s * dir, hipy = y - (sit ? 4 : 8) * s;
+  const shx = x + (sit ? 2 : 6) * s * dir, shy = y - (sit ? 10 : 9 + lift) * s;
+  const lf = k === T_LEAP ? -3 : 0;
+  line2(lay, Math.round(hipx - 3 * s * dir), Math.round(hipy - 1 * s), Math.round(hipx - 7 * s * dir), Math.round(hipy - 5 * s), ORANGE, BROWN_M);
+  line(lay, Math.round(hipx - 7 * s * dir), Math.round(hipy - 5 * s), Math.round(hipx - 8 * s * dir), Math.round(hipy - 8 * s), ORANGE);
+  lp(Math.round(hipx - 8 * s * dir), Math.round(hipy - 9 * s), INK);
+  if (!sit) {
+    capsule(lay, hipx - 1 * s * dir, hipy + 2 * s, 1.4 * s, hipx - 1 * s * dir + ba * s * dir, y + lf, 1.2 * s, BROWN_M, BROWN_M, ORANGE);
+    capsule(lay, hipx + 2 * s * dir, hipy + 2 * s, 1.5 * s, hipx + 2 * s * dir + bb * s * dir, y + lf, 1.3 * s, BROWN_M, ORANGE, THATCH);
+  }
+  capsule(lay, hipx, hipy, 4.5 * s, shx, shy, 5 * s, BROWN_M, ORANGE, THATCH);
+  for (let j = -2; j <= 2; j++) { // stripes over the back
+    const sx = Math.round(mix(hipx, shx, (j + 2.5) / 5.5)), sy = Math.round(mix(hipy, shy, (j + 2.5) / 5.5) - 4 * s);
+    for (let r = 0; r < Math.max(2, Math.round(4 * s)); r++) over(sx + (r >> 1) * dir, sy + r, INK);
+  }
+  if (rear) {
+    capsule(lay, shx, shy + 2 * s, 1.5 * s, x + 11 * s * dir, y - 12 * s, 1.3 * s, BROWN_M, ORANGE, THATCH);
+    capsule(lay, shx - 2 * s * dir, shy + 2 * s, 1.4 * s, x + 9 * s * dir, y - 9 * s, 1.2 * s, BROWN_M, BROWN_M, ORANGE);
+  } else {
+    capsule(lay, shx - 1 * s * dir, shy + 2 * s, 1.4 * s, shx - 1 * s * dir + fb * s * dir, y + lf, 1.2 * s, BROWN_M, BROWN_M, ORANGE);
+    capsule(lay, shx + 2 * s * dir, shy + 2 * s, 1.5 * s, shx + 2 * s * dir + fa * s * dir, y + lf, 1.3 * s, BROWN_M, ORANGE, THATCH);
+  }
+  const hcx = Math.round(x + (sit ? 5 : 12 + hdx) * s * dir), hcy = Math.round(y - (sit ? 15 : 12 + lift - hdy) * s);
+  disc(hcx, hcy, 4 * s, ORANGE, lay);
+  for (let dy = 0; dy <= Math.round(3 * s); dy++) for (let dx = 0; dx <= Math.round(2 * s); dx++) over(hcx + Math.round((2 * s + dx) * dir), hcy + dy, dy === 0 ? ORANGE : THATCH);
+  over(hcx - Math.round(3 * s * dir), hcy + 1, BROWN_M); over(hcx - Math.round(2 * s * dir), hcy + Math.round(3 * s), BROWN_M);
+  lp(hcx - Math.round(2 * s * dir), hcy - Math.round(4 * s), INK); lp(hcx - Math.round(2 * s * dir), hcy - Math.round(4 * s) + 1, ORANGE);
+  lp(hcx + Math.round(1 * s * dir), hcy - Math.round(4 * s), INK);
+  over(hcx, hcy - Math.round(3 * s), INK); over(hcx - dir, hcy - Math.round(2 * s), INK);
+  lp(hcx + Math.round(1.5 * s * dir), hcy - Math.round(1 * s), INK);
+  lp(hcx + Math.round(4 * s * dir), hcy, INK);
+  if (mouth) { lp(hcx + Math.round(3 * s * dir), hcy + Math.round(2 * s), RED_D); lp(hcx + Math.round(4 * s * dir), hcy + Math.round(2 * s), RED_D); lp(hcx + Math.round(4 * s * dir), hcy + 1, WHITE); }
+  if (sit) capsule(lay, shx + 1 * s * dir, shy + 2 * s, 1.3 * s, shx + 1 * s * dir, y, 1.2 * s, BROWN_M, ORANGE, THATCH);
+  if (k === tgK && s === 1 && tgLeaf) { lp(hcx + Math.round(4 * s * dir), hcy + 2, LEAF_L); lp(hcx + Math.round(5 * s * dir), hcy + 3, LEAF_H); lp(hcx + Math.round(5 * s * dir), hcy + 2, LEAF_M); }
+}
+const BLOB = Int8Array.of(-18, -21, 6, 18, -21, 6, -12, -27, 9, 12, -27, 9, -6, -22, 8, 6, -22, 8, 0, -34, 10);
+const AROOT = Int8Array.of(-20, 8, -15, 12, -9, 16, -4, 7, 9, 16, 15, 11, 20, 7); // dx, length below the crown's underside
+const BROOT = Int8Array.of(-5, 6, -2, 8, 3, 9, 5, 6);                           // dangling from the root ball: dx, length
+function banyan(x, by, s, ball, shake) { // the great banyan: grey fused trunk, aerial roots, a crown of clustered leaves
+  x += shake;
+  const th = Math.round(16 * s), cu = by - Math.round(15 * s), hw0 = Math.max(1, Math.round(s * 5.5)), sw = trSway;
+  line2(lay, x, by - th + 2, x - Math.round(12 * s), by - Math.round(25 * s), BARK_M, BARK_D);
+  line2(lay, x, by - th + 2, x + Math.round(12 * s), by - Math.round(25 * s), BARK_M, BARK_D);
+  for (let k = 0; k < 7; k++) {
+    const rx = x + Math.round(AROOT[k * 2] * s), len = Math.round(AROOT[k * 2 + 1] * s), prop = AROOT[k * 2 + 1] >= 16;
+    const end = prop && !ball ? by : cu + len;
+    for (let y = cu; y <= end; y++) lp(rx + (ball && y > cu + (len >> 1) ? sw : 0), y, y === end ? BARK_M : ROOT);
+  }
+  if (ball) for (let k = 0; k < 4; k++) {
+    const rx = x + Math.round(BROOT[k * 2] * s), len = Math.round(BROOT[k * 2 + 1] * s);
+    for (let j = 0; j <= len; j++) lp(rx + (j > len >> 1 ? sw : 0), by + j, j === len ? BARK_M : j & 1 ? ROOT : BROWN_M);
+  }
+  for (let j = 0; j <= th; j++) {
+    const y = by - j, hw = Math.max(1, Math.round(s * (2.5 + Math.max(0, 3 - j * 0.8))));
+    for (let px = x - hw; px <= x + hw; px++) {
+      const u = (px - x) / hw;
+      lp(px, y, u < -0.6 ? BARK_D : u > 0.5 ? BARK_L : (px - x + 30 + (j >> 2)) % 3 === 0 ? BARK_D : BARK_M);
+    }
+  }
+  if (!ball) { for (let sd = -1; sd <= 1; sd += 2) { lp(x + sd * (hw0 + 1), by, BARK_M); lp(x + sd * (hw0 + 2), by, BARK_D); } }
+  else {
+    const cy = by + Math.round(2 * s), rx = 6 * s, ry = 3 * s;
+    for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++) for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+      const v = dx * dx / (rx * rx) + dy * dy / (ry * ry);
+      if (v > 1.05) continue;
+      lp(x + dx, cy + dy, dy < -ry * 0.4 ? BROWN_L : dx + dy > rx * 0.5 ? BROWN_D : (dx * 3 + dy * 5 + 40) % 7 === 0 ? BARK_M : BROWN_M);
+    }
+  }
+  for (let b = 0; b < 7; b++) {
+    const cx = x + Math.round(BLOB[b * 3] * s), cy = by + Math.round(BLOB[b * 3 + 1] * s), r = BLOB[b * 3 + 2] * s, R = Math.ceil(r);
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+      if (dx * dx + dy * dy > r * r + r * 0.8) continue;
+      const px = cx + dx, py = cy + dy, lx = px - x + 64, ly = py - by + 64;
+      const f = (dx * 0.6 - dy * 0.8) / r, n = (lx * 7 + ly * 13) % 11;
+      let c = n === 0 ? LEAF_D : f > 0.5 ? LEAF_L : f < -0.35 ? LEAF_D : n < 3 ? LEAF_L : LEAF_M;
+      if (f > 0.1 && (lx * 5 + ly * 3) % 17 === 0) c = ((lx + pfr) & 3) === 0 ? WHITE : LEAF_H;
+      lp(px, py, c);
+    }
+  }
+}
+const KIDC = Uint8Array.of(RED, WATER, LEAF_L, AMBER);
+function kid(x, y, k) { // a child walking right with a star lantern on a bamboo stick
+  const f = (pfr + k) & 1, sc = KIDC[k], b = y - f;
+  lp(x + 1 + f, y, SKIN_D); lp(x - 1 - f, y, SKIN_D);
+  lp(x + 1, y - 1, NIGHT0); lp(x - 1, y - 1, NIGHT0); hline(lay, x - 1, x + 1, y - 2, NIGHT0);
+  for (let r = 3; r <= 6; r++) hline(lay, x - 1, x + 1, b - r, sc);
+  over(x - 1, b - 4, DARK[sc]); over(x - 1, b - 5, DARK[sc]);
+  hline(lay, x - 1, x + 1, b - 9, NIGHT0); lp(x - 1, b - 8, NIGHT0); lp(x, b - 10, NIGHT0);
+  lp(x + 1, b - 8, SKIN_L); lp(x, b - 8, SKIN_L); lp(x + 1, b - 7, SKIN_L); lp(x, b - 7, SKIN_L); lp(x - 1, b - 7, SKIN_D);
+  lp(x + 1, b - 8, INK);
+  lp(x + 2, b - 6, sc); lp(x + 3, b - 7, SKIN_L);
+  line(lay, x + 3, b - 8, x + 5, b - 14, BROWN_L);
+  for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) { const v = LB[r * 7 + c]; if (v !== EMPTY) lp(x + 3 + c, b - 21 + r, v); }
+  lp(x + 6, b - 14, RED);
+}
+function lion(x, y) { // the lion dance, heading right: a red and gold head that bobs and snaps, a scaled cloth, two dancers' legs
+  const b = pfr & 1, hy = y - 17 + b * 2;
+  for (let dx = 4; dx <= 17; dx++) {
+    const top = hy + 3 + Math.round(1.5 * Math.sin((dx + pfr * 3) * 0.55)) + (dx > 12 ? 1 : 0), bot = y - 6;
+    for (let py = top; py <= bot; py++) lp(x - dx, py, py === top ? THATCH : (dx * 3 + py * 5) % 7 === 0 ? THATCH : py === bot ? RED_D : RED);
+  }
+  lp(x - 18, hy + 4, THATCH); lp(x - 19, hy + 3, THATCH); lp(x - 19, hy + 5, RED);
+  for (let j = 0; j < 2; j++) {
+    const lx = j ? x - 13 : x - 1, st = (pfr + j) & 1;
+    for (let py = y - 5; py <= y; py++) { lp(lx + (py === y ? st : 0), py, py > y - 2 ? SKIN_D : THATCH); lp(lx - 2 - (py === y ? st : 0), py, py > y - 2 ? SKIN_D : THATCH); }
+  }
+  for (let r = 0; r < 10; r++) for (let c = 0; c < 12; c++) {
+    const v = LNB[r * 12 + c];
+    if (v !== EMPTY) lp(x - 6 + c, hy - 5 + r + (r > 5 && b ? 1 : 0), v);
+  }
+}
+function drawActor() {
+  lay.fill(EMPTY); own.fill(0); pid = 0;
+  const cy = camY;
+  if (trOn) {
+    grp = 1;
+    const by = trMoon ? moonCY() + MOON_G : trY - (trFly ? camS : cy), R = Math.ceil(26 * trS) + 4;
+    banyan(trX, by, trS, trBall, trShake);
+    endPart(trX - R, by - Math.ceil(46 * trS) - 2, trX + R, by + Math.ceil(16 * trS) + 2, trFade);
+  }
+  if (tgOn) { grp = 2; tiger(tgX, GY - cy, tgK, tgDir, 1); endPart(tgX - 24, GY - cy - 28, tgX + 24, GY - cy + 1, 1); }
+  if (cubOn) { grp = 3; tiger(cubX, cubY - cy, cubK, cubDir, 0.55); endPart(cubX - 14, cubY - cy - 16, cubX + 14, cubY - cy + 1, 1); }
+  for (let k = 0; k < 2; k++) if (VON[k]) { grp = 4 + k; human(VX[k], GY - cy, VK[k], VD[k], k ? C_WOMAN : C_OLD); endPart(VX[k] - 14, GY - cy - 30, VX[k] + 14, GY - cy + 1, vFade); }
+  if (fOn) { grp = 6; human(fX, GY - cy, fK, -1, C_RICH); endPart(fX - 14, GY - cy - 30, fX + 14, GY - cy + 1, fFade); }
+  if (wOn) { grp = 7; if (wLie) lying(wX, wY - cy); else human(wX, wY - cy, wK, wDir, C_WIFE); endPart(wX - 16, wY - cy - 30, wX + 16, wY - cy + 1, wFade); }
+  if (cOn) {
+    grp = 8;
+    const by = cMoon ? moonCY() + MOON_G : cY - (cFly ? camS : cy);
+    human(cX, by, cK, cDir, C_CUOI);
+    endPart(cX - 16, by - 36, cX + 16, by + 2, cFade);
+  }
+  if (parOn) {
+    const y = GY - cy;
+    for (let k = 3; k >= 1; k--) {
+      const x = parX - 14 - k * 12;
+      if (x < -12 || x > W + 12) continue;
+      grp = 10 + k; kid(x, y, k); endPart(x - 3, y - 24, x + 10, y + 1, 1);
+    }
+    if (parX > -8 && parX < W + 24) { grp = 14; lion(parX, y); endPart(parX - 21, y - 24, parX + 7, y + 1, 1); }
+  }
+}
+
+const FCX = Int16Array.of(22, 146, 76, 116, 30), FCY = Int16Array.of(104, 110, 118, 128, 134), FCR = Uint8Array.of(18, 20, 12, 11, 22);
 function drawOver() {
+  const cy = camY;
+  if (roarT >= 0 && roarT < 26) for (let j = 0; j < 2; j++) {
+    const a = roarT - j * 9, r = 3 + a * 1.2;
+    if (a < 0 || r > 24) continue;
+    for (let q = -8; q <= 8; q++) plot(buf, Math.round(tgX + 16 + Math.cos(q * 0.12) * r), Math.round(GY - cy - 17 + Math.sin(q * 0.12) * r), a < 8 ? WHITE : DAY_L);
+  }
+  if (pourOn) {
+    const x0 = wX - 11, y0 = GY - cy - 13, x1 = 94, y1 = GY - cy - 1;
+    for (let j = 0; j <= 18; j++) {
+      const u = j / 18, x = Math.round(mix(x0, x1, u)), y = Math.round(y0 + (y1 - y0) * u * u);
+      if ((j + (tick >> 1)) % 6 !== 0) { plot(buf, x, y, BROWN_L); plot(buf, x, y + 1, MOON_S); plot(buf, x + 1, y + 1, BROWN_M); }
+    }
+  }
+  if (glowOn) {
+    const gx = glowX, gy = glowY - cy;
+    for (let j = -2; j <= 2; j++) for (let r = 2; r < glowR * 2 + 4; r += 2) {
+      if (((r + TT + j * 5) >> 1) % 4 === 0) continue;
+      plot(buf, gx + j * 3, gy - r - (j & 1), r < 6 ? WHITE : LEAF_H);
+    }
+    if (glowR < 6) { plot(buf, gx, gy, WHITE); plot(buf, gx - 1, gy, LEAF_H); plot(buf, gx + 1, gy, LEAF_H); plot(buf, gx, gy - 1, LEAF_H); }
+  }
   drawParticles(false);
   drawParticles(true);
+  if (hookT >= 0 && hookT < 10) {
+    const x = rtX, y = rtY - cy, n = 5 - (hookT >> 1);
+    for (let d = 1; d <= n; d++) { const c = d < 3 ? WHITE : MOON_L; plot(buf, x + d, y, c); plot(buf, x - d, y, c); plot(buf, x, y - d, c); plot(buf, x, y + d, c); }
+    plot(buf, x, y, WHITE);
+  }
+  if (windV > 0) for (let k = 0; k < 10; k++) {
+    const x = (k * 37 + k * k * 11) % W, y = (k * 53 + tick * 4) % 120 - 15;
+    if (!dith(x, k, windV)) continue;
+    for (let j = 0; j < 4; j++) { const yy = y + j; if (yy >= 0 && yy < H && SKYM[yy * W + x]) buf[yy * W + x] = j < 1 ? BARK_L : NIGHT2; }
+  }
+  if (state === FLY) for (let k = 0; k < 5; k++) { // near clouds rush past as the tree climbs through them
+    const ccy = FCY[k] - Math.round(cy * 1.6), rx = FCR[k], ry = 3 + (rx >> 3);
+    if (ccy < -ry - 1 || ccy > H + ry) continue;
+    for (let dy = -ry; dy <= ry; dy++) for (let dx = -rx; dx <= rx; dx++) {
+      const v = dx * dx / (rx * rx) + dy * dy / (ry * ry), x = FCX[k] + dx, y = ccy + dy;
+      if (v > 1 || x < 0 || x >= W || y < 0 || y >= H || (v > 0.7 && ((x + y) & 1))) continue;
+      buf[y * W + x] = dy < -ry * 0.4 ? BARK_L : dy > ry * 0.4 ? NIGHT1 : NIGHT2;
+    }
+  }
+  if (bubK >= 0) { // a speech bubble: a clean drop, then a dirty one struck out
+    const bx = cX + 2, by = cY - cy - 38;
+    for (let y = by; y <= by + 10; y++) for (let x = bx; x <= bx + 12; x++) {
+      const edge = x === bx || x === bx + 12 || y === by || y === by + 10, corner = (x === bx || x === bx + 12) && (y === by || y === by + 10);
+      if (!corner) plot(buf, x, y, edge ? INK : WHITE);
+    }
+    plot(buf, bx + 2, by + 11, INK); plot(buf, bx + 3, by + 11, WHITE); plot(buf, bx + 2, by + 12, INK); plot(buf, bx + 4, by + 11, INK);
+    const dc = bubK ? MOON_S : WATER, dl = bubK ? BROWN_M : DAY_L, ox = bx + 6, oy = by + 2;
+    plot(buf, ox, oy, dc); hline(buf, ox - 1, ox + 1, oy + 1, dc); hline(buf, ox - 2, ox + 2, oy + 2, dc);
+    hline(buf, ox - 2, ox + 2, oy + 3, dc); hline(buf, ox - 1, ox + 1, oy + 4, dc); plot(buf, ox - 1, oy + 2, dl);
+    if (bubK) for (let d = -3; d <= 3; d++) { plot(buf, ox + d, oy + 2 + d, RED); plot(buf, ox + d, oy + 2 - d, RED); }
+  }
 }
 // #endregion
 

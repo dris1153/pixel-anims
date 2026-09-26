@@ -1,6 +1,7 @@
 ---
 origin: Vietnam · Cuento popular de la luna del Medio Otoño
 title: Chú Cuội en la luna
+note: El mundo se hornea una sola vez con dos pantallas de alto y una sola cámara entera sube con el baniano arrancado, mientras la luna vive en su propia capa lejana que se desliza a un cuarto de la velocidad, así que el mismo disco asoma tras la aldea, llena el cielo cuando el árbol se posa en él y cuelga sobre los tejados, donde Cuội y su baniano, redibujados en el tono de sombra de la luna, se vuelven las siluetas oscuras que los niños buscan en el Medio Otoño.
 ---
 
 ## legend
@@ -21,10 +22,17 @@ Y allí sigue. Cuando la luna está llena, se ve en ella la sombra oscura de un 
 
 ## beats
 
-- idle: Cuội está sentado bajo el baniano en la luna, con la Tierra baja en el horizonte y farolillos de estrella pasando a la deriva.
-- slip: Las raíces del baniano se sueltan del suelo lunar, igual que hace tiempo se arrancaron de la tierra.
-- rise: El árbol empieza a elevarse, como si quisiera volver a salir volando hacia el cielo.
-- jump: Cuội salta y se agarra a una raíz colgante, como la agarró el día que el árbol se lo llevó.
-- pull: Mano tras mano, arrastra el gran árbol de vuelta al suelo.
-- pat: Vuelve a meter las raíces en la tierra y la apisona a palmaditas alrededor del tronco.
-- sit: Se acomoda de nuevo al pie del baniano, donde la gente lo busca cada noche de Medio Otoño.
+- woods: Al alba, en el viejo bosque, Cuội, un joven leñador de la aldea, blande su hacha y corta leña.
+- tiger: Un cachorro de tigre salta sobre él y él lo derriba, pero la tigresa vuelve rugiendo y Cuội trepa a toda prisa a un árbol para esconderse.
+- leaves: Mientras Cuội se esconde, la tigresa mastica hojas de baniano y se las pone a su cachorro, que vuelve a la vida en un resplandor verde.
+- dig: Cuando los tigres se van, Cuội desentierra el baniano con raíces y todo, y se lo lleva para plantarlo junto a su casa.
+- heal: Los aldeanos acuden a él, y cada hoja de baniano que pone sobre los enfermos brilla mientras se levantan curados.
+- wed: Devuelve de la muerte a la hija de un hombre rico y se casa con ella entre una lluvia de papel rojo de petardos.
+- warn: Cuội señala las raíces y advierte a su esposa que riegue el árbol solo con agua limpia, o se irá volando al cielo.
+- dirty: Pero ella lo olvida, y un día echa un cubo de agua sucia al pie del árbol.
+- uproot: Al instante la tierra se agrieta, las raíces se arrancan y el baniano se estremece y empieza a elevarse por el aire.
+- grab: Cuội llega corriendo a casa justo a tiempo y clava su hacha en una raíz para sujetarlo, pero el árbol lo levanta del suelo.
+- fly: La cámara sube con el árbol sobre los tejados de la aldea, a través de las nubes y hasta el cielo estrellado, con Cuội aferrado a sus raíces.
+- moon: El baniano se posa en la luna, y Cuội se sienta a su pie, lejos de casa, con la Tierra azul en la distancia.
+- lanterns: La cámara baja hasta la mitad: abajo, los niños recorren la aldea con farolillos de estrella y una danza del león en la Fiesta del Medio Otoño, y arriba, la luna llena muestra a Cuội y su baniano.
+- return: La luna se pone y amanece en el bosque, donde el baniano vuelve a alzarse y Cuội corta leña, mientras la historia vuelve a empezar.

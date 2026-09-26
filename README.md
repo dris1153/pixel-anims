@@ -1,6 +1,6 @@
 <div align="center">
 
-<a href="https://pixel-anims.drisdev.io/showcase/detail/?s=lac-long-quan-sea-demon"><img src=".github/readme/lac-long-quan-sea-demon.gif" width="480" alt="Pixel art: Lac Long Quan hurls a white-hot iron block into the jaws of the sea demon Ngu Tinh"></a>
+<a href="https://pixel-anims.drisdev.io/showcase/lac-long-quan-sea-demon/"><img src=".github/readme/lac-long-quan-sea-demon.gif" width="480" alt="Pixel art: Lac Long Quan hurls a white-hot iron block into the jaws of the sea demon Ngu Tinh"></a>
 
 # pixel-anims
 
@@ -25,14 +25,14 @@ Every piece below is one unedited HTML file written by the skill from a short br
 
 <table>
   <tr>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=dragon-fire-breath"><img src=".github/readme/dragon-fire-breath.gif" width="320" alt="Red Moon Drake"></a><br><sub><b>Red Moon Drake</b> · idle, inhale, breath, recover</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=samurai-quick-draw"><img src=".github/readme/samurai-quick-draw.gif" width="320" alt="Sakura Iaido"></a><br><sub><b>Sakura Iaido</b> · stance, slash, sheathe</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=monkey-king-staff-slam"><img src=".github/readme/monkey-king-staff-slam.gif" width="320" alt="Monkey King Staff"></a><br><sub><b>Monkey King Staff</b> · grow, twirl, slam, shrink</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/dragon-fire-breath/"><img src=".github/readme/dragon-fire-breath.gif" width="320" alt="Red Moon Drake"></a><br><sub><b>Red Moon Drake</b> · idle, inhale, breath, recover</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/samurai-quick-draw/"><img src=".github/readme/samurai-quick-draw.gif" width="320" alt="Sakura Iaido"></a><br><sub><b>Sakura Iaido</b> · stance, slash, sheathe</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/monkey-king-staff-slam/"><img src=".github/readme/monkey-king-staff-slam.gif" width="320" alt="Monkey King Staff"></a><br><sub><b>Monkey King Staff</b> · grow, twirl, slam, shrink</sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=mech-missile-volley"><img src=".github/readme/mech-missile-volley.gif" width="320" alt="Ruin Walker Volley"></a><br><sub><b>Ruin Walker Volley</b> · open pods, volley, impact</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=oni-taiko-drummer"><img src=".github/readme/oni-taiko-drummer.gif" width="320" alt="Oni Taiko Drummer"></a><br><sub><b>Oni Taiko Drummer</b> · three hits, a double, a shout</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/detail/?s=thanh-giong-ascension"><img src=".github/readme/thanh-giong-ascension.gif" width="320" alt="Thanh Giong Rises"></a><br><sub><b>Thanh Giong Rises</b> · eight beats of a legend</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/mech-missile-volley/"><img src=".github/readme/mech-missile-volley.gif" width="320" alt="Ruin Walker Volley"></a><br><sub><b>Ruin Walker Volley</b> · open pods, volley, impact</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/oni-taiko-drummer/"><img src=".github/readme/oni-taiko-drummer.gif" width="320" alt="Oni Taiko Drummer"></a><br><sub><b>Oni Taiko Drummer</b> · three hits, a double, a shout</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/thanh-giong-ascension/"><img src=".github/readme/thanh-giong-ascension.gif" width="320" alt="Thanh Giong Rises"></a><br><sub><b>Thanh Giong Rises</b> · eight beats of a legend</sub></td>
   </tr>
 </table>
 
@@ -146,7 +146,7 @@ Node 18 or newer and Chrome, Edge or Chromium for the snapshot QA step, and a mo
 
 ## Website
 
-The landing page and showcase live in `site/` as a plain Vite app. Run `pnpm install`, then `pnpm dev` to work on it or `pnpm build` to build `dist/`. To add a showcase, put its `.html` in `site/public/anims/`, run `pnpm posters <slug>` to render its placeholder frame, and add one entry to `site/src/showcases.js`.
+The landing page and showcase live in `site/` as a plain Vite app. Run `pnpm install`, then `pnpm dev` to work on it or `pnpm build` to build `dist/`. To add a showcase, put its `.html` in `site/public/anims/`, add one entry to `site/src/showcases.js`, then run `pnpm posters <slug>`: it renders the tile placeholder (tick 0) and the 1200×630 link-preview thumbnail (the entry's `still` tick) into `site/public/posters/`. The build gives each showcase its own page at `/showcase/<slug>/` with its own title, description and thumbnail, plus `sitemap.xml`.
 
 The site speaks English, Vietnamese, Korean, Japanese, Chinese, Thai, Hindi, Arabic and Spanish. Pick one with `?lang=<code>` or the globe button in the header; the choice is remembered. English lives in the HTML and `site/src/i18n/dict/en.js`; every other language is a file of `key: text` pairs in `site/src/i18n/dict/<code>.js`, and any missing key falls back to English. Showcase titles, tags and countries use the keys `title.<slug>`, `tag.<id>` and `country.<id>`. Everything except Vietnamese is a draft translation, and native fixes are welcome.
 

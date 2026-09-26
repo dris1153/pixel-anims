@@ -1,5 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/showcase/detail",
+      "has": [{ "type": "query", "key": "s", "value": "(?<slug>[a-z0-9-]+)" }],
+      "destination": "/showcase/:slug/",
+      "permanent": true
+    },
+    {
+      "source": "/showcase/detail/",
+      "has": [{ "type": "query", "key": "s", "value": "(?<slug>[a-z0-9-]+)" }],
+      "destination": "/showcase/:slug/",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

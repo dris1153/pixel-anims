@@ -54,7 +54,7 @@ export function mountTimeline(s, box, { beats, lang, seek }) {
     return { li, button, state, text };
   });
   track.append(...items.map(i => i.li));
-  track.addEventListener('pointerleave', () => { if (!track.contains(document.activeElement)) hide(); });
+  track.addEventListener('pointerleave', () => { if (!track.querySelector(':focus-visible')) hide(); }); // a clicked node keeps focus; only keyboard focus keeps the tip
   box.addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
   box.dir = 'ltr'; // time runs left to right in every language
   box.replaceChildren(head, track, tip);
@@ -112,8 +112,11 @@ export function mountTimeline(s, box, { beats, lang, seek }) {
     tipText.hidden = !text;
     const b = box.getBoundingClientRect(), r = button.getBoundingClientRect();
     const x = Math.max(0, Math.min(r.left - b.left + r.width / 2 - tip.offsetWidth / 2, b.width - tip.offsetWidth));
-    const above = r.top - b.top - tip.offsetHeight - 10;
-    const y = above >= 0 ? above : r.bottom - b.top + 30; // a tall tip drops under the lower labels
+    // Above the track by default, below when the viewport (under the sticky header) lacks room; the gap clears the labels.
+    const gap = 30, h = tip.offsetHeight, top = document.querySelector('.bar')?.getBoundingClientRect().bottom ?? 0;
+    const roomAbove = r.top - gap - top, roomBelow = innerHeight - r.bottom - gap;
+    const up = h <= roomAbove || (h > roomBelow && roomAbove > roomBelow);
+    const y = up ? r.top - b.top - gap - h : r.bottom - b.top + gap;
     if (!showing) tip.style.transition = 'none';
     tip.style.setProperty('--tt-x', `${x}px`);
     tip.style.setProperty('--tt-y', `${y}px`);

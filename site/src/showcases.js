@@ -9,6 +9,186 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "cuoi-banyan-moon",
+    tags: ["humanoid", "creature", "magic", "night"],
+    country: "vn",
+    title: "Chu Cuoi on the Moon",
+    still: 1320,
+    res: [160, 90],
+    loop: 24,
+    states: ["woods", "tiger", "leaves", "dig", "heal", "wed", "warn", "dirty", "uproot", "grab", "fly", "moon", "lanterns", "return"],
+    kind: "Made with the skill",
+    note: "The world is baked once two screens tall and one integer camera rides up with the uprooted banyan, while the moon lives on its own far layer sliding a quarter as fast, so the same disc rises behind the village, fills the sky when the tree lands on it, and hangs over the roofs where Cuội and his banyan, redrawn in the shadow tone of the moon, become the dark shapes children look for at Mid-Autumn.",
+    prompt:
+      "Pixel art the Vietnamese folk tale of Chú Cuội and the magic banyan tree that carried him to the moon, 160×90, " +
+      "24-second seamless loop, 14 states. The camera glides vertically: the world is two screens tall, with the " +
+      "forest and village below and the night sky and full moon above; the camera rests at the bottom, at the top or " +
+      "halfway, and glides with the flying tree. Scene: below, an old forest with a great banyan at the left, and a " +
+      "village of thatched houses with Cuội's home at the right; above, clouds, a starry night sky and a huge full " +
+      "moon. The light runs from dawn through day and dusk to a moonlit Mid-Autumn night and back to dawn. Keep the " +
+      "frame readable: Cuội and one wonder at a time. 1. woods: at dawn Cuội, a young woodcutter with an axe on his " +
+      "shoulder, chops wood in the old forest. 2. tiger: a tiger cub leaps at him and he strikes it down; the tigress " +
+      "roars back and he scrambles up a tree to hide. 3. leaves: the tigress chews leaves from a banyan and presses " +
+      "them to her cub, and the cub comes back to life in a green glow. 4. dig: when the tigers have gone, Cuội digs " +
+      "up the banyan, roots and all, and carries it home to plant beside his house. 5. heal: villagers come to him, " +
+      "and every leaf he lays on the sick glows as they rise healed. 6. wed: he brings the rich man's daughter back " +
+      "to life and marries her amid red firecracker paper. 7. warn: Cuội points at the roots and warns his wife: " +
+      "water it only with clean water. 8. dirty: she forgets and pours a bucket of dirty water at the foot of the " +
+      "tree. 9. uproot: the ground cracks, the roots tear free, and the banyan shudders and lifts off the ground. 10. " +
+      "grab: Cuội runs home just in time, hooks his axe into a root and is lifted off his feet. 11. fly: the camera " +
+      "rises with the tree over the village roofs, through the clouds and into the starry sky, Cuội clinging to its " +
+      "roots as the village shrinks below. 12. moon: the banyan lands on the moon, and Cuội sits at its foot with the " +
+      "blue Earth far away. 13. lanterns: the camera sinks halfway: below, children parade star lanterns and a lion " +
+      "dance through the village for the Mid-Autumn Festival, while above the full moon hangs over the roofs with " +
+      "Cuội and his tree outlined on it. 14. return: the moon sets, dawn comes to the forest, the banyan stands in " +
+      "the woods again, and Cuội returns to chop wood.",
+  },
+  {
+    slug: "durga-slays-mahishasura",
+    tags: ["humanoid", "creature", "magic", "dusk"],
+    country: "in",
+    title: "Durga Slays Mahishasura",
+    still: 1122,
+    res: [160, 90],
+    loop: 28,
+    states: ["idol", "conquest", "gods", "tejas", "durga", "weapons", "lion", "army", "buffalo", "shapes", "slay", "praise", "pandal", "dhunuchi", "visarjan", "return"],
+    kind: "Made with the skill",
+    note: "The Hooghly bank and the heaven of the gods are two worlds baked once and swapped per pixel by a Bayer-jittered radius, so the vision opens out of the freshly painted eyes of the idol and folds back into the pandal around her, while the goddess is one drawing seen through palette tables: raw clay in the workshop, pure light as the radiance of the gods becomes her, and painted red and gold on her lion.",
+    prompt:
+      "Pixel art the Hindu legend of the goddess Durga slaying the buffalo demon Mahishasura, from the Devi Mahatmya, " +
+      "framed by the Durga Puja festival of Bengal, 160×90, one fixed shot, 28-second seamless loop, 16 states. " +
+      "Scene: two worlds in one frame, crossfading: the bank of the Hooghly river in Kolkata at an autumn dusk, with " +
+      "a bamboo workshop, a festival pandal and lamps on the water, and the heaven of the gods on golden clouds, with " +
+      "snowy Himalayan peaks and a battle plain below. Keep the frame readable: the goddess and one wonder at a time. " +
+      "1. idol: at an autumn dusk in a bamboo workshop on the riverbank, an artisan paints the eyes of a clay idol of " +
+      "Durga, and the eyes begin to glow. 2. conquest: the glow opens into the legend: Mahishasura, the buffalo " +
+      "demon, storms Indra's heaven with his horned army and the gods flee across the golden clouds. 3. gods: Brahma, " +
+      "Vishnu and Shiva stand in fury, and fiery radiance streams from their brows. 4. tejas: the radiance of all the " +
+      "gods pours together into one blazing mountain of light. 5. durga: from the light the goddess takes form, " +
+      "ten-armed, in a red sari and a golden crown, with a third eye on her brow. 6. weapons: god after god hands her " +
+      "a weapon: a trident, a discus, a conch, a thunderbolt, a bow, a sword, each flashing into one of her hands. 7. " +
+      "lion: a lion from the snowy mountains of Himavat bounds down, she mounts it and laughs, and the worlds " +
+      "tremble. 8. army: the demon army charges, her lion leaps among them, and her arrows and whirling discus " +
+      "scatter them. 9. buffalo: Mahishasura charges as a giant buffalo, horns lowered, tossing mountains with his " +
+      "horns. 10. shapes: he changes shape again and again: a lion, a warrior with a sword, an elephant dragging at " +
+      "her lion with its trunk, and back into the buffalo. 11. slay: she leaps and pins him with her foot, and as he " +
+      "rises half out of the buffalo she strikes with her trident; he falls in a burst of light. 12. praise: the gods " +
+      "shower flowers, conches sound, and heaven rejoices. 13. pandal: the vision folds back into the idol, now " +
+      "enthroned in a glowing festival pandal as dhak drummers beat. 14. dhunuchi: dancers swing smoking clay incense " +
+      "burners in circles to the drums. 15. visarjan: at dusk the idol is carried down to the river on shoulders " +
+      "among lamps and cheering, as the crowd cries \"come again next year\". 16. return: the idol sinks into the river " +
+      "and the clay melts into the ripples, and on the bank a new idol stands waiting for its eyes.",
+  },
+  {
+    slug: "sadko-sea-tsar",
+    tags: ["humanoid", "magic", "underwater", "dusk"],
+    country: "ru",
+    title: "Sadko and the Sea Tsar",
+    still: 1212,
+    res: [160, 90],
+    loop: 28,
+    states: ["gusli", "tsar", "fish", "fleet", "becalm", "lots", "plank", "sink", "palace", "play", "dance", "storm", "nicholas", "bride", "wake", "return"],
+    kind: "Made with the skill",
+    note: "The world is baked once two screens tall and cut open at the waterline, so one integer camera glides from Novgorod down to the palace of the Sea Tsar and stops halfway where the storm above and the dancing Tsar below share one frame, while dusk, the leaden calm, the storm and dawn are palette remaps swept down over everything above the water.",
+    prompt:
+      "Pixel art the Russian bylina of Sadko, the gusli player of Novgorod, and the Sea Tsar, 160×90, 28-second " +
+      "seamless loop, 16 states. The camera glides vertically: the world is two screens tall, and the camera rests at " +
+      "the surface, at a middle cross-section showing the surface and the depths at once, or at the seabed, gliding " +
+      "between them in a few states. Scene: above, the shore of Lake Ilmen, with the wooden walls and golden onion " +
+      "domes of Novgorod at the left, and open water to the right. Below the surface, green water with shafts of " +
+      "light, fish and swaying weed, down to the white-stone palace of the Sea Tsar on the seabed, with pearl domes " +
+      "and coral. The light runs from dusk through a grey becalmed day, the green gloom of the depths and a storm to " +
+      "dawn and dusk again. Keep the frame readable: Sadko and one wonder at a time. 1. gusli: at dusk on the shore " +
+      "of Lake Ilmen, poor Sadko in a red shirt sits on a rock playing his gusli, glittering notes rising over the " +
+      "water. 2. tsar: the lake swells and the Sea Tsar rises, a giant bearded king crowned with coral and shells, " +
+      "his green robes streaming water. 3. fish: Sadko casts a silk net and hauls up three fish with golden fins, and " +
+      "the merchants on the pier gasp and hand over chests of gold. 4. fleet: rich now, Sadko sets out with thirty " +
+      "ships with carved prows and striped sails. 5. becalm: far out at sea, under a leaden sky, the ships stop dead " +
+      "in the water, their sails hanging slack. 6. lots: lots are cast into the sea; the others float like feathers, " +
+      "but Sadko's sinks like a stone. 7. plank: Sadko is set down on an oak plank with his gusli, and the freed " +
+      "ships sail on without him. 8. sink: the camera sinks with him through the green water, past shafts of light, " +
+      "fish and bubbles, down to the seabed. 9. palace: the white-stone palace of the Sea Tsar gleams with pearl " +
+      "domes and coral, and sea maidens drift by. 10. play: Sadko plays the gusli, and the Sea Tsar begins to dance. " +
+      "11. dance: the Tsar dances wilder and wilder, coral swaying and fish whirling around him. 12. storm: the " +
+      "camera rises to show both worlds at once: above, huge waves, lightning and ships foundering; below, the Tsar " +
+      "still dancing. 13. nicholas: an old man with a white beard and a soft halo, St Nicholas, appears beside Sadko; " +
+      "Sadko snaps the strings, the Tsar stops, and the storm falls still. 14. bride: the camera sinks back to the " +
+      "palace, where the Tsar parades the sea maidens and Sadko chooses the last, dark-haired Chernava. 15. wake: the " +
+      "camera rises with him through a trail of bubbles; he wakes at dawn on a riverbank by Novgorod, and Chernava " +
+      "becomes the river flowing beside him. 16. return: his ships come home to the pier, dusk falls, and Sadko sits " +
+      "on his rock playing the gusli again.",
+  },
+  {
+    slug: "amaterasu-heavenly-rock-cave",
+    tags: ["humanoid", "magic", "impact", "night"],
+    country: "jp",
+    title: "Amaterasu and the Heavenly Rock Cave",
+    still: 1018,
+    res: [160, 90],
+    loop: 20,
+    states: ["heaven", "storm", "hide", "dark", "gather", "birds", "mirror", "dance", "laugh", "peek", "open", "return"],
+    kind: "Made with the skill",
+    note: "Heaven is drawn once in daylight and remapped pixel by pixel through palette tables, so the storm, the total dark, the torch and bonfire pools, the blade from the crack and the gold flooding out of the cave are all light passing over the same scene, until a band of cloud wipes it back to the first morning.",
+    prompt:
+      "Pixel art the Japanese myth of Amaterasu and the Heavenly Rock Cave, from the Kojiki, 160×90, one fixed shot, " +
+      "20-second seamless loop, 12 states. Scene: Takamagahara, the High Plain of Heaven, above a sea of golden " +
+      "clouds: at the left, the heavenly river Ama-no-Yasukawa with its stony bed and terraced rice fields of heaven, " +
+      "and the sacred weaving hall; in the middle, an open ground where a sakaki tree will stand; at the right, a " +
+      "cliff with the Heavenly Rock Cave, its mouth closed by a great boulder door. The light runs from blazing gold " +
+      "through storm and total darkness pricked by torches to a blinding return of the sun. Keep the frame readable: " +
+      "one god and one wonder at a time. 1. heaven: golden light fills heaven; Amaterasu, the sun goddess, a halo of " +
+      "sunrays behind her, weaves at her loom in the sacred weaving hall while the rice fields of heaven shine green. " +
+      "2. storm: her brother Susanoo storms through in a gale, smashing the ridges of the rice fields and hurling a " +
+      "piebald horse through the roof of the weaving hall; the weaving maidens flee. 3. hide: Amaterasu flees into " +
+      "the Heavenly Rock Cave, the great stone door grinds shut behind her, and her light goes out. 4. dark: darkness " +
+      "falls over heaven and earth, and evil spirits swarm through it buzzing like summer flies. 5. gather: by " +
+      "torchlight the eight hundred myriad gods gather on the riverbed of the heavenly river, and wise Omoikane " +
+      "ponders a plan. 6. birds: the long-crowing birds are brought and crow all together into the dark. 7. mirror: a " +
+      "great sakaki tree is set up before the cave, hung with the sacred Yata mirror, strings of magatama jewels and " +
+      "white cloth streamers. 8. dance: Ame-no-Uzume leaps onto an overturned tub and dances wildly, stamping, her " +
+      "sleeves and sakaki leaves flying. 9. laugh: the gods roar with laughter until heaven shakes and the torches " +
+      "flare. 10. peek: the stone door opens a crack, a blade of light cuts across the dark, and the mirror held up " +
+      "to it catches her reflection in a blinding flash. 11. open: strong Tajikarao seizes the door and flings it far " +
+      "away as Amaterasu steps out; light floods all of heaven, and a sacred shimenawa rope is stretched across the " +
+      "cave mouth. 12. return: clouds drift across heaven, and when they pass the cave stands quiet again, its door " +
+      "back in place, and Amaterasu weaves once more in the high golden sun.",
+  },
+  {
+    slug: "hansan-turtle-ship-1592",
+    tags: ["humanoid", "projectile", "impact", "day"],
+    country: "kr",
+    title: "The Battle of Hansan Island, 1592",
+    still: 888,
+    res: [160, 90],
+    loop: 20,
+    states: ["dawn", "strait", "lure", "open", "drum", "crane", "turtle", "cannon", "fire", "rout", "victory", "return"],
+    kind: "Made with the skill",
+    note: "The crane wing is one ellipse whose span widens while every ship eases along its own slot, so the wings sweep round the enemy with their tips last and their foam wakes draw the arc on the water, and the slope of Hansan is redrawn over the fleet waiting behind it.",
+    prompt:
+      "Pixel art the Battle of Hansan Island, 1592, Admiral Yi Sun-sin's great victory with the turtle ships, 160×90, " +
+      "one fixed shot, 20-second seamless loop, 12 states. Scene: a high view from the pine-covered ridge of Hansan " +
+      "Island over the southern sea of Korea, seen at a three-quarter angle from above so the sea is a wide plane. At " +
+      "the far left, the mouth of the narrow Gyeonnaeryang strait between rocky islands; open water in the middle; " +
+      "the island's slope with pines in the right foreground, where the Korean fleet waits hidden. The light runs " +
+      "from a summer dawn through a bright morning, a sky dark with battle smoke and a red sunset to a moonlit night " +
+      "and back to dawn. Keep the frame readable: one manoeuvre at a time. 1. dawn: at summer dawn Admiral Yi Sun-sin " +
+      "in armor stands on the two-deck command pavilion of his panokseon flagship beside a war drum and a command " +
+      "flag; his fleet waits hidden behind the island. 2. strait: from the narrow strait at the left, the Japanese " +
+      "fleet streams out, ship after ship under square sails. 3. lure: five Korean panokseon row out toward them, " +
+      "fire one volley, then turn and flee toward the open sea, and the enemy gives chase. 4. open: the chase spills " +
+      "out of the strait into the wide water before Hansan Island. 5. drum: on the flagship the war drum booms and " +
+      "signal flags run up, and the hidden fleet surges out from behind the island. 6. crane: the Korean ships wheel " +
+      "into a great crane-wing arc, its two wings sweeping round to close on the enemy fleet. 7. turtle: a turtle " +
+      "ship bursts forward, its dragon head pouring smoke, its iron-spiked roof gleaming, oars churning, and it rams " +
+      "into the enemy line. 8. cannon: all along the arc the cannons fire in a rolling broadside, flashes and puffs " +
+      "of smoke, cannonballs splashing among the ships. 9. fire: fire arrows streak across the water, enemy ships " +
+      "catch fire, sails burn and masts fall, and smoke towers into the sky. 10. rout: the surviving ships break away " +
+      "and flee back toward the strait, burning wreckage drifting on the water. 11. victory: at sunset Yi's fleet " +
+      "gathers in line, flags streaming, sailors raising their oars in a cheer as the sea glows red. 12. return: " +
+      "night falls, the fires die and the smoke drifts away, the ships slip back behind the island, and the sea lies " +
+      "calm under the moon until dawn, ready to begin again.",
+  },
+  {
     slug: "con-rong-chau-tien",
     tags: ["humanoid", "creature", "magic", "dawn"],
     country: "vn",
@@ -1434,21 +1614,6 @@ export const SHOWCASES = [
       "the priest bows. Desert temple at dusk, 128×96.",
   },
   {
-    slug: "cuoi-banyan-moon",
-    tags: ["humanoid", "magic", "space"],
-    country: "vn",
-    title: "Chu Cuoi on the Moon",
-    still: 240,
-    res: [128, 96],
-    loop: 8,
-    states: ["idle", "slip", "rise", "jump", "pull", "pat", "sit"],
-    kind: "Made with the skill",
-    prompt:
-      "Pixel art Chu Cuoi on the moon: sit under the magic banyan tree, its roots slip free and the tree starts " +
-      "drifting upward, jump and grab a hanging root, pull the tree back down and pat the soil, sit again. Moon " +
-      "surface with the Earth low on the horizon and star lanterns drifting past, Mid-Autumn night, 128×96.",
-  },
-  {
     slug: "oni-taiko-drummer",
     tags: ["creature", "impact", "night"],
     country: "jp",
@@ -1882,5 +2047,5 @@ export const posterUrl = s => `/posters/${s.slug}.png`;
 // The #t=N seek mode renders tick N once and stops, so a paused frame costs no loop. The engine reads the hash only
 // at boot, and a hash-only src change does not reload the iframe, so the tick goes in the query too.
 export const stillOf = (file, tick = 60) => `${file}?still=${tick}#t=${tick}`;
-export const detailUrl = s => `/showcase/detail/?s=${s.slug}`;
+export const detailUrl = s => `/showcase/${s.slug}/`;
 export const metaLine = s => `${s.res[0]}×${s.res[1]} · ${t('meta.loop', { n: s.loop })} · ${s.states.join(' → ')}`;

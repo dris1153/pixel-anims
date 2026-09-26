@@ -12,7 +12,8 @@ import { mountTimeline } from './timeline/timeline.js';
 import { collapsible } from './collapse.js';
 
 setupCopy();
-const slug = new URLSearchParams(location.search).get('s');
+const fromPath = /^\/showcase\/([a-z0-9-]+)\/?$/.exec(location.pathname)?.[1]; // /showcase/<slug>/; ?s= is the old form
+const slug = fromPath && fromPath !== 'detail' ? fromPath : new URLSearchParams(location.search).get('s');
 const index = SHOWCASES.findIndex(s => s.slug === slug);
 if (index < 0) {
   document.title = t('dt.nf.title');
