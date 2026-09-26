@@ -25,19 +25,19 @@ Every piece below is one unedited HTML file written by the skill from a short br
 
 <table>
   <tr>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/lac-long-quan-sea-demon/"><img src=".github/readme/lac-long-quan-sea-demon.gif" width="320" alt="Lac Long Quan Slays Ngu Tinh"></a><br><sub><b>Lac Long Quan Slays Ngu Tinh</b> · a dragon lord against the sea demon</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/pangu-separates-heaven-earth/"><img src=".github/readme/pangu-separates-heaven-earth.gif" width="320" alt="Pangu Separates Heaven and Earth"></a><br><sub><b>Pangu Separates Heaven and Earth</b> · from the cosmic egg to a world and back</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/samudra-manthan-churning/"><img src=".github/readme/samudra-manthan-churning.gif" width="320" alt="Churning of the Ocean of Milk"></a><br><sub><b>Churning of the Ocean of Milk</b> · gods and demons pull the serpent</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/lac-long-quan-sea-demon/"><img src=".github/readme/lac-long-quan-sea-demon.gif" width="320" alt="Lac Long Quan Slays Ngu Tinh"></a><br><sub><b>Lac Long Quan Slays Ngu Tinh</b></sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/pangu-separates-heaven-earth/"><img src=".github/readme/pangu-separates-heaven-earth.gif" width="320" alt="Pangu Separates Heaven and Earth"></a><br><sub><b>Pangu Separates Heaven and Earth</b></sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/samudra-manthan-churning/"><img src=".github/readme/samudra-manthan-churning.gif" width="320" alt="Churning of the Ocean of Milk"></a><br><sub><b>Churning of the Ocean of Milk</b></sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/wonderful-wizard-of-oz/"><img src=".github/readme/wonderful-wizard-of-oz.gif" width="320" alt="The Wonderful Wizard of Oz"></a><br><sub><b>The Wonderful Wizard of Oz</b> · from the cyclone to the silver shoes</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/amaterasu-heavenly-rock-cave/"><img src=".github/readme/amaterasu-heavenly-rock-cave.gif" width="320" alt="Amaterasu and the Heavenly Rock Cave"></a><br><sub><b>Amaterasu and the Heavenly Rock Cave</b> · the sun hides, the gods dance</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/sadko-sea-tsar/"><img src=".github/readme/sadko-sea-tsar.gif" width="320" alt="Sadko and the Sea Tsar"></a><br><sub><b>Sadko and the Sea Tsar</b> · a camera that sinks to the seabed</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/wonderful-wizard-of-oz/"><img src=".github/readme/wonderful-wizard-of-oz.gif" width="320" alt="The Wonderful Wizard of Oz"></a><br><sub><b>The Wonderful Wizard of Oz</b></sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/amaterasu-heavenly-rock-cave/"><img src=".github/readme/amaterasu-heavenly-rock-cave.gif" width="320" alt="Amaterasu and the Heavenly Rock Cave"></a><br><sub><b>Amaterasu and the Heavenly Rock Cave</b></sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/sadko-sea-tsar/"><img src=".github/readme/sadko-sea-tsar.gif" width="320" alt="Sadko and the Sea Tsar"></a><br><sub><b>Sadko and the Sea Tsar</b></sub></td>
   </tr>
   <tr>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/jumong-goguryeo/"><img src=".github/readme/jumong-goguryeo.gif" width="320" alt="Jumong Founds Goguryeo"></a><br><sub><b>Jumong Founds Goguryeo</b> · a sun egg, an archer, a bridge of fish</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/heracles-twelve-labors/"><img src=".github/readme/heracles-twelve-labors.gif" width="320" alt="The Twelve Labors of Heracles"></a><br><sub><b>The Twelve Labors of Heracles</b> · twelve deeds on a turning vase</sub></td>
-    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/phra-aphai-mani-sea-ogress/"><img src=".github/readme/phra-aphai-mani-sea-ogress.gif" width="320" alt="Phra Aphai Mani and the Sea Ogress"></a><br><sub><b>Phra Aphai Mani and the Sea Ogress</b> · a magic flute and a sea ogress</sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/jumong-goguryeo/"><img src=".github/readme/jumong-goguryeo.gif" width="320" alt="Jumong Founds Goguryeo"></a><br><sub><b>Jumong Founds Goguryeo</b></sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/heracles-twelve-labors/"><img src=".github/readme/heracles-twelve-labors.gif" width="320" alt="The Twelve Labors of Heracles"></a><br><sub><b>The Twelve Labors of Heracles</b></sub></td>
+    <td align="center" width="33%"><a href="https://pixel-anims.drisdev.io/showcase/phra-aphai-mani-sea-ogress/"><img src=".github/readme/phra-aphai-mani-sea-ogress.gif" width="320" alt="Phra Aphai Mani and the Sea Ogress"></a><br><sub><b>Phra Aphai Mani and the Sea Ogress</b></sub></td>
   </tr>
 </table>
 
@@ -56,6 +56,7 @@ pixel-anims is an [Agent Skill](https://agentskills.io/): one folder with a `SKI
 ```
 
 Without the plugin system: `npx skills add dris1153/pixel-anims -a claude-code`.
+
 </details>
 
 <details>
@@ -68,6 +69,7 @@ npx skills add dris1153/pixel-anims -a codex
 ```
 
 For every project, copy the skill into `~/.agents/skills/` instead (see Manual).
+
 </details>
 
 <details>
@@ -80,6 +82,7 @@ npx skills add dris1153/pixel-anims -a opencode
 ```
 
 OpenCode also finds skills already in `~/.claude/skills` or `~/.agents/skills`.
+
 </details>
 
 <details>
@@ -92,6 +95,7 @@ npx skills add dris1153/pixel-anims -a cursor
 ```
 
 See the [supported agents](https://github.com/vercel-labs/skills#supported-agents) of the `skills` CLI.
+
 </details>
 
 <details>
@@ -103,6 +107,7 @@ Copy the skill into your agent's skills folder: `~/.agents/skills` for Codex, Op
 git clone https://github.com/dris1153/pixel-anims
 mkdir -p ~/.agents/skills && cp -r pixel-anims/skills/pixel-anims ~/.agents/skills/
 ```
+
 </details>
 
 ## Use
@@ -115,11 +120,11 @@ Describe the animation you want. The skill triggers on requests like these:
 
 You can also invoke it directly:
 
-| Agent | Invoke |
-|---|---|
-| Claude Code | `/pixel-anims:pixel-anims <brief>` after a plugin install, `/pixel-anims <brief>` otherwise |
-| Codex | `$pixel-anims <brief>`, or pick it from `/skills` |
-| OpenCode and others | Describe the animation; the agent loads the skill when the request matches |
+| Agent               | Invoke                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| Claude Code         | `/pixel-anims:pixel-anims <brief>` after a plugin install, `/pixel-anims <brief>` otherwise |
+| Codex               | `$pixel-anims <brief>`, or pick it from `/skills`                                           |
+| OpenCode and others | Describe the animation; the agent loads the skill when the request matches                  |
 
 ## How it works
 
@@ -131,13 +136,13 @@ You can also invoke it directly:
 
 What ships in the skill:
 
-| File | Role |
-|---|---|
-| `SKILL.md` | The workflow, hard rules and engine contract the agent follows |
-| `assets/wizard-spellcaster.html` | The engine, in a finished reference scene |
-| `references/pixel-craft-rules.md` | Palette, silhouette, motion and FX rules for a 16-bit look |
-| `scripts/new-scene.mjs` | Scaffolds a new page with the engine intact |
-| `scripts/snapshot.mjs` | Renders ticks to PNG and reports errors and seam mismatches |
+| File                              | Role                                                           |
+| --------------------------------- | -------------------------------------------------------------- |
+| `SKILL.md`                        | The workflow, hard rules and engine contract the agent follows |
+| `assets/wizard-spellcaster.html`  | The engine, in a finished reference scene                      |
+| `references/pixel-craft-rules.md` | Palette, silhouette, motion and FX rules for a 16-bit look     |
+| `scripts/new-scene.mjs`           | Scaffolds a new page with the engine intact                    |
+| `scripts/snapshot.mjs`            | Renders ticks to PNG and reports errors and seam mismatches    |
 
 ## What you get
 
