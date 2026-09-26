@@ -19,6 +19,7 @@
 .tl-seg:last-child .tl-label { left: auto; right: 0; } /* stays inside the frame */
 .tl-name { font: 600 .72rem var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--silver); }
 .tl-time { font: 500 .68rem var(--mono); color: var(--muted); }
+.tl-seg.is-tight .tl-time { display: none; }
 .tl-desc { display: none; }
 .tl-node:hover, .tl-node:focus-visible { border-color: var(--line-l); background: var(--line); }
 .tl-node:hover::before, .tl-node:focus-visible::before { background: var(--cyan); }

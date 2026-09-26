@@ -69,7 +69,22 @@ export function mountTimeline(s, box, { beats, lang, seek }) {
       button.querySelector('.tl-time').textContent = `${(spans[k][0] / 60).toFixed(1)}s`;
     });
     if (lastTick >= 0) setNow(lastTick); // a held frame reported before the spans were known
+    new ResizeObserver(unclash).observe(track);
+    document.fonts.ready.then(unclash);
   }).catch(() => {});
+
+  // A long loop crowds its labels: two that touch in the same row drop their times (the tip still shows them).
+  function unclash() {
+    items.forEach(({ li }) => li.classList.remove('is-tight'));
+    const rects = items.map(({ li }) => li.querySelector('.tl-label').getBoundingClientRect());
+    rects.forEach((b, k) => {
+      const a = rects[k - 2];
+      if (a && a.right + 8 > b.left && a.left < b.right && a.bottom > b.top && a.top < b.bottom) {
+        items[k - 2].li.classList.add('is-tight');
+        items[k].li.classList.add('is-tight');
+      }
+    });
+  }
 
   let now = -1, lastTick = -1;
   const setNow = tick => { // the playhead: called with the tick within the loop whenever it moves
