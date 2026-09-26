@@ -169,6 +169,7 @@ export default {
   "country.ie": "Ireland", "country.no": "Na Uy", "country.dk": "Đan Mạch", "country.fi": "Phần Lan", "country.de": "Đức", "country.es": "Tây Ban Nha",
   "country.it": "Ý", "country.fr": "Pháp", "country.us": "Mỹ", "country.mx": "Mexico", "country.br": "Brazil", "country.pe": "Peru",
   "country.nz": "New Zealand", "country.other": "Khác",
+  "title.sadko-sea-tsar": "Sadko và Vua Biển",
   "title.amaterasu-heavenly-rock-cave": "Amaterasu và hang đá trời",
   "title.hansan-turtle-ship-1592": "Trận Hàn Sơn đảo năm 1592",
   "title.con-rong-chau-tien": "Con Rồng cháu Tiên",

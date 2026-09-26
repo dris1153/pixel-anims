@@ -169,6 +169,7 @@ export default {
   "country.ie": "アイルランド", "country.no": "ノルウェー", "country.dk": "デンマーク", "country.fi": "フィンランド", "country.de": "ドイツ", "country.es": "スペイン",
   "country.it": "イタリア", "country.fr": "フランス", "country.us": "アメリカ", "country.mx": "メキシコ", "country.br": "ブラジル", "country.pe": "ペルー",
   "country.nz": "ニュージーランド", "country.other": "その他",
+  "title.sadko-sea-tsar": "サトコと海の王",
   "title.amaterasu-heavenly-rock-cave": "アマテラスの天岩戸",
   "title.hansan-turtle-ship-1592": "閑山島海戦、1592年",
   "title.con-rong-chau-tien": "龍の子、仙女の孫",

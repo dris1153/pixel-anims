@@ -169,6 +169,7 @@ export default {
   "country.ie": "Irlanda", "country.no": "Noruega", "country.dk": "Dinamarca", "country.fi": "Finlandia", "country.de": "Alemania", "country.es": "España",
   "country.it": "Italia", "country.fr": "Francia", "country.us": "EE. UU.", "country.mx": "México", "country.br": "Brasil", "country.pe": "Perú",
   "country.nz": "Nueva Zelanda", "country.other": "Otro",
+  "title.sadko-sea-tsar": "Sadkó y el Zar del Mar",
   "title.amaterasu-heavenly-rock-cave": "Amaterasu y la cueva de roca celestial",
   "title.hansan-turtle-ship-1592": "La batalla de la isla Hansan, 1592",
   "title.con-rong-chau-tien": "Hijos del dragón y del hada",

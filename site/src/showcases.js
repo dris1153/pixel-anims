@@ -9,6 +9,45 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "sadko-sea-tsar",
+    tags: ["humanoid", "magic", "underwater", "dusk"],
+    country: "ru",
+    title: "Sadko and the Sea Tsar",
+    still: 1212,
+    res: [160, 90],
+    loop: 28,
+    states: ["gusli", "tsar", "fish", "fleet", "becalm", "lots", "plank", "sink", "palace", "play", "dance", "storm", "nicholas", "bride", "wake", "return"],
+    kind: "Made with the skill",
+    note: "The world is baked once two screens tall and cut open at the waterline, so one integer camera glides from Novgorod down to the palace of the Sea Tsar and stops halfway where the storm above and the dancing Tsar below share one frame, while dusk, the leaden calm, the storm and dawn are palette remaps swept down over everything above the water.",
+    prompt:
+      "Pixel art the Russian bylina of Sadko, the gusli player of Novgorod, and the Sea Tsar, 160×90, 28-second " +
+      "seamless loop, 16 states. The camera glides vertically: the world is two screens tall, and the camera rests at " +
+      "the surface, at a middle cross-section showing the surface and the depths at once, or at the seabed, gliding " +
+      "between them in a few states. Scene: above, the shore of Lake Ilmen, with the wooden walls and golden onion " +
+      "domes of Novgorod at the left, and open water to the right. Below the surface, green water with shafts of " +
+      "light, fish and swaying weed, down to the white-stone palace of the Sea Tsar on the seabed, with pearl domes " +
+      "and coral. The light runs from dusk through a grey becalmed day, the green gloom of the depths and a storm to " +
+      "dawn and dusk again. Keep the frame readable: Sadko and one wonder at a time. 1. gusli: at dusk on the shore " +
+      "of Lake Ilmen, poor Sadko in a red shirt sits on a rock playing his gusli, glittering notes rising over the " +
+      "water. 2. tsar: the lake swells and the Sea Tsar rises, a giant bearded king crowned with coral and shells, " +
+      "his green robes streaming water. 3. fish: Sadko casts a silk net and hauls up three fish with golden fins, and " +
+      "the merchants on the pier gasp and hand over chests of gold. 4. fleet: rich now, Sadko sets out with thirty " +
+      "ships with carved prows and striped sails. 5. becalm: far out at sea, under a leaden sky, the ships stop dead " +
+      "in the water, their sails hanging slack. 6. lots: lots are cast into the sea; the others float like feathers, " +
+      "but Sadko's sinks like a stone. 7. plank: Sadko is set down on an oak plank with his gusli, and the freed " +
+      "ships sail on without him. 8. sink: the camera sinks with him through the green water, past shafts of light, " +
+      "fish and bubbles, down to the seabed. 9. palace: the white-stone palace of the Sea Tsar gleams with pearl " +
+      "domes and coral, and sea maidens drift by. 10. play: Sadko plays the gusli, and the Sea Tsar begins to dance. " +
+      "11. dance: the Tsar dances wilder and wilder, coral swaying and fish whirling around him. 12. storm: the " +
+      "camera rises to show both worlds at once: above, huge waves, lightning and ships foundering; below, the Tsar " +
+      "still dancing. 13. nicholas: an old man with a white beard and a soft halo, St Nicholas, appears beside Sadko; " +
+      "Sadko snaps the strings, the Tsar stops, and the storm falls still. 14. bride: the camera sinks back to the " +
+      "palace, where the Tsar parades the sea maidens and Sadko chooses the last, dark-haired Chernava. 15. wake: the " +
+      "camera rises with him through a trail of bubbles; he wakes at dawn on a riverbank by Novgorod, and Chernava " +
+      "becomes the river flowing beside him. 16. return: his ships come home to the pier, dusk falls, and Sadko sits " +
+      "on his rock playing the gusli again.",
+  },
+  {
     slug: "amaterasu-heavenly-rock-cave",
     tags: ["humanoid", "magic", "impact", "night"],
     country: "jp",
