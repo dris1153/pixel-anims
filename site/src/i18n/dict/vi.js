@@ -169,6 +169,7 @@ export default {
   "country.ie": "Ireland", "country.no": "Na Uy", "country.dk": "Đan Mạch", "country.fi": "Phần Lan", "country.de": "Đức", "country.es": "Tây Ban Nha",
   "country.it": "Ý", "country.fr": "Pháp", "country.us": "Mỹ", "country.mx": "Mexico", "country.br": "Brazil", "country.pe": "Peru",
   "country.nz": "New Zealand", "country.other": "Khác",
+  "title.pangu-separates-heaven-earth": "Bàn Cổ khai thiên lập địa",
   "title.forging-the-sampo": "Rèn cối thần Sampo",
   "title.vesuvius-79-pompeii": "Núi Vesuvius, năm 79",
   "title.war-of-the-worlds-1898": "Chiến tranh giữa các thế giới, 1898",

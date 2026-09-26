@@ -169,6 +169,7 @@ export default {
   "country.ie": "アイルランド", "country.no": "ノルウェー", "country.dk": "デンマーク", "country.fi": "フィンランド", "country.de": "ドイツ", "country.es": "スペイン",
   "country.it": "イタリア", "country.fr": "フランス", "country.us": "アメリカ", "country.mx": "メキシコ", "country.br": "ブラジル", "country.pe": "ペルー",
   "country.nz": "ニュージーランド", "country.other": "その他",
+  "title.pangu-separates-heaven-earth": "盤古の天地開闢",
   "title.forging-the-sampo": "サンポを鍛える",
   "title.vesuvius-79-pompeii": "ヴェスヴィオ火山、79年",
   "title.war-of-the-worlds-1898": "宇宙戦争、1898年",

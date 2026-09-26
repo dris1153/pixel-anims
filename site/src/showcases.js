@@ -9,6 +9,46 @@ import { t } from './i18n/i18n.js';
 
 export const SHOWCASES = [
   {
+    slug: "pangu-separates-heaven-earth",
+    tags: ["humanoid", "magic", "impact", "dawn"],
+    country: "cn",
+    title: "Pangu Separates Heaven and Earth",
+    still: 336,
+    res: [160, 90],
+    loop: 28,
+    states: ["egg", "sleep", "wake", "axe", "split", "hold", "grow", "weary", "fall", "breath", "eyes", "peaks", "rivers", "stars", "bloom", "return"],
+    kind: "Made with the skill",
+    note: "The burst chaos is one turning yin-yang pulled apart into sky and earth, and the fallen giant is one heightfield whose columns stretch from flesh into the five stone peaks, so the whole world grows out of his body before a single vortex draws it back into the egg.",
+    prompt:
+      "Pixel art the Chinese creation myth of Pangu separating heaven and earth, 160×90, one fixed shot, 28-second " +
+      "seamless loop, 16 states. Scene: at first a black void with one vast cosmic egg floating in the middle, its " +
+      "shell marbled dark and pale like yin and yang. After the split a new world fills the frame: a pale sky above " +
+      "and a dark ochre earth below. Later come mountains lying along the horizon, rivers, a sun and a moon, stars " +
+      "and green forests. The light runs from black chaos through storm, a first golden day and a starry night to " +
+      "dusk. Keep the frame readable: Pangu or one wonder at a time. 1. egg: in the black void the vast egg floats, " +
+      "turning slowly, a faint glow pulsing inside like a heartbeat. 2. sleep: the glow brightens and through the " +
+      "shell shows a giant curled up asleep, knees to chest, while dust and embers drift for eighteen thousand years. " +
+      "3. wake: his eyes open as two sparks, he stretches, and bright cracks race across the shell. 4. axe: Pangu " +
+      "seizes a great axe and swings it; the egg bursts apart in a blast of white light and a ring of shell shards " +
+      "flying outward. 5. split: the clear, light part of chaos drifts up and becomes the sky, the heavy, murky part " +
+      "sinks down and becomes the earth, the two swirling apart like a turning yin-yang. 6. hold: Pangu stands " +
+      "between them so they cannot close again, palms pressed up against the sky and feet braced on the earth. He is " +
+      "bearded and long-haired, with small horns and a cape of leaves at his waist. 7. grow: day and night flicker " +
+      "past faster and faster as he grows taller every day, the sky rising and the earth sinking until they stand far " +
+      "apart. 8. weary: the sky holds by itself at last; Pangu lowers his arms, lets the axe fall and sinks to one " +
+      "knee, breathing hard. 9. fall: he lies down along the horizon, head to the east and feet to the west, and " +
+      "breathes out one last great breath. 10. breath: his breath rolls out as wind and billowing clouds, and his " +
+      "voice becomes thunder, lightning flickering along the clouds. 11. eyes: his left eye rises into the sky as a " +
+      "blazing sun and his right eye as a silver moon. 12. peaks: his body turns to stone: his head, belly and feet " +
+      "rise into the great sacred mountains, his arms into long ridges. 13. rivers: his blood runs out as winding " +
+      "rivers between the peaks to a shining sea, and his sweat falls as rain. 14. stars: night falls, and his hair " +
+      "and beard lift into the sky and scatter as countless stars around the moon. 15. bloom: the first dawn breaks; " +
+      "the fine hair of his skin sprouts as grass, trees and flowers that spread green over the mountains, and his " +
+      "teeth and bones glint as gold and jade in the rocks. 16. return: at dusk the whole world streams back into one " +
+      "point: stars, moon, sun, rivers and mountains spiral inward and close into the cosmic egg again, with the " +
+      "giant curled up asleep inside, ready to wake.",
+  },
+  {
     slug: "forging-the-sampo",
     tags: ["humanoid", "craft", "magic", "night"],
     country: "fi",

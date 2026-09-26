@@ -169,6 +169,7 @@ export default {
   "country.ie": "आयरलैंड", "country.no": "नॉर्वे", "country.dk": "डेनमार्क", "country.fi": "फ़िनलैंड", "country.de": "जर्मनी", "country.es": "स्पेन",
   "country.it": "इटली", "country.fr": "फ़्रांस", "country.us": "अमेरिका", "country.mx": "मेक्सिको", "country.br": "ब्राज़ील", "country.pe": "पेरू",
   "country.nz": "न्यूज़ीलैंड", "country.other": "अन्य",
+  "title.pangu-separates-heaven-earth": "पानगू ने अलग किए आकाश और धरती",
   "title.forging-the-sampo": "साम्पो की गढ़ाई",
   "title.vesuvius-79-pompeii": "वेसुवियस, 79 ईस्वी",
   "title.war-of-the-worlds-1898": "दुनियाओं की जंग, 1898",
